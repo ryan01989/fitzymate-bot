@@ -43,13 +43,14 @@ The rules come from the team's showdown analysis (placement only; most deaths ar
 - **Being shot.** Faces the attacker (rear armor). Answers only when not out-gunned or behind; otherwise breaks line of sight.
 - **During a fight.** Holds about 105–112 m, where gun bullets can be side-stepped; picks each step from candidate moves by the miss distance to bullets already in the air. Tracks the damage race (time-to-kill over time-to-die) and leaves when losing it, or below 50% HP without a lead. Steps behind a corner to reload.
 - **Retreat.** Bounded search for the nearest spot hidden from every recent threat, weighted toward distance; keeps moving while a pursuer closes; regenerates; turns to fight only when running is not working against one or two pursuers.
-- **Weapons and upgrades.** Keeps the gun; laser first, lightning until a laser turns up, never mortar. Upgrades: plating, armor, laser charge/damage, nanites, then gun.
-- **Loot.** Only when quiet: lasers, cubes up to the stat cap, crates and lone drones, supply drops with nobody near.
+- **Weapons and upgrades.** Keeps the gun; laser first, lightning until a laser turns up, never mortar. Upgrades follow the top-5 Showdown bots: plating, armor, nanites, gun damage, gun rate, then laser damage; lightning efficiency last.
+- **Loot.** Crates and NPC drones only in the first minute (as every top-5 bot does); after that, cubes come from kills. Lasers and supply drops with nobody near whenever quiet.
+- **Hurt and endgame.** No new fights below 50% HP except finishing a nearly dead mech. With 4 or fewer alive, starts a fight only on a target under 50% HP, one busy with someone else, or with a 30-point HP lead.
 - **Endgame.** Follows a small final circle onto a roof or into the stadium with jump jets if that is where it closes.
 
 ## Tuning
 
-`P` in `src/bot.mjs`: `hideHp`, `resumeHp`, `initHpLow`, `initAdv`, `vetoAdv`, `vetoCubes`, `crowd`, `openingS`, `farm`, `calmS`, `zoneMarginFrac`, `silentNear`. Set `farm: false` for a purely passive bot.
+`P` in `src/bot.mjs`: `farmUntil`, `objectsUntil`, `startHpMin`, `endgameAlive`, `hideHp`, `resumeHp`, `initHpLow`, `initAdv`, `vetoAdv`, `vetoCubes`, `crowd`, `openingS`, `farm`, `calmS`, `zoneMarginFrac`, `silentNear`. Set `farm: false` for a purely passive bot.
 
 ## Local simulator
 

@@ -22,11 +22,13 @@ function mulberry(seed) {
   }
 }
 
-// Upgrade preference, best first (survivability, then laser, then gun).
+// Upgrade preference, best first. Follows the top-5 Showdown bots (mech-top5-bot-profiles.md §6):
+// survivability first (plating, armor, nanites), then gun damage and rate, then laser damage.
+// Lightning efficiency scored poorly across the field, so it goes last.
 const UPGRADES = [
-  "plating", "armor", "laser_charge", "laser_damage", "nanites", "gun_damage", "gun_rate", "capacitor",
-  "servos", "gun_velocity", "sensors", "gyros", "reactor", "gun_mag", "jets", "lightning_range",
-  "lightning_chain", "laser_pierce", "lightning_efficiency", "mortar_reload", "mortar_velocity", "mortar_splash",
+  "plating", "armor", "nanites", "gun_damage", "gun_rate", "laser_damage", "servos", "reactor",
+  "laser_charge", "capacitor", "gun_velocity", "sensors", "gyros", "gun_mag", "jets", "lightning_range",
+  "lightning_chain", "laser_pierce", "mortar_reload", "mortar_velocity", "mortar_splash", "lightning_efficiency",
 ]
 const WEAPON_RANK = { laser: 3, lightning: 2, gun: 1, mortar: 0 }
 
@@ -56,7 +58,11 @@ export const P = {
   zapRange: 0, // with lightning: close to this range for the arc + gun burst (0 = only when ahead)
   preferZap: false, // rank lightning above the laser when picking up weapons
   farmHard: true, // farm crates / drones / cubes far and wide, and explore to find them
-  farmUntil: 200, // ...until this match time
+  // --- top-5 Showdown profile (mech-top5-bot-profiles.md)
+  farmUntil: 60, // ...until this match time: all five top bots break crates only in the first minute (§2)
+  objectsUntil: 60, // crates and NPC drones only before this time; afterwards cubes come from kills (§2)
+  startHpMin: 0.5, // below this HP share, start no new fights unless finishing a nearly dead mech (§4, takeaway 5)
+  endgameAlive: 4, // with this many mechs or fewer alive, start fights only with a clear edge (§4, takeaway 6)
   peek: true, // fight from cover: reload / charge the laser hidden, step out to shoot, step back
   peekOutMax: 3.2, // longest exposure per peek (s)
   peekDmg: 260, // damage taken in one peek that sends us back behind cover
@@ -66,7 +72,7 @@ export const P = {
 export const P_FFA = {
   hideHp: 0.4, resumeHp: 0.8, initHpLow: 0.75, initAdv: 0.2, vetoAdv: -0.12, vetoCubes: -5, crowd: 90, openingS: 45, calmS: 4,
   healBelow: 0, killLoot: false, dropHeal: false, fightRange: 0, bandRange: 14, noRetreat: false, berserk: false, zapRange: 0,
-  farmHard: false, peek: false,
+  farmHard: true, farmUntil: 60, objectsUntil: 60, killLoot: true, startHpMin: 0.5, endgameAlive: 4, peek: false,
 }
 if (typeof process !== "undefined" && process.env && process.env.FM_P) Object.assign(P, JSON.parse(process.env.FM_P))
 if (typeof process !== "undefined" && process.env && process.env.FM_PFFA) Object.assign(P_FFA, JSON.parse(process.env.FM_PFFA))
@@ -614,6 +620,10 @@ export class Brain {
       return adv >= -0.08
     }
     if (outgunned && adv < 0.2) return false
+    // the top bots cut their fight starts sharply below half HP (four of the five)
+    if (hpS < P.startHpMin) return false
+    // endgame: wait for the others to fight; start only with a clear edge (TigerTown27, most wins)
+    if ((this.o.alive ?? 16) <= P.endgameAlive) return e.hpS < 0.5 || (this.t - e.busyT < 3 && e.hpS < 0.9) || adv >= 0.3
     if (e.hpS < P.initHpLow) return true
     if (adv >= P.initAdv) return true
     if (this.t - e.busyT < 3 && e.hpS < 0.9) return true
@@ -1816,7 +1826,7 @@ export class Brain {
     const reach = farming ? 2.4 : 1
     if (cubeVal > 0) for (const c of this.cubes.values()) if (reachableZ(c.pos)) consider("cube", c, cubeVal * (farming ? 1.6 : 1), 90 * reach)
     if (this.killLoot && t - this.killLoot.t < 25) consider("cube", { id: -7, pos: this.killLoot.pos }, 60, 140 * (farming ? 1.5 : 1))
-    if (P.farm && cubeVal > 0) {
+    if (P.farm && cubeVal > 0 && t < P.objectsUntil) {
       const quiet = farming || !this.sounds.some((s) => t - s.t < 5 && s.D < 160 && (s.kind === "gun" || s.kind === "laser" || s.kind === "lightning" || s.kind === "laser_charge"))
       if (quiet) {
         for (const c of this.crates.values()) if (reachableZ(c.pos)) consider("crate", c, farming ? 55 : 30, 110 * reach)
