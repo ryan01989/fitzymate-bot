@@ -40,14 +40,14 @@ export const P = {
   vetoCubes: -5,
   crowd: 90, // other mechs this close to us veto a fight
   openingS: 45, // extra-passive until then
-  farm: false, // shoot crates / NPC drones when nobody is around
+  farm: true, // shoot crates / NPC drones when nobody is around
   calmS: 4, // seconds without contact before looting
   zoneMarginFrac: 0.14,
-  silentNear: 400, // walk silently when an unseen mech is this close
+  silentNear: 70, // walk silently when an unseen mech is this close
   // --- v3 strategy switches (tested in sim/eval.mjs; FM_P env overrides them in the simulator only)
   healBelow: 0, // out of a fight below this HP share: break line of sight and regenerate first
   healTo: 0.9, // ...until back at this share
-  killLoot: false, // after a kill, collect the dropped cubes when nobody is in sight
+  killLoot: true, // after a kill, collect the dropped cubes when nobody is in sight
   dropHeal: false, // go for supply drops (full repair) whenever hurt and nobody is close
   fightRange: 0, // preferred fight range in m (0 = 104, or 112 with a laser)
   bandRange: 14, // dead band around the preferred range
@@ -55,10 +55,8 @@ export const P = {
   berserk: false, // attack anything in sight
   zapRange: 0, // with lightning: close to this range for the arc + gun burst (0 = only when ahead)
   preferZap: false, // rank lightning above the laser when picking up weapons
-  farmHard: false, // farm crates / drones / cubes far and wide, and explore to find them
+  farmHard: true, // farm crates / drones / cubes far and wide, and explore to find them
   farmUntil: 200, // ...until this match time
-  dieAt: 0, // PROBE: from this match time on, stand still and never shoot (0 = off)
-  noFire: true, // PROBE: never shoot and never start fights
 }
 // Free-for-all profile (qualifying and the final): the survival-first settings of the first two submissions.
 // Applied once, the moment the bot sees mechs dying that it did not kill (see ingest()).
@@ -239,7 +237,6 @@ export class Brain {
 
   // ------------------------------------------------------------------ main
   act(o) {
-    if (P.dieAt > 0 && o.t >= P.dieAt) return { move: [0, 0], boost: false, jump: false, aim: this.lastAim, fire: [false, false], ...(o.offer ? { pick: 0 } : {}) }
     this.deadline = now() + 16
     const T0 = now()
     this.ingest(o)
@@ -593,7 +590,6 @@ export class Brain {
     return Math.abs(angNorm(e.aim[0] - b)) > PI / 2
   }
   wantFight(e, defending) {
-    if (P.noFire) return false
     const me = this.me
     const hpS = this.hpS
     const adv = hpS - e.hpS
@@ -2029,7 +2025,6 @@ export class Brain {
       if (lightning && f.d < (lightning.stats.range ?? 45) - 3 && Math.abs(angNorm(sol.yaw - me.aim[0])) < 0.2 && me.energy > 40) fire[this.slotOf.lightning] = true
     }
     this.farmTarget = null
-    if (P.noFire) fire[0] = fire[1] = false
     // reload in the quiet moments
     if (gun) {
       const mag = gun.stats.mag ?? 12
