@@ -30,6 +30,18 @@ const UPGRADES = [
 ]
 const WEAPON_RANK = { laser: 3, lightning: 2, gun: 1, mortar: 0 }
 
+// Where Showdown winners go, by game phase (summary.md: top-3 k-means clusters over 6 broadcast matches).
+// [x, y, radius m, weight]; weight from lift, winner-time share and how many matches used it. 1-of-6 clusters left out.
+const HOT = [
+  // spawn / early, 0-60 s: leave spawn fast for these
+  [[160, 51, 101, 1.0], [-86, -4, 91, 0.9], [365, -88, 115, 0.85], [226, 293, 96, 0.5], [-83, 289, 79, 0.4]],
+  // mid game, 60-180 s (winners also take roofs, but hold spots are ground-reachable only, so that part is not used)
+  [[123, 0, 102, 1.0], [125, 185, 146, 0.8], [345, 21, 93, 0.75], [313, -208, 84, 0.6], [76, -227, 87, 0.45]],
+  // end game, 180 s+: follows the zone; roofs and spacing matter more than exact spots
+  [[162, -168, 82, 1.0], [170, 0, 66, 0.8], [47, -73, 62, 0.6], [279, -30, 74, 0.6], [66, 78, 75, 0.4]],
+]
+const PHASE_END = [60, 180]
+
 // Tunables (see README "Tuning").
 export const P = {
   hideHp: 0.4, // below this HP share: stop trading, go regenerate
@@ -57,6 +69,14 @@ export const P = {
   preferZap: false, // rank lightning above the laser when picking up weapons
   farmHard: true, // farm crates / drones / cubes far and wide, and explore to find them
   farmUntil: 200, // ...until this match time
+  // --- winner positions (summary.md)
+  hotW: 15, // hold-spot bonus inside a winner cluster of the current phase
+  hotPull: 0.02, // per m toward the nearest winner cluster in the zone (0.05 caused 80 ms path-search spikes in sim)
+  // --- kill ramp: k = 0 before killT1, killK1 until killT2, killK2 after; k loosens the fight thresholds
+  killT1: 45,
+  killK1: 0.4, // slightly more kill-hungry
+  killT2: 90,
+  killK2: 1.0, // a decent bit more
 }
 // Free-for-all profile (qualifying and the final): the survival-first settings of the first two submissions.
 // Applied once, the moment the bot sees mechs dying that it did not kill (see ingest()).
@@ -589,16 +609,45 @@ export class Brain {
     const b = Math.atan2(y - e.pos[1], x - e.pos[0])
     return Math.abs(angNorm(e.aim[0] - b)) > PI / 2
   }
+  /** kill appetite: 0 early, killK1 after killT1, killK2 after killT2 */
+  killK() {
+    return this.t >= P.killT2 ? P.killK2 : this.t >= P.killT1 ? P.killK1 : 0
+  }
+  phase() {
+    return this.t < PHASE_END[0] ? 0 : this.t < PHASE_END[1] ? 1 : 2
+  }
+  /** winner clusters of the current phase whose centre is inside the current circle */
+  hotSpots() {
+    const ph = this.phase()
+    const z = this.o.zone
+    const key = `${ph},${Math.round(z.center[0])},${Math.round(z.center[1])},${Math.round(z.radius)}`
+    if (this.hotKey !== key) {
+      this.hotKey = key
+      this.hotList = HOT[ph].filter((h) => hyp(h[0] - z.center[0], h[1] - z.center[1]) < z.radius - 10)
+    }
+    return this.hotList
+  }
+  /** 0..weight: full inside a cluster's radius, fading to 0 at twice the radius */
+  hotBonus(x, y) {
+    let b = 0
+    for (const [hx, hy, r, wt] of this.hotSpots()) {
+      const d = hyp(x - hx, y - hy)
+      const v = d < r ? wt : d < 2 * r ? wt * (2 - d / r) : 0
+      if (v > b) b = v
+    }
+    return b
+  }
   wantFight(e, defending) {
     const me = this.me
     const hpS = this.hpS
     const adv = hpS - e.hpS
     const cubeDiff = (me.cubes || 0) - (e.cubes || 0)
+    const k = this.killK()
     if (this.finalPhase) return true
-    if (e.hpS < 0.35 && hpS > 0.3) return true
+    if (e.hpS < 0.35 + 0.1 * k && hpS > 0.3) return true
     if (this.others(e, P.crowd) >= 1) return false
-    if (cubeDiff <= P.vetoCubes) return false
-    if (adv <= P.vetoAdv) return false
+    if (cubeDiff <= P.vetoCubes - 2 * k) return false
+    if (adv <= P.vetoAdv - 0.08 * k) return false
     if (hpS < P.hideHp) return false
     const mine = this.myRank,
       theirs = this.theirRank(e)
@@ -606,17 +655,17 @@ export class Brain {
     if (defending) {
       // shot first: answer only when not at a disadvantage; the damage race decides after a few seconds
       if (this.t - this.noCoverT < 4) return true
-      if (e.hpS < P.initHpLow) return true
-      if (outgunned || cubeDiff <= -2) return adv >= 0.25
-      return adv >= -0.08
+      if (e.hpS < P.initHpLow + 0.12 * k) return true
+      if (outgunned || cubeDiff <= -2) return adv >= 0.25 - 0.08 * k
+      return adv >= -0.08 - 0.07 * k
     }
-    if (outgunned && adv < 0.2) return false
-    if (e.hpS < P.initHpLow) return true
-    if (adv >= P.initAdv) return true
+    if (outgunned && adv < 0.2 - 0.06 * k) return false
+    if (e.hpS < P.initHpLow + 0.12 * k) return true
+    if (adv >= P.initAdv - 0.12 * k) return true
     if (this.t - e.busyT < 3 && e.hpS < 0.9) return true
     if (e.hunt >= 2 && hpS >= 0.7 && e.dist < 170) return true // it is coming for us: take the first shot
-    if (e.los && e.dist < 78 && adv >= -0.05 && hpS >= 0.6) return true // too close to go unnoticed
-    if (this.t > P.openingS && mine === 2 && theirs < 2 && this.rearOf(e) && e.dist > 45 && e.dist < 150 && hpS > 0.8) return true
+    if (e.los && e.dist < 78 + 27 * k && adv >= -0.05 - 0.05 * k && hpS >= 0.6 - 0.05 * k) return true // too close to go unnoticed
+    if (this.t > P.openingS && mine === 2 && theirs < 2 && this.rearOf(e) && e.dist > 45 && e.dist < 150 + 30 * k && hpS > 0.8 - 0.1 * k) return true
     return false
   }
 
@@ -689,7 +738,7 @@ export class Brain {
         if (this.others(e, P.crowd) >= 1 && e.hpS > 0.22 && t - this.fightStartT > 1) retreat = true
         else if (race != null) {
           // cut losses when out-traded; press on when clearly ahead, even hurt
-          if (race > 1.12 && e.hpS > 0.18) retreat = true
+          if (race > 1.12 + 0.1 * this.killK() && e.hpS > 0.18) retreat = true
           else if (race > 0.8 && hpS < P.hideHp && adv < 0.2) retreat = true
         } else if (hpS < P.hideHp && !(e.hpS < 0.25 && adv > -0.05) && adv < 0.2) retreat = true
         else if (adv < -0.2 && hpS < 0.7) retreat = true
@@ -748,7 +797,7 @@ export class Brain {
     // --- continue a fight
     if (this.mode === "fight" && target) {
       const lost = t - (target.losT ?? -99)
-      const chase = target.hpS < 0.4 && hpS > 0.55 && this.others(target, P.crowd) === 0
+      const chase = target.hpS < 0.4 + 0.1 * this.killK() && hpS > 0.55 && this.others(target, P.crowd) === 0
       if (lost < (chase ? 7 : 2.5) && t - this.fightStartT < 60) return
       this.mode = "hold"
       this.targetId = -1
@@ -756,8 +805,9 @@ export class Brain {
     // --- start a fight
     let best = null,
       bestScore = -1e9
+    const startR = 215 + 25 * this.killK()
     for (const e of losE) {
-      if (e.dist > 215) continue
+      if (e.dist > startR) continue
       if (!this.wantFight(e, false)) continue
       const s = (1 - e.hpS) * 100 - e.dist * 0.2 + (this.rearOf(e) ? 15 : 0)
       if (s > bestScore) {
@@ -1132,6 +1182,7 @@ export class Brain {
     const snd = this.sounds.filter((s) => t - s.t < 6 && s.kind !== "step" && s.kind !== "boost" && s.kind !== "jet" && s.kind !== "reload")
     const top = []
     const ringLo = this.nr > 60 ? 0.45 : 0
+    const hot = this.hotSpots()
     for (let k = 0; k < S.count; k++) {
       const sx = S.x[k],
         sy = S.y[k]
@@ -1143,6 +1194,12 @@ export class Brain {
       const until = this.badSpots.get(k)
       if (until && until > t) continue
       let s = 46 * S.cov[k] - 0.13 * d
+      if (hot.length) {
+        s += P.hotW * this.hotBonus(sx, sy)
+        let dh = 1e9
+        for (const h of hot) dh = Math.min(dh, Math.max(0, hyp(sx - h[0], sy - h[1]) - h[2]))
+        s -= P.hotPull * dh
+      }
       if (this.nr > 1) {
         const rr = dc / this.nr
         if (rr < ringLo) s -= 30 * (ringLo - rr)
@@ -1410,7 +1467,7 @@ export class Brain {
             py = gy * C
           if (hyp(px - this.nc[0], py - this.nc[1]) > r || hyp(px - zc.center[0], py - zc.center[1]) > zc.radius - 15) continue
           if (this.w && this.w.nearestNode(px, py, this.w.ground(px, py), this.reqR, this.Hh + 0.3, 8) < 0) continue
-          let d = hyp(px - x, py - y)
+          let d = hyp(px - x, py - y) - 120 * this.hotBonus(px, py)
           for (const e of this.en.values()) if (t - e.t < 15 && hyp(px - e.pos[0], py - e.pos[1]) < 120) d += 200
           if (d < bs) {
             bs = d
