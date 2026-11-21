@@ -1,0 +1,1 @@
+{ "name": "fitzymate-bot", "private": true, "type": "module", "scripts": { "check": "python3 check/check.py --schema mechfight.schema.json --map-dir arena -- node main.mjs", "sim": "node sim/run.mjs" } }

@@ -1,0 +1,6 @@
+.git
+sim
+check
+*.md
+mechfight.schema.json
+node_modules
