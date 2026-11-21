@@ -56,33 +56,7 @@ export const P = {
   zapRange: 0, // with lightning: close to this range for the arc + gun burst (0 = only when ahead)
   preferZap: false, // rank lightning above the laser when picking up weapons
   farmHard: true, // farm crates / drones / cubes far and wide, and explore to find them
-  farmUntil: 200, // ...until this match time
-  crateRange: 60, // stand-off range for shooting crates (v3-farm: 38)
-  npcRange: 95, // ...and drones: they lose interest beyond 90 m (v3-farm: 72)
-  npcStand: true, // stand still (no strafing) beyond 80 m from a drone
-  fireWalk: 140, // shoot loot targets in sight while still walking in, within this range (0 = off)
-  farmBoost: 45, // boost while farming when energy is above this (0 = off)
-  farmLaser: true, // use the laser on crates and drones
-  killLootR: 130, // walk this far for the cubes a kill dropped
-  retreatDrop: 0, // when retreating, run for a supply drop within this range instead of cover (0 = off)
-  dropAny: 0, // out of a fight, go for a supply drop within this range even with mechs in sight (0 = off)
-  passiveOk: false, // while farming, ignore mechs that show no sign of hunting us
-  dropVal: 300, // value of a supply drop in pickLoot (v3-farm: 150)
-  dropRange: 700, // (v3-farm: 260)
-  // --- agentB experiments
-  coverKeep: 80, // leave a cover spot when a known threat is this close to it
-  relocate: true, // while hiding, also flee from hunters known in the last relocMem s and nearby footsteps
-  relocMem: 15,
-  coverCost: 220, // cover search reach (path cost)
-  coverCap: 220, // distance from threats counts up to this
-  coverW: 0.7, // weight of distance from threats vs path length (0.55)
-  hostileOnly: true, // mechs that never showed hostility do not veto fights (house pack: inactive members wander)
-  hostileMem: 25,
-  arcKeep: 0.8, // in a fight, weight of backing away from a second hostile outside the front arc
-  exploreSafe: 150, // no exploring while a hostile mech was seen within this range in the last 10 s
-  hostileHunt: 2,
-  seenW: 0.5, // weight of distance from where we were last seen (the pack converges there)
-  peaceUntil: 0, // before this time, never start fights with squad members that are not hunting us (0 = off)
+  farmUntil: 420, // ...until this match time (whole match: farming is what moved the real score)
 }
 // Free-for-all profile (qualifying and the final): the survival-first settings of the first two submissions.
 // Applied once, the moment the bot sees mechs dying that it did not kill (see ingest()).
@@ -90,10 +64,7 @@ export const P_FFA = {
   hideHp: 0.4, resumeHp: 0.8, initHpLow: 0.75, initAdv: 0.2, vetoAdv: -0.12, vetoCubes: -5, crowd: 90, openingS: 45, calmS: 4,
   healBelow: 0, killLoot: false, dropHeal: false, fightRange: 0, bandRange: 14, noRetreat: false, berserk: false, zapRange: 0,
   farmHard: false,
-  crateRange: 38, npcRange: 72, npcStand: false, fireWalk: 0, farmBoost: 0, farmLaser: false, dropVal: 150, dropRange: 260, retreatDrop: 0, dropAny: 0, passiveOk: false, killLootR: 130,
 }
-// agentB practice-only changes, back to the old behaviour once free-for-all is detected
-const B_FFA = { peaceUntil: 0, coverKeep: 48, relocate: false, coverCost: 150, coverCap: 160, coverW: 0.7, seenW: 0, hostileOnly: false, arcKeep: 0, exploreSafe: 0 }
 if (typeof process !== "undefined" && process.env && process.env.FM_P) Object.assign(P, JSON.parse(process.env.FM_P))
 if (typeof process !== "undefined" && process.env && process.env.FM_PFFA) Object.assign(P_FFA, JSON.parse(process.env.FM_PFFA))
 if (P.preferZap) {
@@ -500,7 +471,6 @@ export class Brain {
       e.los = this.w ? this.w.los(x, y, z + this.eyeH, e.pos[0], e.pos[1], e.cz) || this.w.los(x, y, z + this.eyeH, e.pos[0], e.pos[1], e.pos[2] + 8.6 * es) : true
       if (e.los) {
         e.losT = t
-        this.seenPos = [x, y]
         if (e.dist < 200) this.lastContactT = Math.max(this.lastContactT, t - 2)
       }
       this.vis.push(e)
@@ -510,7 +480,7 @@ export class Brain {
     const othersDead = (this.cfg.match?.mechs ?? 16) - (o.alive ?? 16) - (this.myKills || 0)
     if (othersDead >= 2 && !this.ffa) {
       this.ffa = true
-      if (!(typeof process !== "undefined" && process.env && process.env.FM_NOSWITCH)) Object.assign(P, P_FFA, B_FFA)
+      if (!(typeof process !== "undefined" && process.env && process.env.FM_NOSWITCH)) Object.assign(P, P_FFA)
     }
     this.posHist.push([x, y, z, t])
     if (this.posHist.length > 14) this.posHist.shift()
@@ -607,12 +577,8 @@ export class Brain {
   }
   others(e, radius) {
     let n = 0
-    for (const q of this.en.values()) if (q !== e && !q.phantom && this.t - q.t < 3 && q.dist < radius && (!P.hostileOnly || this.hostile(q))) n++
+    for (const q of this.en.values()) if (q !== e && !q.phantom && this.t - q.t < 3 && q.dist < radius) n++
     return n
-  }
-  /** has it shown any intent against us (hit us, or closed in / aimed at us for a while) */
-  hostile(q) {
-    return this.t - q.hitMeT < P.hostileMem || q.hunt >= P.hostileHunt
   }
   theirRank(e) {
     return e.has("laser") ? 2 : e.has("lightning") ? 1 : 0
@@ -629,8 +595,6 @@ export class Brain {
     const adv = hpS - e.hpS
     const cubeDiff = (me.cubes || 0) - (e.cubes || 0)
     if (this.finalPhase) return true
-    // early on, leave idle squad members alone: every kill sends another hunter before we have farmed
-    if (!defending && P.peaceUntil > 0 && this.t < P.peaceUntil && !this.hostile(e) && e.hpS > 0.35) return false
     if (e.hpS < 0.35 && hpS > 0.3) return true
     if (this.others(e, P.crowd) >= 1) return false
     if (cubeDiff <= P.vetoCubes) return false
@@ -809,7 +773,7 @@ export class Brain {
     if (P.killLoot && this.killLoot && t - this.killLoot.t < 30 && !losE.some((e) => e.dist < 160)) {
       const [x, y] = this.me.pos
       const d = hyp(this.killLoot.pos[0] - x, this.killLoot.pos[1] - y)
-      if (d < P.killLootR) {
+      if (d < 130) {
         this.loot = { type: "cube", id: -7, pos: this.killLoot.pos }
         this.mode = "loot"
         return
@@ -817,13 +781,7 @@ export class Brain {
     }
     // --- loot when quiet
     this.loot = this.pickLoot()
-    if ((!this.loot || this.loot.type !== "drop") && P.dropAny && this.zoneSlack > 10) {
-      const dr = this.healDrop(P.dropAny)
-      if (dr) this.loot = { type: "drop", id: dr.id, pos: dr.pos }
-    }
-    let huntedNear = false
-    if (P.exploreSafe > 0) for (const e of this.en.values()) if (t - e.t < 10 && e.dist < P.exploreSafe && this.hostile(e)) huntedNear = true
-    this.mode = this.loot ? "loot" : P.farmHard && t < P.farmUntil && hpS > 0.5 && this.zoneSlack > 25 && t - this.lastMechDmgT > 4 && !huntedNear ? "explore" : "hold"
+    this.mode = this.loot ? "loot" : P.farmHard && t < P.farmUntil && hpS > 0.5 && this.zoneSlack > 25 && t - this.lastMechDmgT > 4 ? "explore" : "hold"
   }
 
   setFight(e) {
@@ -1297,7 +1255,7 @@ export class Brain {
       curD = Math.min(curD, hyp(x - th[0], y - th[1]))
     }
     const zc = this.zoneAt(t + 8)
-    w.search(this.myNode, -1, this.searchOpts({ maxCost: P.coverCost, maxExp: 12000, pens: this.pens(pens), zone: [zc[0], zc[1], Math.max(0, zc[2] - 6), 4] }))
+    w.search(this.myNode, -1, this.searchOpts({ maxCost: 150, maxExp: 12000, pens: this.pens(pens), zone: [zc[0], zc[1], Math.max(0, zc[2] - 6), 4] }))
     const n = w.nVisited
     const vis = w.visited
     const floor = Math.min(curD - 4, 42)
@@ -1308,7 +1266,7 @@ export class Brain {
       const c = m % w.NC
       if ((c % w.NX) % 3 || ((c / w.NX) | 0) % 3) continue
       const g = w.gS[m]
-      if (g * 0.55 - P.coverCap * P.coverW - 150 * P.seenW > bestScore) break
+      if (g * 0.55 - 112 > bestScore) break
       if ((k & 127) === 0 && now() > this.deadline) break
       const mx = w.nodeX(m),
         my = w.nodeY(m),
@@ -1320,8 +1278,7 @@ export class Brain {
         if (de < dmin) dmin = de
       }
       if (dmin < floor) continue
-      let score = g * 0.55 - Math.min(dmin, P.coverCap) * P.coverW
-      if (P.seenW > 0 && this.seenPos) score -= Math.min(hyp(mx - this.seenPos[0], my - this.seenPos[1]), 150) * P.seenW
+      const score = g * 0.55 - Math.min(dmin, 160) * 0.7
       if (score >= bestScore) continue
       if (!this.hiddenFrom(threats, mx, my, mz)) continue
       bestScore = score
@@ -1352,34 +1309,17 @@ export class Brain {
     const main = threats[0]?.[4]
     const exposed = threats.some((th) => th[4].los)
     const underFire = t - this.lastMechDmgT < 1.2
-    // a supply drop is a full repair and 3 cubes: run for it instead of for cover
-    const dr = P.retreatDrop ? this.healDrop(P.retreatDrop) : null
-    if (dr) {
-      const d = hyp(dr.pos[0] - x, dr.pos[1] - y)
-      this.moveToPoint(A, dr.pos[0], dr.pos[1], dr.pos[2], 1, d > 4 && me.energy > 10, { replan: 1.5 })
-      if (d < 3) A.move = [0, 0]
-      if (main) this.aimTarget = main.los ? main : null
-      else this.scan(A)
-      return
-    }
     if (threats.length && this.w && t - this.coverT > 0.45) {
       this.coverT = t
       let keep = false
-      // hidden but hunted: everyone recently known plus footsteps close by count as threats to move away from
-      let th2 = threats
-      if (P.relocate) {
-        th2 = threats.slice()
-        for (const e of this.en.values()) if (t - e.t < P.relocMem && !threats.some((q) => q[4] === e) && th2.length < 5) th2.push([e.pos[0], e.pos[1], e.pos[2], 0, e])
-        for (const s of this.sounds) if (t - s.t < 2 && s.D < 40 && (s.kind === "step" || s.kind === "boost") && th2.length < 6) th2.push([s.x, s.y, z, 0, null])
-      }
       if (this.cover) {
         // still out of sight, and the pursuer is not about to walk onto it
         let dmin = 1e9
-        for (const th of th2) dmin = Math.min(dmin, hyp(this.cover.x - th[0], this.cover.y - th[1]))
-        keep = dmin > P.coverKeep && this.hiddenFrom(threats, this.cover.x, this.cover.y, this.cover.z)
+        for (const th of threats) dmin = Math.min(dmin, hyp(this.cover.x - th[0], this.cover.y - th[1]))
+        keep = dmin > 48 && this.hiddenFrom(threats, this.cover.x, this.cover.y, this.cover.z)
       }
       if (!keep) {
-        const c = this.findCover(th2)
+        const c = this.findCover(threats)
         if (c) {
           this.cover = c
           this.setPath(c.path, c.node)
@@ -1484,7 +1424,7 @@ export class Brain {
       this.doHold(A)
       return
     }
-    if (this.moveToPoint(A, this.exploreGoal[0], this.exploreGoal[1], undefined, 1, this.farmBoostOk(99))) vis.set(this.exploreGoal[2], t)
+    if (this.moveToPoint(A, this.exploreGoal[0], this.exploreGoal[1], undefined, 1, false)) vis.set(this.exploreGoal[2], t)
     this.scan(A, null)
   }
 
@@ -1534,18 +1474,6 @@ export class Brain {
         cd = hyp(cx, cy) || 1
       zx = (cx / cd) * 0.8
       zy = (cy / cd) * 0.8
-    }
-    if (P.arcKeep > 0) {
-      // a second hostile far off to the side (or behind): back away from it so both stay in the front arc
-      const bt = Math.atan2(dy, dx)
-      for (const q of this.vis) {
-        if (q === e || !q.los || q.dist > 170 || !this.hostile(q)) continue
-        const off = Math.abs(angNorm(Math.atan2(q.pos[1] - y, q.pos[0] - x) - bt))
-        if (off < 1.15) continue
-        const k = P.arcKeep * Math.min(1, (off - 1.15) / 0.6)
-        zx -= ((q.pos[0] - x) / q.dist) * k
-        zy -= ((q.pos[1] - y) / q.dist) * k
-      }
     }
     const mk = (side, rad) => {
       const mx = -uy * side + ux * rad + zx,
@@ -1610,7 +1538,6 @@ export class Brain {
     if (!this.duckSpot || t - this.duckT > 0.4) {
       this.duckT = t
       const th = [[e.pos[0], e.pos[1], e.pos[2]]]
-      if (P.duckAll) for (const q of this.vis) if (q !== e && q.los && q.dist < 200) th.push([q.pos[0], q.pos[1], q.pos[2]])
       const reach = Math.max(6, (gun.reload > 0 ? gun.reload : gun.stats.reload ?? 2.4) * this.walk * 0.42)
       w.search(this.myNode, -1, this.searchOpts({ maxCost: reach, maxExp: 1500, pens: null, zone: null }))
       let best = -1
@@ -1723,7 +1650,7 @@ export class Brain {
     }
     const farming = P.farmHard && t < P.farmUntil
     if (farming) {
-      if (this.hpS < 0.45 || t - this.lastMechDmgT < 4 || this.vis.some((e) => e.los && e.dist < 170 && this.hostile(e))) return null
+      if (this.hpS < 0.45 || t - this.lastMechDmgT < 4 || this.vis.some((e) => e.los && e.dist < 170)) return null
     } else if (!this.calm || this.hpS < 0.6) return null
     if (this.zoneSlack < 14) return null
     const [x, y, z] = me.pos
@@ -1733,7 +1660,7 @@ export class Brain {
     const okPlace = (p, d) => insideNow(p) && (insideNext(p) || this.zoneSlack > d / this.walk + 25)
     const reachableZ = (p) => !this.w || Math.abs(this.w.standZ(p[0], p[1], z + 1.5) - p[2]) < 3.2 || (this.w.nodeAt(p[0], p[1], p[2], 3) >= 0 && this.main && this.main[this.w.nodeAt(p[0], p[1], p[2], 3)])
     const nearEnemy = (p) => {
-      for (const e of this.en.values()) if (t - e.t < 12 && hyp(p[0] - e.pos[0], p[1] - e.pos[1]) < 110 && this.hostile(e)) return true
+      for (const e of this.en.values()) if (t - e.t < 12 && hyp(p[0] - e.pos[0], p[1] - e.pos[1]) < 110) return true
       return false
     }
     let best = null,
@@ -1754,7 +1681,7 @@ export class Brain {
       const d = hyp(dr.pos[0] - x, dr.pos[1] - y)
       if (dr.holder != null && dr.holder !== me.id) continue
       if (dr.lands_in > d / this.walk + 12) continue
-      consider("drop", { id: dr.id, pos: dr.pos }, P.dropVal, P.dropRange)
+      consider("drop", { id: dr.id, pos: dr.pos }, 150, 260)
     }
     const slot1 = me.weapons?.[1]
     for (const p of this.picks.values()) {
@@ -1785,38 +1712,6 @@ export class Brain {
     return best
   }
 
-  /** could this mech be coming for us (passiveOk: house bots not on the hunt are ignored while farming) */
-  hostile(e) {
-    if (!P.passiveOk || !(P.farmHard && this.t < P.farmUntil)) return true
-    const t = this.t
-    return e.phantom || e.hunt >= 1.2 || e.aimOn || t - e.hitMeT < 15 || t - e.myHitT < 15 || e.dist < 40
-  }
-  /** a supply drop we can capture soon (landed or landing by the time we get there), within maxD */
-  healDrop(maxD) {
-    const me = this.me
-    const [x, y] = me.pos
-    const zc = this.o.zone
-    let best = null,
-      bd = maxD
-    for (const dr of this.o.drops || []) {
-      if (dr.holder != null && dr.holder !== me.id) continue
-      const d = hyp(dr.pos[0] - x, dr.pos[1] - y)
-      if (d > bd || dr.lands_in > d / this.walk + 3) continue
-      if (hyp(dr.pos[0] - zc.center[0], dr.pos[1] - zc.center[1]) > zc.radius - 6) continue
-      // not right next to someone else
-      let crowded = false
-      for (const e of this.en.values()) if (this.t - e.t < 5 && !e.phantom && hyp(dr.pos[0] - e.pos[0], dr.pos[1] - e.pos[1]) < 14) crowded = true
-      if (crowded) continue
-      bd = d
-      best = dr
-    }
-    return best
-  }
-  farmBoostOk(d) {
-    if (!P.farmBoost || !(P.farmHard && this.t < P.farmUntil)) return false
-    if (d < 25 || this.me.energy < P.farmBoost) return false
-    return !this.vis.some((e) => e.dist < 200)
-  }
   doLoot(A) {
     const L = this.loot
     const t = this.t
@@ -1847,17 +1742,9 @@ export class Brain {
       }
       const tz = tgt.pos[2] + (L.type === "crate" ? 1.2 : 1.8)
       const los = !this.w || this.w.ray(x, y, z + this.muzH, tgt.pos[0], tgt.pos[1], tz, 2) >= 1
-      const want = L.type === "crate" ? P.crateRange : P.npcRange
+      const want = L.type === "crate" ? 38 : 72
       if (!los || d > want + 8) {
-        if (!this.moveToPoint(A, tgt.pos[0], tgt.pos[1], tgt.pos[2], 1, this.farmBoostOk(d)) && this.pathPartial && this.path && this.path.length < 5) fail()
-        // shoot on the way in
-        if (los && d < P.fireWalk) {
-          this.farmTarget = { pos: tgt.pos, z: tz, vel: tgt.vel || [0, 0, 0], r: L.type === "crate" ? 1.2 : 1.6, d, npc: L.type === "npc", hp: tgt.hp }
-          return
-        }
-      } else if (L.type === "npc" && P.npcStand && d > 80) {
-        A.move = [0, 0]
-        this.path = null
+        if (!this.moveToPoint(A, tgt.pos[0], tgt.pos[1], tgt.pos[2], 1, false) && this.pathPartial && this.path && this.path.length < 5) fail()
       } else if (L.type === "npc") {
         // keep the drone at arm's length and sidestep its slow bullets
         const ux = (tgt.pos[0] - x) / (d || 1),
@@ -1866,7 +1753,7 @@ export class Brain {
           this.strafeSide = -this.strafeSide
           this.strafeFlipT = t + 0.6 + this.rand() * 0.8
         }
-        const r = d < Math.min(55, want - 15) ? -0.8 : 0
+        const r = d < 55 ? -0.8 : 0
         let mv = [-uy * this.strafeSide + ux * r, ux * this.strafeSide + uy * r]
         const m = hyp(mv[0], mv[1]) || 1
         mv = [mv[0] / m, mv[1] / m]
@@ -1880,13 +1767,13 @@ export class Brain {
         A.move = [0, 0]
         this.path = null
       }
-      this.farmTarget = los ? { pos: tgt.pos, z: tz, vel: tgt.vel || [0, 0, 0], r: L.type === "crate" ? 1.2 : 1.6, d, npc: L.type === "npc", hp: tgt.hp } : null
+      this.farmTarget = los ? { pos: tgt.pos, z: tz, vel: tgt.vel || [0, 0, 0], r: L.type === "crate" ? 1.2 : 1.6, d, npc: L.type === "npc" } : null
       if (!this.farmTarget) this.scan(A, null)
       return
     }
     // walk onto it
     if (L.type === "drop") {
-      const arrived = this.moveToPoint(A, L.pos[0], L.pos[1], L.pos[2], 1, this.farmBoostOk(d))
+      const arrived = this.moveToPoint(A, L.pos[0], L.pos[1], L.pos[2], 1, false)
       if (d < 3) A.move = [0, 0]
       this.scan(A, null)
       return
@@ -1900,7 +1787,7 @@ export class Brain {
         if (L.type === "cube") this.cubes.delete(L.id)
       }
     } else this.lootStuck = 0
-    const arrived = this.moveToPoint(A, L.pos[0], L.pos[1], L.pos[2], 1, this.farmBoostOk(d))
+    const arrived = this.moveToPoint(A, L.pos[0], L.pos[1], L.pos[2], 1, false)
     if (!arrived && this.pathPartial && this.path && this.path.length < 5) fail()
     this.scan(A, null)
   }
@@ -2132,20 +2019,7 @@ export class Brain {
       if (lightning && sol.dist < (lightning.stats.range ?? 45) - 3 && Math.abs(angNorm(sol.yaw - me.aim[0])) < 0.2 && me.energy > 30) fire[this.slotOf.lightning] = true
     } else if (this.farmTarget && this.mode === "loot" && gun) {
       const f = this.farmTarget
-      let sol = this.lead(f.pos, f.vel, f.z, gun.stats.speed, 0.075)
-      if (laser && P.farmLaser) {
-        // the laser one-shots a crate and nearly a drone: use it on loot too
-        const ls = this.slotOf.laser
-        const full = laser.stats.charge ?? 0.75
-        const lsol = this.lead(f.pos, f.vel, f.z, 0, 0.09)
-        const inR = lsol.dist < (laser.stats.range ?? 280) - 6
-        if (this.charging) {
-          sol = lsol
-          const ready = laser.charge >= full - 0.051
-          const good = inR && this.onTarget(lsol, f.r * 0.7, 0.9)
-          fire[ls] = !((ready && good) || laser.charge > full + (laser.stats.hold_s ?? 2) - 0.35)
-        } else if ((laser.cooldown || 0) <= 0.11 && inR && (f.hp ?? 300) > 90) fire[ls] = true
-      }
+      const sol = this.lead(f.pos, f.vel, f.z, gun.stats.speed, 0.075)
       A.aim = [sol.yaw, sol.pitch]
       if (gun.ammo > 0 && !(gun.reload > 0) && sol.dist < gun.stats.range - 4 && this.onTarget(sol, f.r * 0.8, 1.0)) fire[this.slotOf.gun] = true
       if (lightning && f.d < (lightning.stats.range ?? 45) - 3 && Math.abs(angNorm(sol.yaw - me.aim[0])) < 0.2 && me.energy > 40) fire[this.slotOf.lightning] = true
