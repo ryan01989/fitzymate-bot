@@ -32,16 +32,16 @@ const WEAPON_RANK = { laser: 3, lightning: 2, gun: 1, mortar: 0 }
 
 // Tunables (see README "Tuning").
 export const P = {
-  hideHp: 0.5, // below this HP share: stop trading, go regenerate
-  resumeHp: 0.85, // leave cover when back above this
-  initHpLow: 0.6, // a target under this HP share is fair game
-  initAdv: 0.3, // or when our HP share is this much higher
-  vetoAdv: -0.1, // never start a fight this far behind
+  hideHp: 0.4, // below this HP share: stop trading, go regenerate
+  resumeHp: 0.8, // leave cover when back above this
+  initHpLow: 0.75, // a target under this HP share is fair game
+  initAdv: 0.2, // or when our HP share is this much higher
+  vetoAdv: -0.12, // never start a fight this far behind
   vetoCubes: -5,
-  crowd: 110, // other mechs this close to us veto a fight
-  openingS: 60, // extra-passive until then
+  crowd: 90, // other mechs this close to us veto a fight
+  openingS: 45, // extra-passive until then
   farm: true, // shoot crates / NPC drones when nobody is around
-  calmS: 6, // seconds without contact before looting
+  calmS: 4, // seconds without contact before looting
   zoneMarginFrac: 0.14,
   silentNear: 70, // walk silently when an unseen mech is this close
 }
