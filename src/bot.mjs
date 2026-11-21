@@ -44,6 +44,32 @@ export const P = {
   calmS: 4, // seconds without contact before looting
   zoneMarginFrac: 0.14,
   silentNear: 70, // walk silently when an unseen mech is this close
+  // --- v3 strategy switches (tested in sim/eval.mjs; FM_P env overrides them in the simulator only)
+  healBelow: 0, // out of a fight below this HP share: break line of sight and regenerate first
+  healTo: 0.9, // ...until back at this share
+  killLoot: true, // after a kill, collect the dropped cubes when nobody is in sight
+  dropHeal: false, // go for supply drops (full repair) whenever hurt and nobody is close
+  fightRange: 0, // preferred fight range in m (0 = 104, or 112 with a laser)
+  bandRange: 14, // dead band around the preferred range
+  noRetreat: false, // stand and fight against one or two attackers whatever the HP
+  berserk: false, // attack anything in sight
+  zapRange: 0, // with lightning: close to this range for the arc + gun burst (0 = only when ahead)
+  preferZap: false, // rank lightning above the laser when picking up weapons
+  farmHard: true, // farm crates / drones / cubes far and wide, and explore to find them
+  farmUntil: 200, // ...until this match time
+}
+// Free-for-all profile (qualifying and the final): the survival-first settings of the first two submissions.
+// Applied once, the moment the bot sees mechs dying that it did not kill (see ingest()).
+export const P_FFA = {
+  hideHp: 0.4, resumeHp: 0.8, initHpLow: 0.75, initAdv: 0.2, vetoAdv: -0.12, vetoCubes: -5, crowd: 90, openingS: 45, calmS: 4,
+  healBelow: 0, killLoot: false, dropHeal: false, fightRange: 0, bandRange: 14, noRetreat: false, berserk: false, zapRange: 0,
+  farmHard: false,
+}
+if (typeof process !== "undefined" && process.env && process.env.FM_P) Object.assign(P, JSON.parse(process.env.FM_P))
+if (typeof process !== "undefined" && process.env && process.env.FM_PFFA) Object.assign(P_FFA, JSON.parse(process.env.FM_PFFA))
+if (P.preferZap) {
+  WEAPON_RANK.laser = 2
+  WEAPON_RANK.lightning = 3
 }
 
 class Enemy {
@@ -212,12 +238,16 @@ export class Brain {
   // ------------------------------------------------------------------ main
   act(o) {
     this.deadline = now() + 16
+    const T0 = now()
     this.ingest(o)
+    const T1 = now()
     const A = { move: [0, 0], boost: false, jump: false, aim: [this.lastAim[0], this.lastAim[1]], fire: [false, false] }
     this.handleOffer(o, A)
     this.zoneInfo()
     this.decide()
+    const T2 = now()
     this.aimTarget = null
+    this.prof = { ingest: +(T1 - T0).toFixed(1), decide: +(T2 - T1).toFixed(1), mode: this.mode }
     switch (this.mode) {
       case "zone":
         this.doZone(A)
@@ -225,19 +255,28 @@ export class Brain {
       case "retreat":
         this.doRetreat(A)
         break
+      case "recover":
+        this.doRecover(A)
+        break
       case "fight":
         this.doFight(A)
         break
       case "loot":
         this.doLoot(A)
         break
+      case "explore":
+        this.doExplore(A)
+        break
       default:
         this.doHold(A)
     }
+    const T3 = now()
     this.dodgeShells(A)
     this.unstick(A)
     this.doAimFire(A)
     this.doTake(A)
+    this.prof.modeMs = +(T3 - T2).toFixed(1)
+    this.prof.tail = +(now() - T3).toFixed(1)
     A.aim[0] = angNorm(A.aim[0])
     A.aim[1] = clamp(A.aim[1], this.minPitch, this.maxPitch)
     this.lastAim = A.aim
@@ -382,6 +421,7 @@ export class Brain {
           break
         }
         case "kill": {
+          this.myKills = (this.myKills || 0) + 1
           const e = this.en.get(ev.target)
           if (e) {
             this.killLoot = { pos: e.pos.slice(), t }
@@ -434,6 +474,13 @@ export class Brain {
         if (e.dist < 200) this.lastContactT = Math.max(this.lastContactT, t - 2)
       }
       this.vis.push(e)
+    }
+    // free-for-all or a house squad? In a squad the others never kill each other, so every death
+    // other than ours is a kill of ours. Two or more deaths we did not cause means free-for-all.
+    const othersDead = (this.cfg.match?.mechs ?? 16) - (o.alive ?? 16) - (this.myKills || 0)
+    if (othersDead >= 2 && !this.ffa) {
+      this.ffa = true
+      if (!(typeof process !== "undefined" && process.env && process.env.FM_NOSWITCH)) Object.assign(P, P_FFA)
     }
     this.posHist.push([x, y, z, t])
     if (this.posHist.length > 14) this.posHist.shift()
@@ -622,6 +669,14 @@ export class Brain {
         return
       }
     }
+    if (P.berserk && losE.length && !(this.zoneUrgent && !this.inZone)) {
+      let best = target && target.los ? target : null
+      if (!best) for (const e of losE) if (e.dist < 230 && (!best || e.hp + e.dist * 3 < best.hp + best.dist * 3)) best = e
+      if (best) {
+        this.setFight(best)
+        return
+      }
+    }
     // --- retreat triggers
     let retreat = false
     if (atk.length >= 2) retreat = true
@@ -645,6 +700,13 @@ export class Brain {
         return
       }
     } else if (hpS < P.hideHp && losE.length && !(this.mode === "fight" && target && target.hpS < 0.25)) retreat = true
+    if (retreat && P.noRetreat && atk.length <= 2 && (target || atk.length)) {
+      const e = target && target.los ? target : atk.find((q) => q.los) || null
+      if (e) {
+        this.setFight(e)
+        return
+      }
+    }
     if (retreat) {
       if (this.mode !== "retreat") {
         this.cover = null
@@ -670,6 +732,19 @@ export class Brain {
       this.mode = "hold"
       this.spotT = -99
     }
+    // --- heal before the next fight (hunters arrive one after another)
+    if (P.healBelow > 0 && this.mode !== "fight" && atk.length === 0) {
+      const weakInSight = losE.some((e) => e.hpS < 0.3 && e.dist < 200)
+      if (!weakInSight && (hpS < P.healBelow || (this.mode === "recover" && hpS < P.healTo))) {
+        if (this.mode !== "recover") {
+          this.cover = null
+          this.coverT = -99
+        }
+        this.mode = "recover"
+        return
+      }
+      if (this.mode === "recover") this.mode = "hold"
+    }
     // --- continue a fight
     if (this.mode === "fight" && target) {
       const lost = t - (target.losT ?? -99)
@@ -694,9 +769,19 @@ export class Brain {
       this.setFight(best)
       return
     }
+    // --- grab the cubes a kill dropped while the coast is clear
+    if (P.killLoot && this.killLoot && t - this.killLoot.t < 30 && !losE.some((e) => e.dist < 160)) {
+      const [x, y] = this.me.pos
+      const d = hyp(this.killLoot.pos[0] - x, this.killLoot.pos[1] - y)
+      if (d < 130) {
+        this.loot = { type: "cube", id: -7, pos: this.killLoot.pos }
+        this.mode = "loot"
+        return
+      }
+    }
     // --- loot when quiet
     this.loot = this.pickLoot()
-    this.mode = this.loot ? "loot" : "hold"
+    this.mode = this.loot ? "loot" : P.farmHard && t < P.farmUntil && hpS > 0.5 && this.zoneSlack > 25 && t - this.lastMechDmgT > 4 ? "explore" : "hold"
   }
 
   setFight(e) {
@@ -1273,6 +1358,76 @@ export class Brain {
     } else this.scan(A)
   }
 
+  /** out of combat but hurt: get out of everyone's sight and regenerate */
+  doRecover(A) {
+    const t = this.t
+    const threats = []
+    for (const e of this.en.values()) if (t - e.t < 20) threats.push([e.pos[0], e.pos[1], e.pos[2], 1, e])
+    threats.sort((a, b) => a[4].dist - b[4].dist)
+    if (!threats.length || !this.w) {
+      this.doHold(A)
+      return
+    }
+    const th = threats.slice(0, 4)
+    if (t - this.coverT > 0.8) {
+      this.coverT = t
+      const keep = this.cover && this.hiddenFrom(th, this.cover.x, this.cover.y, this.cover.z) && th.every((q) => hyp(this.cover.x - q[0], this.cover.y - q[1]) > 50)
+      if (!keep) {
+        const c = this.findCover(th)
+        this.cover = c
+        if (c) this.setPath(c.path, c.node)
+      }
+    }
+    if (!this.cover) {
+      this.doHold(A)
+      return
+    }
+    if (this.pathGoal !== this.cover.node || !this.path) this.goTo(this.cover.node, { search: { zone: null } })
+    if (this.follow(A, 1, false)) A.move = [0, 0]
+    const near = th[0][4]
+    A.aim = [Math.atan2(near.pos[1] - this.me.pos[1], near.pos[0] - this.me.pos[0]) + 0.4 * Math.sin(t * 1.7), 0]
+    this.aimTarget = near.los ? near : null
+  }
+
+  /** farming phase with nothing known to farm: walk to the nearest unvisited part of the circle */
+  doExplore(A) {
+    const t = this.t
+    const [x, y] = this.me.pos
+    const C = 60
+    const vis = (this.visitedCells ??= new Map())
+    vis.set(`${Math.round(x / C)},${Math.round(y / C)}`, t)
+    const zc = this.o.zone
+    const need = !this.exploreGoal || hyp(this.exploreGoal[0] - x, this.exploreGoal[1] - y) < 12 || t - this.exploreT > 25 || vis.has(this.exploreGoal[2])
+    if (need) {
+      let best = null,
+        bs = 1e18
+      const r = Math.max(60, this.nr - 10)
+      for (let gx = Math.round((this.nc[0] - r) / C); gx <= Math.round((this.nc[0] + r) / C); gx++)
+        for (let gy = Math.round((this.nc[1] - r) / C); gy <= Math.round((this.nc[1] + r) / C); gy++) {
+          const k = `${gx},${gy}`
+          if (vis.has(k)) continue
+          const px = gx * C,
+            py = gy * C
+          if (hyp(px - this.nc[0], py - this.nc[1]) > r || hyp(px - zc.center[0], py - zc.center[1]) > zc.radius - 15) continue
+          if (this.w && this.w.nearestNode(px, py, this.w.ground(px, py), this.reqR, this.Hh + 0.3, 8) < 0) continue
+          let d = hyp(px - x, py - y)
+          for (const e of this.en.values()) if (t - e.t < 15 && hyp(px - e.pos[0], py - e.pos[1]) < 120) d += 200
+          if (d < bs) {
+            bs = d
+            best = [px, py, k]
+          }
+        }
+      this.exploreGoal = best
+      this.exploreT = t
+    }
+    if (!this.exploreGoal) {
+      this.doHold(A)
+      return
+    }
+    if (this.moveToPoint(A, this.exploreGoal[0], this.exploreGoal[1], undefined, 1, false)) vis.set(this.exploreGoal[2], t)
+    this.scan(A, null)
+  }
+
   doFight(A) {
     const t = this.t
     const me = this.me
@@ -1298,12 +1453,13 @@ export class Brain {
     if (this.duck(A, e)) return
     this.path = null
     // preferred range by loadout: far enough that bullets can be side-stepped
-    let pr = this.laser ? 112 : 104
+    let pr = P.fightRange > 0 ? P.fightRange + (this.laser ? 8 : 0) : this.laser ? 112 : 104
     if (this.lightning && !this.laser && (this.hpS - e.hpS > 0.1 || e.hpS < 0.45) && !e.has("lightning")) pr = 34
+    if (P.zapRange > 0 && this.lightning && this.me.energy > 22 && !(e.has("lightning") && this.hpS < e.hpS)) pr = P.zapRange
     if (this.finalPhase) pr = Math.min(pr, 45)
     const maxR = (this.gun?.stats?.range || 230) - 30
     pr = Math.min(pr, maxR)
-    let radial = clamp((d - pr) / 14, -1, 1)
+    let radial = clamp((d - pr) / P.bandRange, -1, 1)
     if (e.hpS < 0.3 && this.hpS > 0.4 && d > 60) radial = Math.max(radial, 0.5)
     if (t > this.strafeFlipT) {
       this.strafeSide = -this.strafeSide
@@ -1479,7 +1635,23 @@ export class Brain {
   pickLoot() {
     const t = this.t
     const me = this.me
-    if (!this.calm || this.hpS < 0.6) return null
+    if (P.dropHeal && this.hpS < 0.85 && this.zoneSlack > 10) {
+      const [x, y] = me.pos
+      let best = null
+      for (const dr of this.o.drops || []) {
+        if (dr.holder != null && dr.holder !== me.id) continue
+        const d = hyp(dr.pos[0] - x, dr.pos[1] - y)
+        if (d > 230 || dr.lands_in > d / this.walk + 8) continue
+        let crowded = false
+        for (const e of this.en.values()) if (t - e.t < 8 && hyp(dr.pos[0] - e.pos[0], dr.pos[1] - e.pos[1]) < 70) crowded = true
+        if (!crowded && (!best || d < best.d)) best = { type: "drop", id: dr.id, pos: dr.pos, d }
+      }
+      if (best) return best
+    }
+    const farming = P.farmHard && t < P.farmUntil
+    if (farming) {
+      if (this.hpS < 0.45 || t - this.lastMechDmgT < 4 || this.vis.some((e) => e.los && e.dist < 170)) return null
+    } else if (!this.calm || this.hpS < 0.6) return null
     if (this.zoneSlack < 14) return null
     const [x, y, z] = me.pos
     const zc = this.o.zone
@@ -1514,22 +1686,27 @@ export class Brain {
     const slot1 = me.weapons?.[1]
     for (const p of this.picks.values()) {
       if (!reachableZ(p.pos)) continue
-      if (p.kind === "laser" && !this.laser) consider("pick", p, 140, 300)
+      if (P.preferZap) {
+        if (p.kind === "lightning" && !this.lightning) consider("pick", p, 140, 300)
+        else if (p.kind === "laser" && !slot1) consider("pick", p, 60, 130)
+      } else if (p.kind === "laser" && !this.laser) consider("pick", p, 140, 300)
       else if (p.kind === "lightning" && !slot1) consider("pick", p, 60, 130)
       else if (p.kind === "gun" && !this.gun) consider("pick", p, 120, 250)
     }
     const cubes = me.cubes || 0
     const th = this.cfg.cubes?.upgrade_thresholds || []
     const nextTh = th.find((v) => v > cubes) ?? 1e9
-    const cubeVal = cubes < (this.cfg.cubes?.stat_cap ?? 10) ? 34 : nextTh - cubes <= 2 ? 16 : 0
-    if (cubeVal > 0) for (const c of this.cubes.values()) if (reachableZ(c.pos)) consider("cube", c, cubeVal, 90)
-    if (this.killLoot && t - this.killLoot.t < 25) consider("cube", { id: -7, pos: this.killLoot.pos }, 60, 140)
+    let cubeVal = cubes < (this.cfg.cubes?.stat_cap ?? 10) ? 34 : nextTh - cubes <= 2 ? 16 : 0
+    if (farming && cubeVal === 0 && nextTh - cubes <= 6) cubeVal = 20
+    const reach = farming ? 2.4 : 1
+    if (cubeVal > 0) for (const c of this.cubes.values()) if (reachableZ(c.pos)) consider("cube", c, cubeVal * (farming ? 1.6 : 1), 90 * reach)
+    if (this.killLoot && t - this.killLoot.t < 25) consider("cube", { id: -7, pos: this.killLoot.pos }, 60, 140 * (farming ? 1.5 : 1))
     if (P.farm && cubeVal > 0) {
-      const quiet = !this.sounds.some((s) => t - s.t < 5 && s.D < 160 && (s.kind === "gun" || s.kind === "laser" || s.kind === "lightning" || s.kind === "laser_charge"))
+      const quiet = farming || !this.sounds.some((s) => t - s.t < 5 && s.D < 160 && (s.kind === "gun" || s.kind === "laser" || s.kind === "lightning" || s.kind === "laser_charge"))
       if (quiet) {
-        for (const c of this.crates.values()) if (reachableZ(c.pos)) consider("crate", c, 30, 110)
-        if (this.hpS > 0.8 && t - this.lastMechDmgT > 12)
-          for (const n of this.npcs.values()) if (t - n.t < 2) consider("npc", n, 44, 120)
+        for (const c of this.crates.values()) if (reachableZ(c.pos)) consider("crate", c, farming ? 55 : 30, 110 * reach)
+        if (this.hpS > (farming ? 0.6 : 0.8) && t - this.lastMechDmgT > (farming ? 5 : 12))
+          for (const n of this.npcs.values()) if (t - n.t < (farming ? 6 : 2)) consider("npc", n, farming ? 80 : 44, 120 * reach)
       }
     }
     return best
