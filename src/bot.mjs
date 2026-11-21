@@ -57,14 +57,45 @@ export const P = {
   preferZap: false, // rank lightning above the laser when picking up weapons
   farmHard: true, // farm crates / drones / cubes far and wide, and explore to find them
   farmUntil: 200, // ...until this match time
+  // --- thresholds that were literals in the 4.58 build (sim/train/mkbase.mjs)
+  finishHp: 0.35, // a target under this HP share is always attacked...
+  finishMyHp: 0.3, // ...while we are above this
+  defAdvOut: 0.25, // shot first while outgunned or 2+ cubes behind: answer only with this HP lead
+  defAdv: -0.08, // shot first otherwise: answer down to this HP deficit
+  outgunAdv: 0.2, // outgunned: start a fight only with this HP lead
+  busyHp: 0.9, // a target busy with someone else is fair game under this HP share
+  huntHp: 0.7, // a mech coming for us: shoot first when we are above this HP share...
+  huntDist: 170, // ...and it is within this range
+  nearDist: 78, // too close to go unnoticed: fight inside this range...
+  nearAdv: -0.05, // ...down to this HP deficit...
+  nearHp: 0.6, // ...when above this HP share
+  rearDist: 150, // laser shot from behind: out to this range...
+  rearHp: 0.8, // ...when above this HP share
+  raceOut: 1.12, // retreat when time-to-kill / time-to-die goes above this
+  raceHurt: 0.8, // ...or above this when below hideHp
+  retAdv: -0.2, // retreat when this far behind on HP share...
+  retHp: 0.7, // ...and below this HP share
+  chaseHp: 0.4, // chase a target under this HP share...
+  chaseMyHp: 0.55, // ...when above this...
+  chaseS: 7, // ...for this many seconds out of sight
+  startDist: 215, // start fights only inside this range
+  scoreDist: 0.2, // target choice: penalty per metre of distance (100 = full HP difference)
+  exploreHp: 0.5, // explore for farm targets only above this HP share
+  huntUntil: 0, // before this time, attack any mech in sight within 200 m while above 60% HP (0 = off)
+  calmAfter: 0, // after this time, start no fights unless the target is below 35% HP (0 = off)
+  // --- opening (sim/train/cand/opening.mjs)
+  laserFirst: 0, // until this match time, without a laser: a known laser we reach before any mech is the first objective, ahead of farming and of starting a fight (0 = off)
+  laserInit: 0, // holding a laser against a mech in sight that has none: take the first shot inside this range in m (0 = off)
+  laserInitUntil: 0, // ...only until this match time (0 = the whole match)
 }
 // Free-for-all profile (qualifying and the final): the survival-first settings of the first two submissions.
 // Applied once, the moment the bot sees mechs dying that it did not kill (see ingest()).
 export const P_FFA = {
   hideHp: 0.4, resumeHp: 0.8, initHpLow: 0.75, initAdv: 0.2, vetoAdv: -0.12, vetoCubes: -5, crowd: 90, openingS: 45, calmS: 4,
   healBelow: 0, killLoot: false, dropHeal: false, fightRange: 0, bandRange: 14, noRetreat: false, berserk: false, zapRange: 0,
-  farmHard: false,
+  farmHard: false, huntUntil: 0, calmAfter: 0, laserFirst: 0, laserInit: 0, laserInitUntil: 0,
 }
+Object.assign(P, {"laserFirst":90}) // baked by sim/train/train.mjs from sim/train/cand/opening.mjs
 if (typeof process !== "undefined" && process.env && process.env.FM_P) Object.assign(P, JSON.parse(process.env.FM_P))
 if (typeof process !== "undefined" && process.env && process.env.FM_PFFA) Object.assign(P_FFA, JSON.parse(process.env.FM_PFFA))
 if (P.preferZap) {
@@ -595,7 +626,12 @@ export class Brain {
     const adv = hpS - e.hpS
     const cubeDiff = (me.cubes || 0) - (e.cubes || 0)
     if (this.finalPhase) return true
-    if (e.hpS < 0.35 && hpS > 0.3) return true
+    if (e.hpS < P.finishHp && hpS > P.finishMyHp) return true
+    // opening: a laser is a few seconds away and this mech is not on top of us yet -> pick it up first (see pickLoot)
+    const lg = this.lasGoal
+    if (!defending && lg && this.t - lg.t < 0.3 && lg.d < 70 && e.dist > lg.d + 40) return false
+    if (!defending && this.t < P.huntUntil && hpS > 0.6 && e.dist < 200 && e.los) return true
+    if (!defending && P.calmAfter > 0 && this.t > P.calmAfter && e.hpS >= 0.35) return false
     if (this.others(e, P.crowd) >= 1) return false
     if (cubeDiff <= P.vetoCubes) return false
     if (adv <= P.vetoAdv) return false
@@ -607,16 +643,18 @@ export class Brain {
       // shot first: answer only when not at a disadvantage; the damage race decides after a few seconds
       if (this.t - this.noCoverT < 4) return true
       if (e.hpS < P.initHpLow) return true
-      if (outgunned || cubeDiff <= -2) return adv >= 0.25
-      return adv >= -0.08
+      if (outgunned || cubeDiff <= -2) return adv >= P.defAdvOut
+      return adv >= P.defAdv
     }
-    if (outgunned && adv < 0.2) return false
+    if (outgunned && adv < P.outgunAdv) return false
     if (e.hpS < P.initHpLow) return true
     if (adv >= P.initAdv) return true
-    if (this.t - e.busyT < 3 && e.hpS < 0.9) return true
-    if (e.hunt >= 2 && hpS >= 0.7 && e.dist < 170) return true // it is coming for us: take the first shot
-    if (e.los && e.dist < 78 && adv >= -0.05 && hpS >= 0.6) return true // too close to go unnoticed
-    if (this.t > P.openingS && mine === 2 && theirs < 2 && this.rearOf(e) && e.dist > 45 && e.dist < 150 && hpS > 0.8) return true
+    if (this.t - e.busyT < 3 && e.hpS < P.busyHp) return true
+    if (e.hunt >= 2 && hpS >= P.huntHp && e.dist < P.huntDist) return true // it is coming for us: take the first shot
+    if (e.los && e.dist < P.nearDist && adv >= P.nearAdv && hpS >= P.nearHp) return true // too close to go unnoticed
+    if (this.t > P.openingS && mine === 2 && theirs < 2 && this.rearOf(e) && e.dist > 45 && e.dist < P.rearDist && hpS > P.rearHp) return true
+    // laser against no laser: the side that shoots first wins most of these, so do not wait to be shot
+    if (P.laserInit > 0 && mine === 2 && theirs < 2 && e.los && e.dist < P.laserInit && hpS >= 0.6 && (P.laserInitUntil <= 0 || this.t < P.laserInitUntil)) return true
     return false
   }
 
@@ -689,10 +727,10 @@ export class Brain {
         if (this.others(e, P.crowd) >= 1 && e.hpS > 0.22 && t - this.fightStartT > 1) retreat = true
         else if (race != null) {
           // cut losses when out-traded; press on when clearly ahead, even hurt
-          if (race > 1.12 && e.hpS > 0.18) retreat = true
-          else if (race > 0.8 && hpS < P.hideHp && adv < 0.2) retreat = true
+          if (race > P.raceOut && e.hpS > 0.18) retreat = true
+          else if (race > P.raceHurt && hpS < P.hideHp && adv < 0.2) retreat = true
         } else if (hpS < P.hideHp && !(e.hpS < 0.25 && adv > -0.05) && adv < 0.2) retreat = true
-        else if (adv < -0.2 && hpS < 0.7) retreat = true
+        else if (adv < P.retAdv && hpS < P.retHp) retreat = true
       } else if (this.mode === "retreat" && t - (this.retreatT ?? -99) < 2.5 && !(e.hpS < 0.2)) retreat = true
       else if (!this.wantFight(e, true)) retreat = true
       else {
@@ -748,8 +786,8 @@ export class Brain {
     // --- continue a fight
     if (this.mode === "fight" && target) {
       const lost = t - (target.losT ?? -99)
-      const chase = target.hpS < 0.4 && hpS > 0.55 && this.others(target, P.crowd) === 0
-      if (lost < (chase ? 7 : 2.5) && t - this.fightStartT < 60) return
+      const chase = target.hpS < P.chaseHp && hpS > P.chaseMyHp && this.others(target, P.crowd) === 0
+      if (lost < (chase ? P.chaseS : 2.5) && t - this.fightStartT < 60) return
       this.mode = "hold"
       this.targetId = -1
     }
@@ -757,9 +795,9 @@ export class Brain {
     let best = null,
       bestScore = -1e9
     for (const e of losE) {
-      if (e.dist > 215) continue
+      if (e.dist > P.startDist) continue
       if (!this.wantFight(e, false)) continue
-      const s = (1 - e.hpS) * 100 - e.dist * 0.2 + (this.rearOf(e) ? 15 : 0)
+      const s = (1 - e.hpS) * 100 - e.dist * P.scoreDist + (this.rearOf(e) ? 15 : 0)
       if (s > bestScore) {
         bestScore = s
         best = e
@@ -781,7 +819,7 @@ export class Brain {
     }
     // --- loot when quiet
     this.loot = this.pickLoot()
-    this.mode = this.loot ? "loot" : P.farmHard && t < P.farmUntil && hpS > 0.5 && this.zoneSlack > 25 && t - this.lastMechDmgT > 4 ? "explore" : "hold"
+    this.mode = this.loot ? "loot" : P.farmHard && t < P.farmUntil && hpS > P.exploreHp && this.zoneSlack > 25 && t - this.lastMechDmgT > 4 ? "explore" : "hold"
   }
 
   setFight(e) {
@@ -1649,9 +1687,13 @@ export class Brain {
       if (best) return best
     }
     const farming = P.farmHard && t < P.farmUntil
+    // opening: the laser run is not called off just because a mech is in sight
+    const lasFirst = t < P.laserFirst && !this.laser && this.hpS >= 0.45
+    let gated = false
     if (farming) {
-      if (this.hpS < 0.45 || t - this.lastMechDmgT < 4 || this.vis.some((e) => e.los && e.dist < 170)) return null
-    } else if (!this.calm || this.hpS < 0.6) return null
+      if (this.hpS < 0.45 || t - this.lastMechDmgT < 4 || this.vis.some((e) => e.los && e.dist < 170)) gated = true
+    } else if (!this.calm || this.hpS < 0.6) gated = true
+    if (gated && !lasFirst) return null
     if (this.zoneSlack < 14) return null
     const [x, y, z] = me.pos
     const zc = this.o.zone
@@ -1662,6 +1704,28 @@ export class Brain {
     const nearEnemy = (p) => {
       for (const e of this.en.values()) if (t - e.t < 12 && hyp(p[0] - e.pos[0], p[1] - e.pos[1]) < 110) return true
       return false
+    }
+    if (lasFirst) {
+      // nearest known laser; the usual "no loot within 110 m of a mech" rule gives way when we are the closer one
+      let goal = null,
+        gd = t - this.lastMechDmgT < 4 ? 60 : 300
+      for (const p of this.picks.values()) {
+        if (p.kind !== "laser") continue
+        const d = hyp(p.pos[0] - x, p.pos[1] - y)
+        if (d >= gd || !okPlace(p.pos, d) || !reachableZ(p.pos) || (this.badLoot && this.badLoot.get(p.id) > t)) continue
+        let lost = false
+        for (const e of this.en.values()) {
+          if (t - e.t > 12) continue
+          const de = hyp(p.pos[0] - e.pos[0], p.pos[1] - e.pos[1])
+          if (de < 40 || (de < 110 && de < d)) lost = true
+        }
+        if (lost) continue
+        gd = d
+        goal = p
+      }
+      this.lasGoal = goal ? { d: gd, t } : null
+      if (goal) return { type: "pick", id: goal.id, pos: goal.pos, kind: goal.kind }
+      if (gated) return null
     }
     let best = null,
       bestV = 0
