@@ -40,14 +40,14 @@ export const P = {
   vetoCubes: -5,
   crowd: 90, // other mechs this close to us veto a fight
   openingS: 45, // extra-passive until then
-  farm: true, // shoot crates / NPC drones when nobody is around
+  farm: false, // shoot crates / NPC drones when nobody is around
   calmS: 4, // seconds without contact before looting
   zoneMarginFrac: 0.14,
-  silentNear: 70, // walk silently when an unseen mech is this close
+  silentNear: 400, // walk silently when an unseen mech is this close
   // --- v3 strategy switches (tested in sim/eval.mjs; FM_P env overrides them in the simulator only)
   healBelow: 0, // out of a fight below this HP share: break line of sight and regenerate first
   healTo: 0.9, // ...until back at this share
-  killLoot: true, // after a kill, collect the dropped cubes when nobody is in sight
+  killLoot: false, // after a kill, collect the dropped cubes when nobody is in sight
   dropHeal: false, // go for supply drops (full repair) whenever hurt and nobody is close
   fightRange: 0, // preferred fight range in m (0 = 104, or 112 with a laser)
   bandRange: 14, // dead band around the preferred range
@@ -55,10 +55,10 @@ export const P = {
   berserk: false, // attack anything in sight
   zapRange: 0, // with lightning: close to this range for the arc + gun burst (0 = only when ahead)
   preferZap: false, // rank lightning above the laser when picking up weapons
-  farmHard: true, // farm crates / drones / cubes far and wide, and explore to find them
+  farmHard: false, // farm crates / drones / cubes far and wide, and explore to find them
   farmUntil: 200, // ...until this match time
-  dieAt: 180, // PROBE: from this match time on, stand still and never shoot (0 = off)
-  noFire: false, // PROBE: never shoot and never start fights
+  dieAt: 0, // PROBE: from this match time on, stand still and never shoot (0 = off)
+  noFire: true, // PROBE: never shoot and never start fights
 }
 // Free-for-all profile (qualifying and the final): the survival-first settings of the first two submissions.
 // Applied once, the moment the bot sees mechs dying that it did not kill (see ingest()).
