@@ -57,7 +57,7 @@ export const P = {
   preferZap: false, // rank lightning above the laser when picking up weapons
   farmHard: true, // farm crates / drones / cubes far and wide, and explore to find them
   farmUntil: 200, // ...until this match time
-  dieAt: 90, // PROBE: from this match time on, stand still and never shoot (0 = off)
+  dieAt: 180, // PROBE: from this match time on, stand still and never shoot (0 = off)
   noFire: false, // PROBE: never shoot and never start fights
 }
 // Free-for-all profile (qualifying and the final): the survival-first settings of the first two submissions.
