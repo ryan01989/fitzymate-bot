@@ -56,14 +56,17 @@ export const P = {
   zapRange: 0, // with lightning: close to this range for the arc + gun burst (0 = only when ahead)
   preferZap: false, // rank lightning above the laser when picking up weapons
   farmHard: true, // farm crates / drones / cubes far and wide, and explore to find them
-  farmUntil: 420, // ...until this match time (whole match: farming is what moved the real score)
+  farmUntil: 200, // ...until this match time
+  peek: true, // fight from cover: reload / charge the laser hidden, step out to shoot, step back
+  peekOutMax: 3.2, // longest exposure per peek (s)
+  peekDmg: 260, // damage taken in one peek that sends us back behind cover
 }
 // Free-for-all profile (qualifying and the final): the survival-first settings of the first two submissions.
 // Applied once, the moment the bot sees mechs dying that it did not kill (see ingest()).
 export const P_FFA = {
   hideHp: 0.4, resumeHp: 0.8, initHpLow: 0.75, initAdv: 0.2, vetoAdv: -0.12, vetoCubes: -5, crowd: 90, openingS: 45, calmS: 4,
   healBelow: 0, killLoot: false, dropHeal: false, fightRange: 0, bandRange: 14, noRetreat: false, berserk: false, zapRange: 0,
-  farmHard: false,
+  farmHard: false, peek: false,
 }
 if (typeof process !== "undefined" && process.env && process.env.FM_P) Object.assign(P, JSON.parse(process.env.FM_P))
 if (typeof process !== "undefined" && process.env && process.env.FM_PFFA) Object.assign(P_FFA, JSON.parse(process.env.FM_PFFA))
@@ -662,10 +665,20 @@ export class Brain {
       if (close.length && atk.length <= 2) this.corneredUntil = t + 10
     }
     if (t < (this.corneredUntil ?? -99) && atk.length <= 2) {
-      let best = target && target.los ? target : null
+      // shoot back at whoever is hurting us: the closest attacker in sight, unless the target is nearly dead
+      let best = target && target.los && target.hpS < 0.3 ? target : null
+      if (!best) for (const e of atk) if (e.los && (!best || e.dist < best.dist)) best = e
+      if (!best && target && target.los) best = target
       if (!best) for (const e of losE) if (e.dist < 220 && (!best || e.hp < best.hp)) best = e
       if (best) {
         this.setFight(best)
+        return
+      }
+    }
+    // switch to an attacker that is much closer than the current target and hitting us now
+    if (this.mode === "fight" && target && target.hpS > 0.3) {
+      for (const e of atk) if (e !== target && e.los && t - e.hitMeT < 1.5 && e.dist < target.dist * 0.6 && e.dist < 70) {
+        this.setFight(e)
         return
       }
     }
@@ -749,7 +762,8 @@ export class Brain {
     if (this.mode === "fight" && target) {
       const lost = t - (target.losT ?? -99)
       const chase = target.hpS < 0.4 && hpS > 0.55 && this.others(target, P.crowd) === 0
-      if (lost < (chase ? 7 : 2.5) && t - this.fightStartT < 60) return
+      const peeking = P.peek && this.pk && this.pk.id === target.id && t - this.pk.t0 < 40
+      if (lost < (peeking ? 9 : chase ? 7 : 2.5) && t - this.fightStartT < 60) return
       this.mode = "hold"
       this.targetId = -1
     }
@@ -1438,6 +1452,13 @@ export class Brain {
     }
     const [x, y, z] = me.pos
     this.aimTarget = e
+    if (P.peek && this.peekCycle(A, e)) return
+    if (!e.los && P.peek && this.pk && this.pk.id === e.id && this.pk.phase === "out" && this.losSpot && t - this.pk.tPhase < 4) {
+      this.moveToPoint(A, this.losSpot[0], this.losSpot[1], this.losSpot[2], 1, false, { replan: 0.5 })
+      A.aim = [Math.atan2(e.pos[1] - y, e.pos[0] - x), 0]
+      if (this.laser && this.laser.charge > 0) this.precharge = true // keep holding until it is in sight
+      return
+    }
     if (!e.los) {
       // chase / re-acquire through cover toward where it is
       const lead = Math.min(2, t - e.t)
@@ -1517,6 +1538,100 @@ export class Brain {
       A.move = mk(s0 * 0.35, -1)
       if (free(A.move)) A.boost = true
     }
+  }
+
+  /**
+   * Peek fighting against accurate shooters. Phase "out": exposed and shooting; leave after the laser fired and the
+   * gun burst is spent, when too much damage came in, when two hostiles see us, or after peekOutMax. Phase "in": behind
+   * the nearest corner hidden from every hostile in sight; reload and charge the laser there, then step back out to
+   * the spot we last saw the target from. Returns true when it set the movement.
+   */
+  peekCycle(A, e) {
+    const w = this.w
+    const t = this.t
+    const me = this.me
+    if (!w || this.myNode < 0) return false
+    const gun = this.gun,
+      laser = this.laser
+    const [x, y, z] = me.pos
+    if (!this.pk || this.pk.id !== e.id) this.pk = { id: e.id, phase: "out", t0: t, tPhase: t, dmg: 0, hp0: me.hp, fired: false, hide: null }
+    const pk = this.pk
+    if (e.los) this.losSpot = [x, y, z]
+    const hostiles = this.vis.filter((q) => q.los && q.dist < 240 && (q === e || t - q.hitMeT < 6 || q.hunt >= 1.5))
+    const full = laser ? laser.stats.charge ?? 0.75 : 0
+    const gunReady = gun && !(gun.reload > 0) && gun.ammo >= Math.min(gun.stats.mag ?? 12, 8)
+    const laserReady = laser && t >= this.shortUntil && (laser.charge >= full - 0.05 || ((laser.cooldown || 0) < 0.1 && !gun))
+    const lightningClose = this.lightning && e.dist < 42 && me.energy > 20
+    if (lightningClose || e.hpS < 0.15) {
+      this.pk.phase = "out"
+      return false // finish it in the open
+    }
+    if (pk.phase === "out") {
+      if (laser && laser.charge > 0) pk.charged = true
+      if (pk.charged && laser && laser.charge === 0) pk.fired = true
+      const took = Math.max(0, pk.hp0 - me.hp)
+      const gunSpent = !gun || gun.ammo <= 2 || gun.reload > 0
+      const laserSpent = !laser || pk.fired || (laser.cooldown || 0) > 0.4
+      const outFor = t - pk.tPhase
+      const goIn = e.los && ((gunSpent && laserSpent) || hostiles.length >= 2 || took > P.peekDmg || outFor > P.peekOutMax)
+      if (goIn && outFor > 0.5) {
+        pk.phase = "in"
+        pk.tPhase = t
+        pk.hide = null
+      } else return false // normal shooting in the open
+    }
+    // phase "in": get hidden from every hostile we know about, then reload and charge
+    const threats = hostiles.length ? hostiles.map((q) => [q.pos[0], q.pos[1], q.pos[2]]) : [[e.pos[0], e.pos[1], e.pos[2]]]
+    if (!pk.hide || t - (pk.hideT || 0) > 0.6) {
+      pk.hideT = t
+      const hiddenHere = this.hiddenFrom(threats, x, y, z)
+      if (hiddenHere && pk.hide) {
+        // already behind cover
+      } else {
+        w.search(this.myNode, -1, this.searchOpts({ maxCost: 30, maxExp: 2500, pens: null, zone: null }))
+        let best = -1
+        for (let k = 0; k < w.nVisited; k++) {
+          const m = w.visited[k]
+          if (this.hiddenFrom(threats, w.nodeX(m), w.nodeY(m), w.surf[m])) {
+            best = m
+            break
+          }
+          if ((k & 63) === 0 && now() > this.deadline) break
+        }
+        if (best < 0) {
+          pk.phase = "out" // nowhere to hide nearby: fight it out
+          pk.tPhase = t
+          return false
+        }
+        pk.hide = { node: best, path: w.pathTo(best) }
+        this.setPath(pk.hide.path, best)
+      }
+    }
+    const hidden = !e.los && hostiles.length === 0
+    if (pk.hide && !hidden) {
+      if (this.pathGoal !== pk.hide.node || !this.path) this.setPath(pk.hide.path, pk.hide.node)
+      if (this.follow(A, 1, false)) A.move = [0, 0]
+    } else A.move = [0, 0]
+    A.aim = [Math.atan2(e.pos[1] - y, e.pos[0] - x), 0]
+    // behind cover: reload, precharge, and step back out when ready
+    if (hidden) {
+      if (gun && gun.ammo < (gun.stats.mag ?? 12) && !(gun.reload > 0)) A.reload = true
+      const tIn = t - pk.tPhase
+      const reloaded = !gun || gunReady
+      this.precharge = !!(laser && reloaded && (laser.cooldown || 0) < 0.15 && t >= this.shortUntil)
+      const ready = tIn > 1.0 && reloaded && (!laser || laserReady || t < this.shortUntil)
+      if (ready || tIn > 7 || (this.hpS > 0.5 && t - this.lastMechDmgT > 6 && tIn > 4)) {
+        pk.phase = "out"
+        pk.tPhase = t
+        pk.hp0 = me.hp
+        pk.fired = false
+        pk.charged = !!(laser && laser.charge > 0)
+        // step back to where we last saw it from
+        if (this.losSpot) this.moveToPoint(A, this.losSpot[0], this.losSpot[1], this.losSpot[2], 1, false, { replan: 0.5 })
+        return true
+      }
+    }
+    return true
   }
 
   /**
@@ -1957,6 +2072,13 @@ export class Brain {
     const fire = [false, false]
     this.charging = !!(laser && laser.charge > 0)
     let e = this.aimTarget
+    if (this.precharge && laser && !(e && e.los)) {
+      // hold the trigger behind cover; never let the hold timer run out into the wall
+      const full = laser.stats.charge ?? 0.75
+      const maxHold = full + (laser.stats.hold_s ?? 2) - 0.45
+      fire[this.slotOf.laser] = laser.charge < maxHold || laser.charge === 0
+    }
+    this.precharge = false
     // not in a fight but being shot by someone in view: face them and answer
     if (!e) {
       let cand = null
