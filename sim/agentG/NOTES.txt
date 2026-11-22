@@ -1,0 +1,15 @@
+gd-policy.mjs = rad5.mjs + three lessons from new-idea.md, rebuilt on our own signals (no giddy rule set / constants).
+All off by default, reset in P_FFA. Code blocks are marked "--- firstShot", "--- shortRetreat", "--- retarget".
+
+A firstShot (s of e.hunt): wantFight(), before the crowd / vetoAdv / vetoCubes / outgunned vetoes:
+  e in sight, dist < huntDist (170), e.hunt >= firstShot, hunting signal on NOW (aimOn, or closeV > 3.5 m/s inside 140 m:
+  the same test ingest() feeds e.hunt with), our hpS >= hideHp. Kept ahead of it: lateOn, finalPhase, finishHp, laser-run rule.
+B shortRetreat (s): exit of the retreat mode in decide(). Stay only while: < shortRetreat s since the last trigger (recoverT),
+  or 3+ attackers in 3 s, or hpS < shortRetreatHp, or hpS < hideHp and hit within regenDelay, or race(e) > raceOut for an attacker.
+  doRetreat(): with the main threat out of sight, shoot the most recent attacker in sight (else nearest) [shortRetreatFire].
+C retarget (points): rtAlt() in decide(): continue-fight block AND the noRetreat "fight the attacker in LOS" line.
+  Candidate in sight within startDist, hit us in 3 s or wantFight(); switch when fightScore beats the target's by retarget;
+  not before retargetHold s on the target, not off a finishing target, not past half a laser charge.
+
+Scripts: fires.mjs (per-lesson counters + retreat durations), paired.mjs (paired diffs vs a --dump), patch.py (the edit).
+Results: B48-*.json / B48.log (pack B, n=48, seed 1000, frozen clock).

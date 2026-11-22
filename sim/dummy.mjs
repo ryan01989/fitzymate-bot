@@ -26,7 +26,7 @@ export class Dummy {
     this.w = world
     this.cfg = hello.config
     const b = SKILLS[skill]
-    this.sk = { ...b, noise: b.noise * PACK.noise, react: b.react * PACK.react, strafe: Math.min(1, b.strafe * PACK.strafe), range: b.range * PACK.range }
+    this.sk = { ...b, noise: b.noise * PACK.noise, react: b.react * PACK.react, strafe: Math.max(PACK.strafeMin ?? 0, Math.min(1, b.strafe * PACK.strafe)), range: b.range * PACK.range }
     this.skill = skill
     this.squad = squad
     this.id = hello.slot
@@ -139,7 +139,7 @@ export class Dummy {
         uy = (tgt.pos[1] - y) / d
       if (t > this.flipT) {
         this.side = -this.side
-        this.flipT = t + 0.5 + this.rand() * 1.2
+        this.flipT = t + (0.5 + this.rand() * 1.2) * (PACK.flip ?? 1)
       }
       const radial = Math.max(-1, Math.min(1, (d - sk.range) / 15))
       let mx = ux * radial + -uy * this.side * sk.strafe,
@@ -150,6 +150,8 @@ export class Dummy {
       }
       const m = hyp(mx, my) || 1
       A.move = [mx / m, my / m]
+      // pack knob fboost: boost-strafe in a fight while energy is above it (0 = off, the old behaviour)
+      if ((PACK.fboost ?? 0) > 0 && me.energy > PACK.fboost) A.boost = true
       // aim with lead and skill noise
       const gun = me.weapons.find((q) => q && q.kind === "gun")
       const tof = (d / (gun ? gun.stats.speed : 252)) * sk.lead

@@ -1,0 +1,15 @@
+== sim/variants/rad3.mjs {"noise":2.5,"perKill":0.5,"base":0,"every":60,"retaliate":0,"ff":0,"tAll":330,"react":3,"dropSeek":400}
+rad3.mjs practice pack={"noise":2.5,"react":3,"every":60,"perKill":0.5,"share":10,"near":0,"base":0,"retaliate":0,"ff":0,"tAll":330,"dropSeek":400}: pts 5.46 ±0.31 (n=48)  kills 5.50  surv 111s  cubes 5.9  wins 0  acc me 0.82 pack 0.40  maxMs 272.1  crashes 0  68s
+== sim/variants/r03-dropwar.mjs {"noise":2.5,"perKill":0.5,"base":0,"every":60,"retaliate":0,"ff":0,"tAll":330,"react":3,"dropSeek":400}
+r03-dropwar.mjs practice pack={"noise":2.5,"react":3,"every":60,"perKill":0.5,"share":10,"near":0,"base":0,"retaliate":0,"ff":0,"tAll":330,"dropSeek":400}: pts 5.35 ±0.29 (n=48)  kills 5.40  surv 108s  cubes 5.9  wins 0  acc me 0.82 pack 0.40  maxMs 276.3  crashes 0  73s
+== sim/variants/r03-dropwar.mjs {"noise":2,"perKill":1,"retaliate":0,"ff":0}
+r03-dropwar.mjs practice pack={"noise":2,"react":2,"every":300,"perKill":1,"share":10,"near":0,"retaliate":0,"ff":0}: pts 3.85 ±0.25 (n=48)  kills 3.85  surv 76s  cubes 3.3  wins 0  acc me 0.86 pack 0.38  maxMs 167.2  crashes 0  43s
+== sim/variants/r03-dropwar.mjs {"every":120,"noise":2.5,"perKill":1,"retaliate":0,"ff":0}
+r03-dropwar.mjs practice pack={"noise":2.5,"react":2,"every":120,"perKill":1,"share":10,"near":0,"retaliate":0,"ff":0}: pts 3.94 ±0.27 (n=48)  kills 3.92  surv 78s  cubes 3.1  wins 0  acc me 0.85 pack 0.33  maxMs 260.6  crashes 0  45s
+== sim/variants/r03-dropwar.mjs {"noise":2.5,"perKill":0.5,"base":0,"every":60,"retaliate":0,"ff":0,"tAll":330,"react":3}
+r03-dropwar.mjs practice pack={"noise":2.5,"react":3,"every":60,"perKill":0.5,"share":10,"near":0,"base":0,"retaliate":0,"ff":0,"tAll":330}: pts 5.75 ±0.32 (n=48)  kills 5.79  surv 108s  cubes 6.2  wins 0  acc me 0.82 pack 0.40  maxMs 218.8  crashes 0  64s
+== sim/variants/rad3.mjs {"noise":2,"perKill":1,"retaliate":0,"ff":0,"dropSeek":400}
+rad3.mjs practice pack={"noise":2,"react":2,"every":300,"perKill":1,"share":10,"near":0,"retaliate":0,"ff":0,"dropSeek":400}: pts 3.88 ±0.25 (n=48)  kills 3.88  surv 78s  cubes 3.4  wins 0  acc me 0.86 pack 0.38  maxMs 266.3  crashes 0  45s
+== sim/variants/r03-dropwar.mjs {"noise":2,"perKill":1,"retaliate":0,"ff":0,"dropSeek":400}
+r03-dropwar.mjs practice pack={"noise":2,"react":2,"every":300,"perKill":1,"share":10,"near":0,"retaliate":0,"ff":0,"dropSeek":400}: pts 3.83 ±0.25 (n=48)  kills 3.81  surv 78s  cubes 3.4  wins 0  acc me 0.86 pack 0.38  maxMs 230.5  crashes 0  41s
+DONE

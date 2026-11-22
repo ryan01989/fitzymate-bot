@@ -1,0 +1,101 @@
+matches 21 attributed gun shots 14021 gun hits on mechs 8948 rear hits 398
+-- c
+   ('0-2',) shots 7968 hit rate 0.587
+   ('10-14',) shots 701 hit rate 0.757
+   ('15+',) shots 1242 hit rate 0.832
+   ('3-5',) shots 2747 hit rate 0.627
+   ('6-9',) shots 1363 hit rate 0.723
+-- d
+   ('100-150',) shots 2753 hit rate 0.427
+   ('150+',) shots 1862 hit rate 0.187
+   ('60-100',) shots 5376 hit rate 0.728
+   ('<60',) shots 4030 hit rate 0.871
+-- l
+   ('boost',) shots 946 hit rate 0.534
+   ('slow',) shots 6196 hit rate 0.691
+   ('still',) shots 3136 hit rate 0.607
+   ('walk',) shots 3743 hit rate 0.603
+-- look
+   (False,) shots 1510 hit rate 0.38
+   (True,) shots 12511 hit rate 0.669
+-- air
+   (False,) shots 13511 hit rate 0.634
+   (True,) shots 510 hit rate 0.755
+-- cd
+   ('0-2', '100-150') shots 1560 hit rate 0.359
+   ('0-2', '150+') shots 1095 hit rate 0.138
+   ('0-2', '60-100') shots 3152 hit rate 0.668
+   ('0-2', '<60') shots 2161 hit rate 0.86
+   ('10-14', '100-150') shots 217 hit rate 0.576
+   ('10-14', '60-100') shots 234 hit rate 0.889
+   ('10-14', '<60') shots 211 hit rate 0.877
+   ('15+', '60-100') shots 505 hit rate 0.911
+   ('15+', '<60') shots 479 hit rate 0.868
+   ('3-5', '100-150') shots 568 hit rate 0.437
+   ('3-5', '150+') shots 456 hit rate 0.204
+   ('3-5', '60-100') shots 1031 hit rate 0.759
+   ('3-5', '<60') shots 692 hit rate 0.863
+   ('6-9', '100-150') shots 273 hit rate 0.509
+   ('6-9', '60-100') shots 454 hit rate 0.78
+   ('6-9', '<60') shots 487 hit rate 0.934
+-- cl
+   ('0-2', 'boost') shots 555 hit rate 0.494
+   ('0-2', 'slow') shots 3476 hit rate 0.647
+   ('0-2', 'still') shots 1679 hit rate 0.549
+   ('0-2', 'walk') shots 2258 hit rate 0.546
+   ('10-14', 'slow') shots 313 hit rate 0.827
+   ('10-14', 'still') shots 171 hit rate 0.702
+   ('10-14', 'walk') shots 168 hit rate 0.732
+   ('15+', 'slow') shots 578 hit rate 0.901
+   ('15+', 'still') shots 333 hit rate 0.715
+   ('15+', 'walk') shots 275 hit rate 0.836
+   ('3-5', 'boost') shots 201 hit rate 0.562
+   ('3-5', 'slow') shots 1223 hit rate 0.639
+   ('3-5', 'still') shots 627 hit rate 0.622
+   ('3-5', 'walk') shots 696 hit rate 0.626
+   ('6-9', 'slow') shots 606 hit rate 0.776
+   ('6-9', 'still') shots 326 hit rate 0.721
+   ('6-9', 'walk') shots 346 hit rate 0.682
+-- ld
+   ('boost', '100-150') shots 239 hit rate 0.293
+   ('boost', '60-100') shots 342 hit rate 0.599
+   ('boost', '<60') shots 231 hit rate 0.87
+   ('slow', '100-150') shots 1120 hit rate 0.469
+   ('slow', '150+') shots 758 hit rate 0.21
+   ('slow', '60-100') shots 2352 hit rate 0.774
+   ('slow', '<60') shots 1966 hit rate 0.904
+   ('still', '100-150') shots 670 hit rate 0.431
+   ('still', '150+') shots 491 hit rate 0.171
+   ('still', '60-100') shots 1164 hit rate 0.734
+   ('still', '<60') shots 811 hit rate 0.835
+   ('walk', '100-150') shots 724 hit rate 0.402
+   ('walk', '150+') shots 479 hit rate 0.161
+   ('walk', '60-100') shots 1518 hit rate 0.681
+   ('walk', '<60') shots 1022 hit rate 0.838
+-- cdl
+   ('0-2', '100-150', 'slow') shots 653 hit rate 0.384
+   ('0-2', '100-150', 'still') shots 368 hit rate 0.364
+   ('0-2', '100-150', 'walk') shots 417 hit rate 0.353
+   ('0-2', '150+', 'slow') shots 424 hit rate 0.149
+   ('0-2', '150+', 'still') shots 288 hit rate 0.132
+   ('0-2', '150+', 'walk') shots 313 hit rate 0.112
+   ('0-2', '60-100', 'boost') shots 213 hit rate 0.535
+   ('0-2', '60-100', 'slow') shots 1378 hit rate 0.723
+   ('0-2', '60-100', 'still') shots 626 hit rate 0.698
+   ('0-2', '60-100', 'walk') shots 935 hit rate 0.599
+   ('0-2', '<60', 'boost') shots 150 hit rate 0.78
+   ('0-2', '<60', 'slow') shots 1021 hit rate 0.921
+   ('0-2', '<60', 'still') shots 397 hit rate 0.786
+   ('0-2', '<60', 'walk') shots 593 hit rate 0.826
+   ('15+', '60-100', 'slow') shots 236 hit rate 0.936
+   ('15+', '<60', 'slow') shots 234 hit rate 0.91
+   ('3-5', '100-150', 'slow') shots 225 hit rate 0.502
+   ('3-5', '100-150', 'walk') shots 154 hit rate 0.403
+   ('3-5', '150+', 'slow') shots 197 hit rate 0.188
+   ('3-5', '60-100', 'slow') shots 438 hit rate 0.797
+   ('3-5', '60-100', 'still') shots 232 hit rate 0.819
+   ('3-5', '60-100', 'walk') shots 294 hit rate 0.714
+   ('3-5', '<60', 'slow') shots 363 hit rate 0.78
+   ('3-5', '<60', 'walk') shots 157 hit rate 0.917
+   ('6-9', '60-100', 'slow') shots 198 hit rate 0.768
+   ('6-9', '<60', 'slow') shots 242 hit rate 1.0

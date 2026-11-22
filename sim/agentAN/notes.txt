@@ -1,0 +1,8 @@
+agentAN (data analyst), Sun Nov 22 ~5:10-6:20 AM ET
+- odds.py: noise-model / regression-to-mean / lottery odds for the builders-4 fix family.
+- a01-reach-soft.mjs (sim/variants): t36 + fixLootReach 2.5 + fixTreeSoft 4 (t40 minus fixFinish).
+  check.py PASS (check_a01.log). Pack B n=48 seed 1000: 0 crashes, cubesBy120 6.71 vs t36 6.06, pts 4.60 vs 4.50 (not evidence).
+  Long pack n=12 seed 2000: 0 crashes; 1 zone death on seed 2505 = sim physics wedge (vel 0 under every move/jump
+  from 142 s at (-107,-29,-5), tr2505c.json); t40-fixes2 plays the same trajectory; t36/t40a take a different one.
+  Worst decision at --par 1 without frozen clock: 7.2-7.3 ms on two reruns (one first run showed 59 ms, not reproduced; t36 18 ms).
+- evalAN.mjs: copy of agentT/evalT.mjs whose trace also logs position, loot target, commanded move, velocity, node, path length.

@@ -1,3 +1,6 @@
 node_modules
 .DS_Store
 *.ppm
+sim/agent*/**/*.json
+sim/agent*/**/*.jsonl
+sim/agent*/**/*.json.gz

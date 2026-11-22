@@ -1,0 +1,13 @@
+== rad3 PB
+rad3.mjs practice pack={"noise":4,"react":3,"every":150,"perKill":0.5,"share":10,"near":0,"base":1,"retaliate":6,"ff":0,"tAll":330}: pts 5.10 ±0.42 (n=48)  kills 5.08  surv 97s  cubes 4.8  wins 0  acc me 0.82 pack 0.30  maxMs 254.6  crashes 0  66s
+== r03-dropwar PB
+r03-dropwar.mjs practice pack={"noise":4,"react":3,"every":150,"perKill":0.5,"share":10,"near":0,"base":1,"retaliate":6,"ff":0,"tAll":330}: pts 5.08 ±0.40 (n=48)  kills 5.06  surv 97s  cubes 4.5  wins 0  acc me 0.82 pack 0.30  maxMs 455.7  crashes 0  56s
+== r02-hop PB
+r02-hop.mjs practice pack={"noise":4,"react":3,"every":150,"perKill":0.5,"share":10,"near":0,"base":1,"retaliate":6,"ff":0,"tAll":330}: pts 3.81 ±0.39 (n=48)  kills 3.77  surv 81s  cubes 3.4  wins 0  acc me 0.80 pack 0.32  maxMs 237.3  crashes 0  29s
+== r01-nanite PB
+r01-nanite.mjs practice pack={"noise":4,"react":3,"every":150,"perKill":0.5,"share":10,"near":0,"base":1,"retaliate":6,"ff":0,"tAll":330}: pts 5.15 ±0.41 (n=48)  kills 5.13  surv 98s  cubes 4.8  wins 0  acc me 0.82 pack 0.31  maxMs 191.9  crashes 0  58s
+== rad3 PBD
+rad3.mjs practice pack={"noise":4,"react":3,"every":150,"perKill":0.5,"share":10,"near":0,"base":1,"retaliate":6,"ff":0,"tAll":330,"dropSeek":400}: pts 5.04 ±0.43 (n=48)  kills 5.00  surv 102s  cubes 4.9  wins 0  acc me 0.82 pack 0.31  maxMs 388.7  crashes 0  66s
+== r03-dropwar PBD
+r03-dropwar.mjs practice pack={"noise":4,"react":3,"every":150,"perKill":0.5,"share":10,"near":0,"base":1,"retaliate":6,"ff":0,"tAll":330,"dropSeek":400}: pts 4.83 ±0.39 (n=48)  kills 4.79  surv 101s  cubes 4.8  wins 0  acc me 0.82 pack 0.31  maxMs 398.6  crashes 0  62s
+DONE

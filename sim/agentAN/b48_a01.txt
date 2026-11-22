@@ -1,0 +1,2 @@
+a01-reach-soft.mjs practice pack={"noise":4,"react":3,"every":150,"perKill":0.5,"share":10,"near":0,"base":1,"retaliate":6,"ff":0,"tAll":330}: pts 4.60 ±0.40 (n=48)  kills 4.56  surv 90s  cubes 7.0  wins 0  acc me 0.82 pack 0.34  maxMs 113.6  crashes 0  14s
+  deaths: {"hard":14,"medium":13,"expert":5,"easy":14,"npc":1,"zone":1}  npcK 0.88 crates 2.38 cubePicks 7.02 cubesBy120 6.71 upgrades 2.52

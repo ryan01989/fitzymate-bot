@@ -1,0 +1,2 @@
+C_base: rad8.mjs practice pack={"noise":4,"react":3,"every":150,"perKill":0.5,"share":10,"near":0,"base":1,"retaliate":6,"ff":0,"tAll":330}: pts 4.60 ±0.40 (n=48)  kills 4.58  surv 95s  cubes 6.7  wins 0  acc me 0.81 pack 0.33  maxMs 72.1  crashes 0  33s
+C_weave: rad8.mjs practice pack={"noise":4,"react":3,"every":150,"perKill":0.5,"share":10,"near":0,"base":1,"retaliate":6,"ff":0,"tAll":330}: pts 4.75 ±0.41 (n=48)  kills 4.69  surv 92s  cubes 7.2  wins 0  acc me 0.81 pack 0.34  maxMs 126.5  crashes 0  32s

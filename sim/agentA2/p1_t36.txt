@@ -1,0 +1,82 @@
+{"n":48,"pts":4.5,"crashes":0,"maxMs":0,"actMs":{"p50":"0.0","p99":"0.0","p999":"0.0","max":"0.0"}}
+    early release at <= 0.2 s of charge (35-40% damage)                  15
+    early release: aimTarget not in LOS (mode fight)                     6
+    early release: aimTarget not in LOS (mode loot)                      8
+    early release: no mech in LOS                                        31
+  ...with no mech to shoot and pestNpc() == null (drone unanswered)      108
+  dither ticks (>=4 mode changes in the last 3 s): explore/fight/hold/loot 58
+  dither ticks (>=4 mode changes in the last 3 s): explore/fight/loot    24
+  dither ticks (>=4 mode changes in the last 3 s): explore/hold/loot     58
+  dither ticks (>=4 mode changes in the last 3 s): explore/loot          141
+  dither ticks (>=4 mode changes in the last 3 s): fight/hold/loot       10
+  dither ticks (>=4 mode changes in the last 3 s): fight/hold/loot/retreat 22
+  dither ticks (>=4 mode changes in the last 3 s): fight/hold/loot/retreat/zone 32
+  dither ticks (>=4 mode changes in the last 3 s): fight/hold/retreat    4
+  dither ticks (>=4 mode changes in the last 3 s): fight/hold/retreat/zone 1
+  dither ticks (>=4 mode changes in the last 3 s): fight/hold/seek/zone  19
+  dither ticks (>=4 mode changes in the last 3 s): fight/loot            30
+  dither ticks (>=4 mode changes in the last 3 s): fight/loot/retreat    53
+  dither ticks (>=4 mode changes in the last 3 s): fight/loot/retreat/zone 11
+  dither ticks (>=4 mode changes in the last 3 s): fight/retreat         68
+  dither ticks (>=4 mode changes in the last 3 s): fight/retreat/zone    16
+  dither ticks (>=4 mode changes in the last 3 s): fight/seek/zone       24
+  dither ticks (>=4 mode changes in the last 3 s): fight/zone            64
+  dither ticks (>=4 mode changes in the last 3 s): hold/loot             7
+  dither ticks (>=4 mode changes in the last 3 s): hold/loot/retreat     11
+  dither ticks (>=4 mode changes in the last 3 s): loot/retreat/zone     19
+  dither ticks (>=4 mode changes in the last 3 s): retreat/zone          34
+  dither ticks total                                                     706
+  findCover -> null                                                      105
+  findCover calls                                                        324
+  laser released before full charge                                      45
+  laser released in fight with the target out of LOS                     8
+  laser released with no mech in LOS at all                              147
+  laser releases                                                         625
+  left a fight with target <20% HP in LOS while >50% HP                  1
+  mode:explore                                                           3481
+  mode:fight                                                             18448
+  mode:hold                                                              748
+  mode:loot                                                              16695
+  mode:retreat                                                           3361
+  mode:seek                                                              222
+  mode:zone                                                              232
+  ticks                                                                  43187
+  ticks in unstick                                                       88
+  ticks with >=6 mode changes in the last 3 s                            41
+  ticks within 2.5 s of NPC damage                                       1850
+  unanswered in mode explore                                             4
+  unanswered in mode fight                                               6
+  unanswered in mode loot                                                98
+  zone<->retreat switches                                                18
+_early [
+  '1101@16.0 fight chg 0.25 tgt 6- d164 short 0',
+  '1707@55.5 loot chg 0.45 tgt none short 0',
+  '1707@102.1 loot chg 0.25 tgt none short 0',
+  '1909@19.8 fight chg 0.35 tgt 6- d56 short 0',
+  '1909@38.6 fight chg 0.55 tgt 9- d37 short 0',
+  '1909@56.7 retreat chg 0.6 tgt none short 0',
+  '1909@59.0 retreat chg 0.65 tgt none short 0',
+  '2212@22.2 loot chg 0.05 tgt none short 0',
+  '2212@74.8 loot chg 0.25 tgt none short 0',
+  '2414@53.8 loot chg 0.45 tgt none short 0',
+  '2414@72.5 loot chg 0.15 tgt none short 0',
+  '2414@79.4 loot chg 0.35 tgt none short 0'
+]
+_dither [
+  '1505@29.1 fight/hold/loot/retreat',
+  '2010@57.7 explore/loot',
+  '2313@28.1 explore/hold/loot',
+  '2515@26.3 fight/loot',
+  '2818@39.8 explore/fight/hold/loot',
+  '2919@41.9 explore/loot',
+  '3020@26.3 explore/loot',
+  '3424@0.6 explore/hold/loot',
+  '3525@128.8 fight/loot/retreat',
+  '3727@104.9 fight/retreat',
+  '3929@35.0 explore/loot',
+  '4535@83.5 fight/hold/loot/retreat'
+]
+_drops [
+  '4030@63.4 ->retreat tgt hp 4% d 143 me 83% atk 3 zoneUrg false kc false'
+]
+transitions {"loot>fight":118,"fight>loot":112,"fight>retreat":79,"loot>explore":75,"retreat>fight":74,"explore>loot":61,"hold>loot":42,"explore>fight":42,"hold>explore":26,"loot>retreat":23,"fight>hold":17,"loot>hold":17,"retreat>loot":16,"fight>zone":16,"zone>fight":13,"hold>fight":12,"retreat>zone":11,"zone>retreat":7,"hold>retreat":4,"seek>fight":4,"fight>explore":3,"seek>loot":3,"zone>hold":3,"zone>seek":3}

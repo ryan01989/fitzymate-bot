@@ -1,0 +1,45 @@
+t13-hunt90.mjs practice pack={"noise":4,"react":3,"every":150,"perKill":0.5,"share":10,"near":0,"base":1,"retaliate":6,"ff":0,"tAll":330}: pts 4.98 ±0.41 (n=48)  kills 4.94  surv 96s  cubes 4.5  wins 0  acc me 0.81 pack 0.30  maxMs 66.9  crashes 0  26s
+  deaths: {"hard":12,"easy":15,"medium":17,"expert":2,"npc":2}  npcK 0.77 crates 2.17 cubePicks 4.50 cubesBy120 4.27 upgrades 1.88
+t13-hunt90.mjs practice pack={"noise":1.5,"react":2,"every":100000,"perKill":0,"share":10,"near":0,"base":0,"tAll":240,"retaliate":0,"ff":0}: pts 13.71 ±0.59 (n=24)  kills 13.67  surv 231s  cubes 22.1  wins 19  acc me 0.79 pack 0.74  maxMs 64.1  crashes 0  23s
+  deaths: {"survived":19,"medium":5}  npcK 2.13 crates 3.75 cubePicks 19.58 cubesBy120 10.38 upgrades 5.50
+t22b-fightcube.mjs practice pack={"noise":4,"react":3,"every":150,"perKill":0.5,"share":10,"near":0,"base":1,"retaliate":6,"ff":0,"tAll":330}: pts 4.60 ±0.40 (n=48)  kills 4.58  surv 95s  cubes 6.7  wins 0  acc me 0.81 pack 0.33  maxMs 81.5  crashes 0  27s
+  deaths: {"expert":6,"easy":19,"medium":14,"hard":8,"zone":1}  npcK 0.92 crates 2.23 cubePicks 6.71 cubesBy120 5.83 upgrades 2.52
+t22b-fightcube.mjs practice pack={"noise":1.5,"react":2,"every":100000,"perKill":0,"share":10,"near":0,"base":0,"tAll":240,"retaliate":0,"ff":0}: pts 14.96 ±0.04 (n=24)  kills 14.79  surv 227s  cubes 29.6  wins 23  acc me 0.79 pack 0.69  maxMs 72.7  crashes 0  22s
+  deaths: {"survived":23,"medium":1}  npcK 2.21 crates 3.96 cubePicks 27.21 cubesBy120 12.04 upgrades 6.71
+t31-stack.mjs practice pack={"noise":4,"react":3,"every":150,"perKill":0.5,"share":10,"near":0,"base":1,"retaliate":6,"ff":0,"tAll":330}: pts 4.48 ±0.39 (n=48)  kills 4.44  surv 89s  cubes 6.9  wins 0  acc me 0.82 pack 0.34  maxMs 69.3  crashes 0  25s
+  deaths: {"easy":22,"hard":5,"medium":18,"expert":3}  npcK 0.90 crates 2.13 cubePicks 6.90 cubesBy120 6.44 upgrades 2.56
+t31-stack.mjs practice pack={"noise":1.5,"react":2,"every":100000,"perKill":0,"share":10,"near":0,"base":0,"tAll":240,"retaliate":0,"ff":0}: pts 14.04 ±0.59 (n=24)  kills 13.96  surv 231s  cubes 26.2  wins 20  acc me 0.78 pack 0.71  maxMs 131.8  crashes 0  25s
+  deaths: {"survived":20,"zone":1,"medium":2,"easy":1}  npcK 2.04 crates 3.38 cubePicks 24.92 cubesBy120 11.13 upgrades 6.25
+t33a-cubes-more.mjs practice pack={"noise":4,"react":3,"every":150,"perKill":0.5,"share":10,"near":0,"base":1,"retaliate":6,"ff":0,"tAll":330}: pts 4.27 ±0.39 (n=48)  kills 4.19  surv 90s  cubes 7.0  wins 0  acc me 0.82 pack 0.35  maxMs 59.3  crashes 0  23s
+  deaths: {"easy":20,"hard":13,"expert":2,"medium":12,"npc":1}  npcK 0.96 crates 2.15 cubePicks 7.02 cubesBy120 6.69 upgrades 2.60
+t33a-cubes-more.mjs practice pack={"noise":1.5,"react":2,"every":100000,"perKill":0,"share":10,"near":0,"base":0,"tAll":240,"retaliate":0,"ff":0}: pts 13.88 ±0.61 (n=24)  kills 13.88  surv 222s  cubes 28.1  wins 19  acc me 0.78 pack 0.79  maxMs 423.4  crashes 0  23s
+  deaths: {"survived":19,"expert":1,"zone":1,"easy":1,"hard":1,"medium":1}  npcK 2.17 crates 4.17 cubePicks 27.08 cubesBy120 13.08 upgrades 6.50
+t33b-firstshot.mjs practice pack={"noise":4,"react":3,"every":150,"perKill":0.5,"share":10,"near":0,"base":1,"retaliate":6,"ff":0,"tAll":330}: pts 5.15 ±0.44 (n=48)  kills 5.04  surv 91s  cubes 7.4  wins 0  acc me 0.81 pack 0.33  maxMs 97.1  crashes 0  23s
+  deaths: {"medium":15,"easy":12,"hard":12,"expert":7,"npc":2}  npcK 0.79 crates 1.88 cubePicks 7.40 cubesBy120 6.73 upgrades 2.71
+t33b-firstshot.mjs practice pack={"noise":1.5,"react":2,"every":100000,"perKill":0,"share":10,"near":0,"base":0,"tAll":240,"retaliate":0,"ff":0}: pts 14.67 ±0.22 (n=24)  kills 14.58  surv 224s  cubes 28.5  wins 21  acc me 0.80 pack 0.89  maxMs 138.1  crashes 0  22s
+  deaths: {"survived":21,"easy":1,"zone":1,"expert":1}  npcK 2.29 crates 3.50 cubePicks 26.25 cubesBy120 13.92 upgrades 6.63
+t33c-shortretreat.mjs practice pack={"noise":4,"react":3,"every":150,"perKill":0.5,"share":10,"near":0,"base":1,"retaliate":6,"ff":0,"tAll":330}: pts 4.73 ±0.41 (n=48)  kills 4.67  surv 91s  cubes 7.4  wins 0  acc me 0.82 pack 0.34  maxMs 69.5  crashes 0  25s
+  deaths: {"easy":18,"hard":9,"expert":2,"medium":19}  npcK 0.90 crates 2.17 cubePicks 7.42 cubesBy120 6.94 upgrades 2.71
+t33c-shortretreat.mjs practice pack={"noise":1.5,"react":2,"every":100000,"perKill":0,"share":10,"near":0,"base":0,"tAll":240,"retaliate":0,"ff":0}: pts 14.04 ±0.59 (n=24)  kills 13.96  surv 231s  cubes 26.2  wins 20  acc me 0.78 pack 0.71  maxMs 127.6  crashes 0  26s
+  deaths: {"survived":20,"zone":1,"medium":2,"easy":1}  npcK 2.04 crates 3.38 cubePicks 24.92 cubesBy120 11.13 upgrades 6.25
+t34a-nohunt.mjs practice pack={"noise":4,"react":3,"every":150,"perKill":0.5,"share":10,"near":0,"base":1,"retaliate":6,"ff":0,"tAll":330}: pts 4.65 ±0.40 (n=48)  kills 4.60  surv 92s  cubes 6.8  wins 0  acc me 0.81 pack 0.33  maxMs 68.5  crashes 0  24s
+  deaths: {"easy":20,"hard":11,"medium":15,"expert":2}  npcK 0.94 crates 2.17 cubePicks 6.75 cubesBy120 6.23 upgrades 2.52
+t34a-nohunt.mjs practice pack={"noise":1.5,"react":2,"every":100000,"perKill":0,"share":10,"near":0,"base":0,"tAll":240,"retaliate":0,"ff":0}: pts 10.92 ±0.98 (n=24)  kills 10.75  surv 241s  cubes 22.0  wins 12  acc me 0.79 pack 0.72  maxMs 63.1  crashes 0  31s
+  deaths: {"survived":12,"zone":2,"easy":2,"hard":6,"expert":2}  npcK 2.13 crates 3.67 cubePicks 20.96 cubesBy120 11.04 upgrades 5.50
+t34b-crowd130.mjs practice pack={"noise":4,"react":3,"every":150,"perKill":0.5,"share":10,"near":0,"base":1,"retaliate":6,"ff":0,"tAll":330}: pts 4.60 ±0.37 (n=48)  kills 4.54  surv 92s  cubes 7.3  wins 0  acc me 0.82 pack 0.32  maxMs 79.9  crashes 0  28s
+  deaths: {"medium":16,"easy":17,"hard":9,"expert":5,"npc":1}  npcK 0.85 crates 2.27 cubePicks 7.29 cubesBy120 6.83 upgrades 2.69
+t34b-crowd130.mjs practice pack={"noise":1.5,"react":2,"every":100000,"perKill":0,"share":10,"near":0,"base":0,"tAll":240,"retaliate":0,"ff":0}: pts 13.67 ±0.74 (n=24)  kills 13.54  surv 226s  cubes 26.5  wins 20  acc me 0.78 pack 0.78  maxMs 73.1  crashes 0  32s
+  deaths: {"survived":20,"zone":1,"expert":1,"easy":1,"hard":1}  npcK 2.17 crates 4.00 cubePicks 25.42 cubesBy120 10.50 upgrades 6.21
+t34c-cube40.mjs practice pack={"noise":4,"react":3,"every":150,"perKill":0.5,"share":10,"near":0,"base":1,"retaliate":6,"ff":0,"tAll":330}: pts 4.77 ±0.42 (n=48)  kills 4.73  surv 91s  cubes 6.1  wins 0  acc me 0.81 pack 0.31  maxMs 61.9  crashes 0  23s
+  deaths: {"easy":18,"hard":13,"medium":13,"expert":4}  npcK 0.85 crates 2.23 cubePicks 6.06 cubesBy120 5.73 upgrades 2.33
+t34c-cube40.mjs practice pack={"noise":1.5,"react":2,"every":100000,"perKill":0,"share":10,"near":0,"base":0,"tAll":240,"retaliate":0,"ff":0}: pts 14.08 ±0.61 (n=24)  kills 13.96  surv 226s  cubes 26.4  wins 20  acc me 0.79 pack 0.90  maxMs 92.9  crashes 0  26s
+  deaths: {"survived":20,"zone":2,"easy":2}  npcK 2.08 crates 3.13 cubePicks 25.54 cubesBy120 10.96 upgrades 6.33
+t34d-laserall.mjs practice pack={"noise":4,"react":3,"every":150,"perKill":0.5,"share":10,"near":0,"base":1,"retaliate":6,"ff":0,"tAll":330}: pts 4.56 ±0.39 (n=48)  kills 4.54  surv 90s  cubes 6.9  wins 0  acc me 0.81 pack 0.34  maxMs 54.5  crashes 0  22s
+  deaths: {"easy":20,"hard":7,"medium":19,"expert":2}  npcK 0.88 crates 2.13 cubePicks 6.85 cubesBy120 6.35 upgrades 2.54
+t34d-laserall.mjs practice pack={"noise":1.5,"react":2,"every":100000,"perKill":0,"share":10,"near":0,"base":0,"tAll":240,"retaliate":0,"ff":0}: pts 14.04 ±0.59 (n=24)  kills 14.04  surv 235s  cubes 27.2  wins 20  acc me 0.78 pack 0.77  maxMs 73.9  crashes 0  24s
+  deaths: {"survived":20,"zone":1,"medium":2,"easy":1}  npcK 2.08 crates 3.46 cubePicks 25.79 cubesBy120 11.71 upgrades 6.38
+t33e-finish.mjs practice pack={"noise":4,"react":3,"every":150,"perKill":0.5,"share":10,"near":0,"base":1,"retaliate":6,"ff":0,"tAll":330}: pts 4.33 ±0.39 (n=48)  kills 4.29  surv 87s  cubes 6.9  wins 0  acc me 0.82 pack 0.33  maxMs 65.3  crashes 0  26s
+  deaths: {"medium":11,"easy":15,"hard":18,"expert":4}  npcK 0.83 crates 2.25 cubePicks 6.85 cubesBy120 6.48 upgrades 2.56
+t33e-finish.mjs practice pack={"noise":1.5,"react":2,"every":100000,"perKill":0,"share":10,"near":0,"base":0,"tAll":240,"retaliate":0,"ff":0}: pts 14.17 ±0.38 (n=24)  kills 14.00  surv 236s  cubes 26.0  wins 17  acc me 0.80 pack 0.86  maxMs 72.6  crashes 0  33s
+  deaths: {"survived":17,"easy":1,"medium":4,"hard":1,"expert":1}  npcK 2.38 crates 4.13 cubePicks 24.75 cubesBy120 11.50 upgrades 6.13
+BATCH1 DONE

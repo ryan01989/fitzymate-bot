@@ -1,0 +1,12 @@
+agentT (tangent explorer), Sun Nov 22 00:35-01:20. All runs: --n 144 --seed 1000 --frozen-clock --stop-on-death, paired vs t13-hunt90.
+Tools: evalT.mjs (eval-cal copy + per-second trace + full dmgHist + DUMMY=<file> + pack knob "tough"), dummyT.mjs (dummyR + knobs aware, zapR, hop, pickR),
+runset.sh <tag> <pack> <n> <dummy|-> builds..., pair.py <tag> <base> builds..., deaths.py <dump> <window>, late.py <dump> <t0> <t1>. Dumps in out/<tag>_<build>.json.
+Packs: B = pack B; T2 = packT2.json (dummyT, aware 60, zapR 35, dropSeek 150, noise 8); C = packC.json (noise 9 react 5 retaliate 3 share 5 tough 0.6);
+L = B + pickR 200 (dummyT); A = B with noise 1.5 + tough 0.6.
+Paired diffs vs t13 (real: t15 -0.55, t17a -0.42, t18a -0.13):
+  B : t15 -0.02+-0.18  t17a -0.24+-0.15  t18a +0.15+-0.19  x01 -0.03+-0.20
+  T2: t15 +0.66+-0.27  t17a -0.08+-0.15  t18a +0.80+-0.27
+  C : t15 +0.18+-0.21  t17a -0.21+-0.12  t18a +0.31+-0.20  x01 +0.08+-0.21
+  L : t15 +0.38+-0.21
+  A : t15 +0.14+-0.11  t17a -0.16+-0.07   (absolute 1.6: far too lethal)
+x00-ctrl.mjs = rad4+x01 switch off + t13 line; identical to t13-hunt90 per seed (checked 9 seeds).

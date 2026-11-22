@@ -1,0 +1,5 @@
+t01-laser-first.mjs practice pack={"noise":4,"react":3,"every":150,"perKill":0.5,"share":10,"near":0,"base":1,"retaliate
+v5-peek.mjs practice pack={"noise":4,"react":3,"every":150,"perKill":0.5,"share":10,"near":0,"base":1,"retaliate":6,"ff"
+t12-kite200.mjs practice pack={"noise":4,"react":3,"every":150,"perKill":0.5,"share":10,"near":0,"base":1,"retaliate":6,
+probe-pacifist.mjs practice pack={"noise":4,"react":3,"every":150,"perKill":0.5,"share":10,"near":0,"base":1,"retaliate"
+DONE

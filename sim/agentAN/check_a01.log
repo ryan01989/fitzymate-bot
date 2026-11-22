@@ -1,0 +1,7 @@
+warm-up 187 ms
+bot: node main.mjs
+ready in 474 ms: name 'FitzyMate'
+observations: 300  answered in time: 300  missed the 50 ms budget: 0 (0 came late)
+answer time ms: p50 0.1  p90 0.2  p99 2.5  max 4.3  (this machine, not the 1-CPU match container)
+answers to older queued observations (dropped): 0  wrong tick: 0  bad lines: 0  debug drawings: 300 (0 over the caps)
+PASS

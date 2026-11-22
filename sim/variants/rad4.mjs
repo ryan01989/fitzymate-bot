@@ -33,6 +33,8 @@ const UPSETS = [null,
   ["armor", "plating", "nanites", "laser_charge", "laser_damage", "gun_damage", "gun_rate", "capacitor", "servos", "gun_velocity", "sensors", "gyros", "reactor", "gun_mag", "jets", "lightning_range", "lightning_chain", "laser_pierce", "lightning_efficiency", "mortar_reload", "mortar_velocity", "mortar_splash"],
   ["gun_damage", "gun_rate", "gun_mag", "plating", "armor", "laser_charge", "laser_damage", "gun_velocity", "nanites", "capacitor", "servos", "sensors", "gyros", "reactor", "jets", "lightning_range", "lightning_chain", "laser_pierce", "lightning_efficiency", "mortar_reload", "mortar_velocity", "mortar_splash"],
   ["sensors", "gyros", "plating", "armor", "laser_charge", "laser_damage", "nanites", "gun_damage", "gun_rate", "capacitor", "servos", "gun_velocity", "reactor", "gun_mag", "jets", "lightning_range", "lightning_chain", "laser_pierce", "lightning_efficiency", "mortar_reload", "mortar_velocity", "mortar_splash"],
+  // 5: the organiser's probe-astra bots (replays): gun_mag, plating, gun_damage, armor first. Two gun_mag = 28 rounds and a 1.5 s reload: +49% sustained gun damage
+  ["gun_mag", "plating", "gun_damage", "armor", "laser_damage", "laser_charge", "gun_rate", "nanites", "servos", "capacitor", "gun_velocity", "sensors", "gyros", "reactor", "jets", "laser_pierce", "lightning_range", "lightning_chain", "lightning_efficiency", "mortar_reload", "mortar_velocity", "mortar_splash"],
 ]
 const WEAPON_RANK = { laser: 3, lightning: 2, gun: 1, mortar: 0 }
 
@@ -134,7 +136,7 @@ export const P = {
   lateHeal: 0, // ...and out of a fight with nobody shooting us, below this HP share break line of sight and regenerate up to it; supply drops are taken whenever hurt (0 = off)
   lateCore: 0, // ...and hold spots are pulled toward the centre of the next circle by this many score points at its edge (no outer-ring preference) (0 = off)
   // --- sim/variants/rad.mjs: radical switches (all off by default)
-  upSet: 0, // upgrade order: 0 current, 1 offense (laser/gun dmg first), 2 tank (armor/plating/nanites), 3 gun, 4 sensors+gyros first
+  upSet: 0, // upgrade order: 0 current, 1 offense (laser/gun dmg first), 2 tank (armor/plating/nanites), 3 gun, 4 sensors+gyros first, 5 probe-astra (gun_mag, plating, gun_damage, armor)
   fBoost: 0, // in a fight, boost-strafe while energy is above this (0 = off)
   noRetAll: 0, // 1 = never retreat from mechs in sight, whatever their number
   cubeGoal: 0, // the rush ends early once we hold this many cubes (0 = off)
