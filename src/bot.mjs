@@ -77,6 +77,8 @@ export const P = {
   sqMpc: 1, // with sqMove: when bullets are in the air, check the blended move against the bullet prediction (missDist) and take a better-clearing top-ranked spot instead
   sqCubes: 0, // with sqMove: 1 = cubes only pull through the spot score (+1.5 per m closer, within 40 m) instead of fightCube taking over the legs
   sqHold: 3, // with sqMove: s the scorer keeps working on a target out of our sight (seen this recently): we may have stepped out on purpose, and the shot line is scored from where it was last seen; after that the old chase
+  sqRing2: 0, // with sqMove: 1 = a second ring of 16 spots at 12 m (move cost 0.4 per m), so cover a little farther away is found
+  sqRetLos: 0, // with sqMove: 1 = fight movement called from a retreat (no cover found) always wants the shot line
   sqAim: 0, // 1 = aim at 85% of the target's height when its centre is blocked from our muzzle
   noRetreat: false, // stand and fight against one or two attackers whatever the HP
   berserk: false, // attack anything in sight
@@ -217,7 +219,7 @@ export const P = {
 // Free-for-all profile (qualifying and the final): the survival-first settings of the first two submissions.
 // Applied once, the moment the bot sees mechs dying that it did not kill (see ingest()).
 export const P_FFA = {
-  sqMove: 0, sqAim: 0,
+  sqMove: 0, sqAim: 0, sqRing2: 0, sqRetLos: 0,
   hideHp: 0.4, resumeHp: 0.8, initHpLow: 0.75, initAdv: 0.2, vetoAdv: -0.12, vetoCubes: -5, crowd: 90, openingS: 45, calmS: 4,
   healBelow: 0, killLoot: false, dropHeal: false, fightRange: 0, bandRange: 14, noRetreat: false, berserk: false, zapRange: 0,
   farmHard: false, huntUntil: 0, calmAfter: 0, laserFirst: 0, laserInit: 0, laserInitUntil: 0, lootFix: 0, laserRoof: 0, lasHop: 0, laserRun: 0, laserAway: 0, oneFront: 0,
@@ -237,10 +239,10 @@ Object.assign(P, {"lasHop":14,"laserRoof":30}) // l01-hop: t36 + laser scout hop
 Object.assign(P, {"upSet":7}) // l07-stack: l06 + upgrade order with gun_mag second (l03 on l01 scored 5.69)
 Object.assign(P, {"upSet":8}) // w03-upgd: l07 + upgrade order 8 (gun_damage before nanites, servos down; sim/agentW2)
 Object.assign(P, {"dropAll":1}) // gb11-dropall: w03 + go for every supply drop (3 cubes + full repair + full energy) within 230 m that we can reach by landing + 8 s and that no known mech is within 70 m of; ahead of other loot
-// sq12bp-stack: + parkfix (sim/agentTalk/build_parkfix.py): the dead fixLootReach block made live after the loot walk
 Object.assign(P, {"sqMove":1,"sqAim":1}) // sq2-move: gb11 + fight movement by position sampling (new-idea 5.1-5.5), our ranges kept (sqRange 0); aim drops to 85% height when the centre is blocked
 Object.assign(P, {"squad":1})
 Object.assign(P, {"sqMove":0,"sqAim":0,"sqMoveAt":30,"sqFrom":30}) // sq12b-stack: sq12 with the squad layer and the fight-movement rework both held off until 30 s, so a free-for-all (detected at about 23-25 s on the real server) plays like gb11 // sq1-squad: gb11 + the reference practice decision layer as one mode (engage filter, per-tick target score, 1.5 s retreat pulses, no chase, cube detour 70/40 m, finish close-in 20 m, lethal release 0.7, laser seek 240 m)
+Object.assign(P, {"sqRing2":1,"sqRetLos":1}) // sq12c-stack: sq12b + sq2 v2 movement (second ring of spots at 12 m; a retreat with no cover fight-moves wanting the shot line)
 if (typeof process !== "undefined" && process.env && process.env.FM_P) Object.assign(P, JSON.parse(process.env.FM_P))
 if (typeof process !== "undefined" && process.env && process.env.FM_PFFA) Object.assign(P_FFA, JSON.parse(process.env.FM_PFFA))
 if (P.preferZap) {
@@ -366,6 +368,11 @@ export class Brain {
     this.strafeSide = this.rand() < 0.5 ? 1 : -1
     this.strafeFlipT = 0
     this.weaveSide = 1
+    if (P.sqMoveAt > 0) {
+      // sq12c: P outlives a match in a long-running process; the rework waits for sqMoveAt again
+      P.sqMove = 0
+      P.sqAim = 0
+    }
     this.weaveFlipT = 0
     this.scanYaw = this.rand() * TAU
     this.lastAim = [0, 0]
@@ -2526,16 +2533,18 @@ export class Brain {
         return
       }
     }
-    const want = this.sqWantLos(e, d)
+    const want = P.sqRetLos > 0 && this.mode === "retreat" ? 1 : this.sqWantLos(e, d)
     // 5.4 strafe timer: 0.3-1.0 s, flip side with 60% on expiry
     if (!(t < this.sqFlipT)) {
       if (this.rand() < 0.6) this.strafeSide = -this.strafeSide
       this.sqFlipT = t + 0.3 + this.rand() * 0.7
     }
-    const STEP = 6,
-      NR = 16
+    const NR = 16,
+      NC = P.sqRing2 > 0 ? 2 * NR : NR
+    const ang = (k) => (((k - 1) % NR) * TAU) / NR,
+      stp = (k) => (k > NR ? 12 : 6)
     // scratch buffers kept on the instance (no garbage per tick)
-    const B = (this.sqBuf ??= { cx: new Float64Array(NR + 1), cy: new Float64Array(NR + 1), cz: new Float64Array(NR + 1), ok: new Uint8Array(NR + 1), sc: new Float64Array(NR + 1), exp: new Uint8Array(NR + 1), losAt: new Uint8Array(NR + 1) })
+    const B = (this.sqBuf ??= { cx: new Float64Array(2 * NR + 1), cy: new Float64Array(2 * NR + 1), cz: new Float64Array(2 * NR + 1), ok: new Uint8Array(2 * NR + 1), sc: new Float64Array(2 * NR + 1), exp: new Uint8Array(2 * NR + 1), losAt: new Uint8Array(2 * NR + 1) })
     const { cx, cy, cz, ok, sc, exp, losAt } = B
     ok.fill(0)
     exp.fill(0)
@@ -2544,10 +2553,11 @@ export class Brain {
     cy[0] = y
     cz[0] = z
     ok[0] = 1
-    for (let k = 1; k <= NR; k++) {
-      const a = ((k - 1) * TAU) / NR
-      cx[k] = x + Math.cos(a) * STEP
-      cy[k] = y + Math.sin(a) * STEP
+    for (let k = 1; k <= NC; k++) {
+      const a = ang(k)
+      cx[k] = x + Math.cos(a) * stp(k)
+      cy[k] = y + Math.sin(a) * stp(k)
+      if (k > NR && !ok[k - NR]) continue
       cz[k] = z
       if (!w) {
         ok[k] = 1
@@ -2592,13 +2602,13 @@ export class Brain {
     const zoneOn = this.dNext > -8
     sc.fill(-1e9)
     let anyHidden = false
-    for (let k = 0; k <= NR; k++) {
+    for (let k = 0; k <= NC; k++) {
       if (!ok[k]) continue
       const px = cx[k],
         py = cy[k],
         pz = cz[k]
       let v = -1.1 * Math.abs(hyp(e.pos[0] - px, e.pos[1] - py) - pr)
-      if (k > 0) v -= 0.4 * STEP
+      if (k > 0) v -= 0.4 * stp(k)
       const los = !w || w.los(px, py, pz + this.muzH, e.pos[0], e.pos[1], e.cz)
       losAt[k] = los ? 1 : 0
       if (!los) anyHidden = true
@@ -2617,14 +2627,14 @@ export class Brain {
         if (wd < wallRef) v -= 2.5 * (wallRef - wd)
       }
       if (k > 0 && want > 0) {
-        const a = ((k - 1) * TAU) / NR
+        const a = ang(k)
         v += 9 * (Math.cos(a) * sx + Math.sin(a) * sy)
       }
       if (k === 0) v += want < 0 && !los ? 14 : -8
       sc[k] = v
     }
     let bk = 0
-    for (let k = 1; k <= NR; k++) if (sc[k] > sc[bk]) bk = k
+    for (let k = 1; k <= NC; k++) if (sc[k] > sc[bk]) bk = k
     const S = this.sqS
     // gun reloading and every spot of the ring in the target's sight: walk to the nearest hidden node instead
     if (want < 0 && !anyHidden && P.sqDuck > 0 && this.duck(A, e)) {
@@ -2632,7 +2642,7 @@ export class Brain {
       return
     }
     this.path = null
-    let mv = bk === 0 ? [0, 0] : [Math.cos(((bk - 1) * TAU) / NR), Math.sin(((bk - 1) * TAU) / NR)]
+    let mv = bk === 0 ? [0, 0] : [Math.cos(ang(bk)), Math.sin(ang(bk))]
     // 5.5 sidestep: bullets about to pass within our radius + 1.1 m in the next 0.7 s, and lasers charging on us
     let ddx = 0,
       ddy = 0,
@@ -2685,7 +2695,7 @@ export class Brain {
       if (bm > 1e-6 && w && !w.walkLine(x, y, z, x + mv[0] * 4, y + mv[1] * 4, this.reqR - 0.3, this.Hh)) {
         // the sidestep runs into a wall: the nearest walkable heading to it, else the plan
         const fd = this.sqFreeDir(mv[0], mv[1])
-        mv = fd || (bk === 0 ? [0, 0] : [Math.cos(((bk - 1) * TAU) / NR), Math.sin(((bk - 1) * TAU) / NR)])
+        mv = fd || (bk === 0 ? [0, 0] : [Math.cos(ang(bk)), Math.sin(ang(bk))])
       }
     }
     // our bullet prediction: if the move still leaves a bullet on us, a top-ranked spot that clears it better wins
@@ -2695,11 +2705,11 @@ export class Brain {
       let bestV = Math.min(this.missDist(mv), need) * 10
       if (bestV < need * 10) {
         const order = []
-        for (let k = 0; k <= NR; k++) if (ok[k]) order.push(k)
+        for (let k = 0; k <= NC; k++) if (ok[k]) order.push(k)
         order.sort((a, b) => sc[b] - sc[a])
         for (let i = 0; i < Math.min(5, order.length); i++) {
           const k = order[i]
-          const c = k === 0 ? [0, 0] : [Math.cos(((k - 1) * TAU) / NR), Math.sin(((k - 1) * TAU) / NR)]
+          const c = k === 0 ? [0, 0] : [Math.cos(ang(k)), Math.sin(ang(k))]
           const v = Math.min(this.missDist(c, k === 0 ? 0.01 : 0), need) * 10 + 0.25 * (sc[k] - sc[bk])
           if (v > bestV + 0.5) {
             bestV = v
@@ -3252,33 +3262,6 @@ export class Brain {
     } else this.lootStuck = 0
     const arrived = this.moveToPoint(A, L.pos[0], L.pos[1], L.pos[2], 1, (P.lasBoost > 0 && L.kind === "laser" && !this.laser && this.me.energy > P.lasBoost) || this.fbGo())
     if (!arrived && this.pathPartial && this.path && this.path.length < 5) fail()
-    if (P.fixLootReach > 0 && this.loot && d >= 1.2 && !this.jet && (arrived || hyp(A.move[0], A.move[1]) < 0.05)) {
-      // parkfix: the walk is over and the item is not ours (the fixLootReach block above is nested under d < 1.2 and never runs)
-      if (L.id === -7) {
-        // a spot, not an item: as near as the walk graph goes; the cubes lying there are ordinary cube targets for pickLoot()
-        this.killLoot = null
-        this.loot = null
-      } else {
-        if (this.pkReachId !== L.id || t - (this.pkReachSeenT ?? -99) > 1) {
-          this.pkReachId = L.id
-          this.pkReachT = t
-          this.pkReachD = d
-        }
-        this.pkReachSeenT = t
-        if (d < this.pkReachD - 0.3) {
-          this.pkReachD = d
-          this.pkReachT = t
-        }
-        if (t - this.pkReachT > P.fixLootReach) {
-          fail()
-          if (L.id <= -100) this.kcRun = null
-          this.pkReachId = null
-        } else if (Math.abs(L.pos[2] - z) < 2.5) {
-          const k = Math.min(1, Math.max(0.35, d / 3))
-          A.move = [((L.pos[0] - x) / d) * k, ((L.pos[1] - y) / d) * k]
-        }
-      }
-    }
     if (P.rushUntil > 0 && this.rushOn() && this.w && !this.vis.some((e) => e.los && e.dist < 170)) {
       // rush: shoot the nearest crate in view on the way (not with a mech in sight: we would turn our back to it) (it does not move; the cubes wait for us)
       let bc = null,
