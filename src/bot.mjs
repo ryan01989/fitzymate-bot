@@ -107,6 +107,14 @@ export const P = {
   // --- sim/train/cand/dither.mjs
   lootHold: 0, // a mech in sight has just called off looting: stay off the loot for this many seconds after it was last in sight (0 = off)
   lootHoldRe: 0, // ...only when looting was already called off this many seconds or less before (0 = on every call-off)
+  // --- sim/train/cand/dodge.mjs
+  weave: 0, // running in the open with a shooter on us (retreat): swing the heading +-this many rad around the path so a leading shooter never gets a straight line, and let bullets in the air pick the side (0 = off)
+  weaveAll: 0, // ...1 = also while looting / exploring / holding / moving to the zone (0 = retreat only)
+  // --- sim/train/cand/cubes.mjs: collect the cubes our own kills drop
+  cubeRun: 0, // after our kill, a committed walk to its cubes when they lie within this many m (half that past the stat cap unless they reach the next upgrade threshold); it overrides fights and retreats, mechs in view or not (0 = off)
+  cubeHit: 2.5, // ...but not while a mech hit us in the last this many s, nor while a mech in sight is within 50 m of us, or a mech is within 50 m of the cubes, nearer to them than we are (inside 110 m), or within 25 m of the line to them
+  cubeHp: 0.4, // ...nor below this HP share
+  cubeRunS: 20, // ...and for at most this many s after the kill
 }
 // Free-for-all profile (qualifying and the final): the survival-first settings of the first two submissions.
 // Applied once, the moment the bot sees mechs dying that it did not kill (see ingest()).
@@ -114,9 +122,9 @@ export const P_FFA = {
   hideHp: 0.4, resumeHp: 0.8, initHpLow: 0.75, initAdv: 0.2, vetoAdv: -0.12, vetoCubes: -5, crowd: 90, openingS: 45, calmS: 4,
   healBelow: 0, killLoot: false, dropHeal: false, fightRange: 0, bandRange: 14, noRetreat: false, berserk: false, zapRange: 0,
   farmHard: false, huntUntil: 0, calmAfter: 0, laserFirst: 0, laserInit: 0, laserInitUntil: 0, lootFix: 0, laserRoof: 0, laserRun: 0, laserAway: 0, oneFront: 0,
-  guard: 0, guardArc: 0.25, guardFire: 0.25, sqzAt: 0, sqzAway: 0, sqzHp: 0, lootHold: 0, lootHoldRe: 0,
+  guard: 0, guardArc: 0.25, guardFire: 0.25, sqzAt: 0, sqzAway: 0, sqzHp: 0, lootHold: 0, lootHoldRe: 0, weave: 0, weaveAll: 0, cubeRun: 0,
 }
-Object.assign(P, {"laserFirst":90,"dropHeal":true}) // baked by sim/train/train.mjs from sim/train/cand/all.mjs
+Object.assign(P, {"laserFirst":90,"cubeRun":130,"noRetreat":true}) // baked by sim/train/train.mjs from sim/train/cand/cubes.mjs
 if (typeof process !== "undefined" && process.env && process.env.FM_P) Object.assign(P, JSON.parse(process.env.FM_P))
 if (typeof process !== "undefined" && process.env && process.env.FM_PFFA) Object.assign(P_FFA, JSON.parse(process.env.FM_PFFA))
 if (P.preferZap) {
@@ -199,6 +207,8 @@ export class Brain {
     this.tmpPens = []
     this.strafeSide = this.rand() < 0.5 ? 1 : -1
     this.strafeFlipT = 0
+    this.weaveSide = 1
+    this.weaveFlipT = 0
     this.scanYaw = this.rand() * TAU
     this.lastAim = [0, 0]
     this.loot = null
@@ -323,6 +333,7 @@ export class Brain {
         this.doHold(A)
     }
     const T3 = now()
+    if (P.weave > 0 && (this.mode === "retreat" || (P.weaveAll && this.mode !== "fight"))) this.weave(A)
     this.dodgeShells(A)
     this.unstick(A)
     this.doAimFire(A)
@@ -478,6 +489,7 @@ export class Brain {
           const e = this.en.get(ev.target)
           if (e) {
             this.killLoot = { pos: e.pos.slice(), t }
+            if (P.cubeRun > 0) this.kcRun = { p0: e.pos.slice(), pos: e.pos.slice(), t, id: -100 - this.myKills, n: (e.cubes || 0) + 2, seen: false }
             this.en.delete(ev.target)
           }
           if (this.sqzSeen) this.sqzSeen.delete(ev.target)
@@ -704,6 +716,59 @@ export class Brain {
     return !!(L && L.kind === "laser" && this.lasGoal && this.lasGoal.d < P.laserRun)
   }
 
+  /**
+   * cubeRun: should the walk to our last kill's cubes take over this tick? It follows the cubes seen near the kill spot (their centre),
+   * ends once we stand on them, they are seen to be gone, the path fails, or P.cubeRunS has passed, and it pauses while we were hit in
+   * the last P.cubeHit s or are below P.cubeHp, a mech blocks the way (see P.cubeHit), we are finishing a target, or the zone is near.
+   */
+  cubeRunNow(target) {
+    const R = this.kcRun,
+      t = this.t,
+      me = this.me
+    const cubes = me.cubes || 0,
+      cap = this.cfg.cubes?.stat_cap ?? 10
+    const nextTh = (this.cfg.cubes?.upgrade_thresholds || []).find((v) => v > cubes)
+    if (t - R.t > P.cubeRunS || (cubes >= cap && nextTh === undefined) || (this.badLoot && this.badLoot.get(R.id) > t)) return !!(this.kcRun = null)
+    let sx = 0,
+      sy = 0,
+      sz = 0,
+      n = 0
+    for (const c of this.cubes.values())
+      if (hyp(c.pos[0] - R.p0[0], c.pos[1] - R.p0[1]) < 4.5 && Math.abs(c.pos[2] - R.p0[2]) < 4) {
+        sx += c.pos[0]
+        sy += c.pos[1]
+        sz += c.pos[2]
+        n++
+      }
+    if (n) {
+      R.seen = true
+      R.pos = [sx / n, sy / n, sz / n]
+    } else if (R.seen) return !!(this.kcRun = null) // seen there before, now gone (taken, or picked up)
+    const [x, y] = me.pos
+    const dx = R.pos[0] - x,
+      dy = R.pos[1] - y,
+      d = hyp(dx, dy)
+    if (d < 2) {
+      if (this.killLoot && hyp(this.killLoot.pos[0] - R.p0[0], this.killLoot.pos[1] - R.p0[1]) < 1) this.killLoot = null
+      return !!(this.kcRun = null)
+    }
+    if (d > P.cubeRun * (cubes >= cap && cubes + R.n < (nextTh ?? 1e9) ? 0.5 : 1)) return false
+    const zc = this.o.zone
+    if (this.zoneSlack < 14 || hyp(R.pos[0] - zc.center[0], R.pos[1] - zc.center[1]) > zc.radius - 4) return false
+    if (t - this.lastMechDmgT < P.cubeHit || this.hpS < P.cubeHp) return false
+    if (this.mode === "fight" && target && target.los && target.hpS < P.finishHp && t - (target.myHitT ?? -99) < 2) return false
+    for (const e of this.en.values()) {
+      if (e.phantom || t - e.t > 3) continue
+      const de = hyp(e.pos[0] - R.pos[0], e.pos[1] - R.pos[1])
+      if (de < 50 || (de < d && de < 110) || (e.los && e.dist < 50)) return false
+      const wx = e.pos[0] - x,
+        wy = e.pos[1] - y,
+        pr = (wx * dx + wy * dy) / d
+      if (pr > 0 && pr < d && Math.abs(wx * dy - wy * dx) / d < 25) return false
+    }
+    return true
+  }
+
   /** time-to-kill over time-to-die against e, from the last few seconds of trading. <1 = we are winning. */
   race(e) {
     const t = this.t
@@ -737,6 +802,13 @@ export class Brain {
     }
     if (this.zoneUrgent && !(this.mode === "fight" && this.inZone && this.zoneSlack > 2)) {
       this.mode = "zone"
+      return
+    }
+    // --- cubeRun: walk to the cubes our kill dropped, ahead of fights and retreats (see cubeRunNow())
+    if (P.cubeRun > 0 && this.kcRun && this.cubeRunNow(target)) {
+      this.loot = { type: "cube", id: this.kcRun.id, pos: this.kcRun.pos }
+      this.mode = "loot"
+      this.targetId = -1
       return
     }
     // --- cornered: running is not working (a pursuer keeps hitting us), so turn and make it pay
@@ -1687,13 +1759,13 @@ export class Brain {
   }
 
   /** smallest miss distance of visible incoming bullets if we steer along mv (accel-limited) */
-  missDist(mv) {
+  missDist(mv, spd) {
     const ps = this.o.projectiles
     if (!ps || !ps.length) return 99
     const me = this.me
     const [x, y, z] = me.pos
     let best = 99
-    const sp = this.walk * (this.charging ? 0.5 : 1)
+    const sp = spd || this.walk * (this.charging ? 0.5 : 1)
     const acc = me.stats?.ground_accel || 58.5
     const tvx = mv[0] * sp,
       tvy = mv[1] * sp
@@ -1726,6 +1798,61 @@ export class Brain {
       if (m < best) best = m
     }
     return best
+  }
+
+  /**
+   * P.weave. Running along a path with a shooter on us is a straight line at constant speed: whoever leads on our
+   * current velocity hits. A bullet takes dist/252 s; turning the whole way through its flight moves us up to
+   * accel*tof^2/2 off the predicted point (4.7 m at 100 m, hit radius 2.8 m). So swing the heading +-weave rad around
+   * the planned one, reversing as soon as each turn is complete, and when bullets are in the air take whichever of
+   * {swing, counter-swing, planned, brake} clears them. Only on open walkable ground, never on a link or the last metres.
+   */
+  weave(A) {
+    const me = this.me
+    const w = this.w
+    const t = this.t
+    const ml = hyp(A.move[0], A.move[1])
+    if (ml < 0.95 || !me.grounded || A.jump || this.charging) return
+    if (this.path && (this.plink[Math.min(this.pi, this.path.length - 1)] >= 0 || (this.jet && this.jet.phase === "air"))) return
+    let hot = false
+    for (const e of this.vis) if (e.los && e.dist < 235 && e.dist > 45 && (e.aimOn || t - e.hitMeT < 2.5)) hot = true
+    const sp = A.boost && me.energy > 2 ? me.stats?.boost_speed || 19.5 : this.walk
+    const need = this.R + 1.3
+    const mv0 = [A.move[0] / ml, A.move[1] / ml]
+    if (!hot && this.missDist(mv0, sp) >= need) return
+    const [x, y, z] = me.pos
+    if (t > this.weaveFlipT) {
+      this.weaveSide = -this.weaveSide
+      // one full swing takes 2*v*sin(a)/accel; reverse right after it, with jitter so the rhythm cannot be learned
+      this.weaveFlipT = t + ((2 * sp * Math.sin(P.weave)) / (me.stats?.ground_accel || 58.5)) * (0.8 + this.rand() * 0.7)
+    }
+    const rot = (s) => {
+      const c = Math.cos(P.weave * s),
+        sn = Math.sin(P.weave * s)
+      return [mv0[0] * c - mv0[1] * sn, mv0[0] * sn + mv0[1] * c]
+    }
+    const s0 = this.weaveSide
+    const cands = [rot(s0), rot(-s0), mv0, [mv0[0] * 0.15, mv0[1] * 0.15]]
+    let best = null,
+      bestScore = -1e9,
+      bk = 2
+    for (let k = 0; k < 4; k++) {
+      const mv = cands[k]
+      if (k < 2 && w && !w.walkLine(x, y, z, x + mv[0] * 6, y + mv[1] * 6, this.reqR - 0.3, this.Hh)) continue
+      const miss = Math.min(this.missDist(mv, k === 3 ? sp * 0.15 : sp), need)
+      const score = miss * 10 - k * 0.6
+      if (score > bestScore) {
+        bestScore = score
+        best = mv
+        bk = k
+        if (k === 0 && miss >= need) break
+      }
+    }
+    if (bk === 1) {
+      this.weaveSide = -s0
+      this.weaveFlipT = t + ((2 * sp * Math.sin(P.weave)) / (me.stats?.ground_accel || 58.5)) * (0.8 + this.rand() * 0.7)
+    }
+    A.move = best
   }
 
   dodgeShells(A) {
