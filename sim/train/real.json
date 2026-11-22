@@ -475,5 +475,23 @@
   "file": "sim/variants/l08-stack20.mjs",
   "real": 5.67,
   "note": "builders-4. l07 + lasHop 20."
+ },
+ {
+  "name": "sp01-spacing",
+  "file": "sim/variants/sp01-spacing.mjs",
+  "real": 5.68,
+  "note": "builders-4. l07 + spaceR 140 / spaceK 0.3 (rank loot away from mechs seen in the last 15 s)."
+ },
+ {
+  "name": "n01-dronemem",
+  "file": "sim/variants/n01-dronemem.mjs",
+  "real": 5.78,
+  "note": "builders-4. l07 + droneMem 90 (remember leashed drones 90 s and farm them)."
+ },
+ {
+  "name": "w03-upgd",
+  "file": "sim/variants/w03-upgd.mjs",
+  "real": 5.85,
+  "note": "builders-4. l07 + upSet 8 (plating, gun_mag, armor, gun_damage, nanites, ..., servos low). NEW BEST."
  }
 ]
