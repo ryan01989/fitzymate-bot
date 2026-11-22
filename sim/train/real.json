@@ -493,5 +493,17 @@
   "file": "sim/variants/w03-upgd.mjs",
   "real": 5.85,
   "note": "builders-4. l07 + upSet 8 (plating, gun_mag, armor, gun_damage, nanites, ..., servos low). NEW BEST."
+ },
+ {
+  "name": "gb6-laser150",
+  "file": "sim/variants/gb6-laser150.mjs",
+  "real": 5.67,
+  "note": "builders-4 (built by session buildersmech-24). w03 + lasAll 150 / lasAllV 200 / lasAllRun 100: after 90 s a known laser within 150 m is a top loot goal and holds off far hunts. Like l05 (5.66): late laser seeking stays flat."
+ },
+ {
+  "name": "c01-w03drone",
+  "file": "sim/variants/c01-w03drone.mjs",
+  "real": 5.77,
+  "note": "builders-4. w03 + droneMem 90. Drone memory twice: n01 5.78 on l07 (5.83), c01 5.77 on w03 (5.85): neutral to slightly negative."
  }
 ]
