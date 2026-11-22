@@ -391,5 +391,17 @@
   "file": "sim/variants/t37-range-fixes.mjs",
   "real": 5.59,
   "note": "new scoring. w01 + the three fixes. +0.06 vs t32, -0.22 vs t36: bigRange costs about 0.2 on top of the fixes."
+ },
+ {
+  "name": "t39-laser-range",
+  "file": "sim/variants/t39-laser-range.mjs",
+  "real": 5.54,
+  "note": "new scoring. t36 + rangeLas 140. -0.27 vs t36 (5.81)."
+ },
+ {
+  "name": "t38a-dronehp",
+  "file": "sim/variants/t38a-dronehp.mjs",
+  "real": 5.59,
+  "note": "new scoring. t36 + npcHp 0.92. -0.22 vs t36 (5.81), although the sim showed the switch almost never firing."
  }
 ]

@@ -181,6 +181,8 @@ export const P = {
   fixLootGate: 0, // > 0 = judge loot outside the next circle by the zone slack we would have AT THE ITEM (edge-crossing time there, minus the walk to it, minus the walk back in), which must exceed this many s. The old gate (our own zoneSlack > d/walk + 25) changes as we walk: an accepted item fell under the bar a few steps later and passed again on the way back, so loot <-> explore flipped every 0.3 s and the bot stood between the two goals (0 = off; 10 suggested, zone mode takes over under 7)
   fixBigNav: 0, // 1 = cap the wall clearance we ask of the walk graph at 6.9 m: world.mjs stores wall distance only up to 7 m, so from 33 cubes (radius 6.63 + 0.45) no node qualified, myNode was -1 and every path search failed (0 = off)
   fixLootReach: 0, // > 0 = walking onto a cube / weapon / kill-cube centre: when the path has ended (or we stand still) and the item is still more than 1.2 m away, step straight at it (the server slides us along walls) and give it up after this many s without getting 0.3 m closer; a kill spot (id -7) is simply dropped on arrival. The walk graph only has nodes with wall distance >= R + 0.45 on a 2 m grid, so the goal node can lie beyond the 3.5 m cube radius / 3.7 m take reach; the bot then stood still next to the item for 30 s, and again for each further cube there (0 = off; 2.5 suggested)
+  fixFinish: 0, // HP share: a retreat trigger (3+ attackers, out-traded, ...) does not pull us off a fight target in line of sight below this share while we are at 50%+ HP and it is inside 200 m; 0.08 of 1400 HP is under three gun hits. Without it the bot left a 4% target at 83% HP because a third mech had hit it (sim seed 4030, 63.4 s) (0 = off; 0.08 suggested)
+  fixTreeSoft: 0, // metres: with fixTreeMem, a tree crown counts as hiding an item only when the sight line runs at least this far inside crown cylinders (trunks always hide). Real stream: 40 of 40 lines with under 4 m of crown were listed by the server, 89% at 4-8 m, 20% past 8 m, 0 of 35 with a trunk. Without it any touch of a crown keeps a "gone" item remembered (0 = off; 4 suggested)
   fixNpcFace: 0, // 1 = hit by a drone we do not see (outside the view wedge) with no mech to shoot and none hitting us for 2.5 s: turn to the bearing of the hit so the drone gets listed and pestNpc() can answer it; its hits restart the 5 s regeneration timer (0 = off)
 }
 // Free-for-all profile (qualifying and the final): the survival-first settings of the first two submissions.
@@ -369,12 +371,39 @@ export class Brain {
         zb = az + dz * u1
       return Math.max(za, zb) > zlo && Math.min(za, zb) < zhi
     }
+    // fixTreeSoft: metres of the segment inside that cylinder
+    const soft = P.fixTreeSoft > 0
+    const len3 = soft ? hyp(dx, dy, dz) : 0
+    let inCrown = 0
+    const chord = (cx, cy, r, zlo, zhi) => {
+      const fx = ax - cx,
+        fy = ay - cy
+      const b = fx * dx + fy * dy
+      const disc = b * b - l2 * (fx * fx + fy * fy - r * r)
+      if (disc <= 0) return 0
+      const sq = Math.sqrt(disc)
+      let u0 = Math.max(0, (-b - sq) / l2),
+        u1 = Math.min(1, (-b + sq) / l2)
+      if (u0 >= u1) return 0
+      if (Math.abs(dz) > 1e-9) {
+        const ua = (zlo - az) / dz,
+          ub = (zhi - az) / dz
+        u0 = Math.max(u0, Math.min(ua, ub))
+        u1 = Math.min(u1, Math.max(ua, ub))
+      } else if (az <= zlo || az >= zhi) return 0
+      return u1 > u0 ? (u1 - u0) * len3 : 0
+    }
     for (let k = 0; k < T.n; k++) {
       const r = T.cr[k] + 0.5
       const cx = T.cx[k],
         cy = T.cy[k]
       const far = cx < x0 - r || cx > x1 + r || cy < y0 - r || cy > y1 + r
-      if (crowns && !far && cyl(cx, cy, r, T.z[k] + T.cb[k] - 0.5, T.z[k] + T.h[k] + 0.5)) return true
+      if (crowns && !far) {
+        if (soft) {
+          inCrown += chord(cx, cy, T.cr[k], T.z[k] + T.cb[k], T.z[k] + T.h[k])
+          if (inCrown >= P.fixTreeSoft) return true
+        } else if (cyl(cx, cy, r, T.z[k] + T.cb[k] - 0.5, T.z[k] + T.h[k] + 0.5)) return true
+      }
       const tx = T.x[k],
         ty = T.y[k],
         tr = T.tr[k] + 0.3
@@ -1136,6 +1165,10 @@ export class Brain {
         return
       }
     } else if (hpS < P.hideHp && losE.length && !(this.mode === "fight" && target && target.hpS < 0.25)) retreat = true
+    if (retreat && P.fixFinish > 0 && this.mode === "fight" && target && target.los && target.hpS < P.fixFinish && hpS >= 0.5 && target.dist < 200) {
+      this.setFight(target) // two or three more hits and it is a kill (see P.fixFinish)
+      return
+    }
     const allIn = P.noRetAll || (P.endRush > 0 && t >= P.endRush)
     if (retreat && P.noRetreat && (atk.length <= 2 || allIn) && (target || atk.length || (allIn && losE.length))) {
       let e = target && target.los ? target : atk.find((q) => q.los) || (allIn ? losE.reduce((b, q) => (!b || q.hp < b.hp ? q : b), null) : null)

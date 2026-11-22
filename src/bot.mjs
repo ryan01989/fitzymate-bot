@@ -176,11 +176,13 @@ export const P = {
   shortRetreatFire: 1, // ...0 = keep the old retreat aim (diagnostic: the exit rule alone)
   retarget: 0, // lesson C: in a fight, switch to a mech whose start-of-fight score beats the target's by this many points (100 = full HP share) (0 = off)
   retargetHold: 1.5, // ...but only after this many s on the current target, never off a target we are finishing, never past half a laser charge
-  npcHp: 0, // farm drones only above this HP share (0 = the old rule: 0.6 while farming, 0.8 otherwise). On the real server a hit on a drone restarts our 5 s regeneration timer and the drone shoots back; a hit on a crate does neither, so below this we farm crates and heal at the same time
   // --- sim/agentA2 audit fixes (all off by default; they are bug fixes that apply to free-for-all too, so P_FFA does not reset them)
   fixTreeMem: 0, // 1 = item memory (_remember): a pickup / crate / cube "in view but not listed" is forgotten only when no tree crown or trunk from v2/world.json is on the sight line (the server hides items behind foliage beyond the 45 m proximity range; world.mjs has no trees, so the bot took "hidden by a tree" for "gone" and dropped known lasers, crates and kill cubes after 0.3 s). Crates we shoot unseen are tracked by our hit events and dropped once dead or not answering hits (0 = off)
   fixLootGate: 0, // > 0 = judge loot outside the next circle by the zone slack we would have AT THE ITEM (edge-crossing time there, minus the walk to it, minus the walk back in), which must exceed this many s. The old gate (our own zoneSlack > d/walk + 25) changes as we walk: an accepted item fell under the bar a few steps later and passed again on the way back, so loot <-> explore flipped every 0.3 s and the bot stood between the two goals (0 = off; 10 suggested, zone mode takes over under 7)
   fixBigNav: 0, // 1 = cap the wall clearance we ask of the walk graph at 6.9 m: world.mjs stores wall distance only up to 7 m, so from 33 cubes (radius 6.63 + 0.45) no node qualified, myNode was -1 and every path search failed (0 = off)
+  fixLootReach: 0, // > 0 = walking onto a cube / weapon / kill-cube centre: when the path has ended (or we stand still) and the item is still more than 1.2 m away, step straight at it (the server slides us along walls) and give it up after this many s without getting 0.3 m closer; a kill spot (id -7) is simply dropped on arrival. The walk graph only has nodes with wall distance >= R + 0.45 on a 2 m grid, so the goal node can lie beyond the 3.5 m cube radius / 3.7 m take reach; the bot then stood still next to the item for 30 s, and again for each further cube there (0 = off; 2.5 suggested)
+  fixFinish: 0, // HP share: a retreat trigger (3+ attackers, out-traded, ...) does not pull us off a fight target in line of sight below this share while we are at 50%+ HP and it is inside 200 m; 0.08 of 1400 HP is under three gun hits. Without it the bot left a 4% target at 83% HP because a third mech had hit it (sim seed 4030, 63.4 s) (0 = off; 0.08 suggested)
+  fixTreeSoft: 0, // metres: with fixTreeMem, a tree crown counts as hiding an item only when the sight line runs at least this far inside crown cylinders (trunks always hide). Real stream: 40 of 40 lines with under 4 m of crown were listed by the server, 89% at 4-8 m, 20% past 8 m, 0 of 35 with a trunk. Without it any touch of a crown keeps a "gone" item remembered (0 = off; 4 suggested)
   fixNpcFace: 0, // 1 = hit by a drone we do not see (outside the view wedge) with no mech to shoot and none hitting us for 2.5 s: turn to the bearing of the hit so the drone gets listed and pestNpc() can answer it; its hits restart the 5 s regeneration timer (0 = off)
 }
 // Free-for-all profile (qualifying and the final): the survival-first settings of the first two submissions.
@@ -194,12 +196,11 @@ export const P_FFA = {
   fBoost: 0, noRetAll: 0, cubeGoal: 0, seekUntil: 0, rearBonus: 15, dropAll: 0, focusLow: 0, lasLock: 0, lasBoost: 0,
   upSet: 0, chaseHp: 0.4, chaseMyHp: 0.55, chaseS: 7, farmBoost: 0, lethalRelease: 0, fightCube: 0, finishRange: 0, noChase: 0, fightHide: 0, noExplore: 0, cautR: 0, endRush: 0, fightPick: 0, fightCubeCap: 0,
   firstShot: 0, shortRetreat: 0, retarget: 0, // gd-policy lessons: practice only
-  npcHp: 0, rangeLas: 0, rangeGun: 0,
 }
 Object.assign(P, {"laserFirst":90,"noRetreat":true,"cubeRun":130,"rushUntil":120,"ffaN":3,"lateAt":330,"lateFin":1.01,"lateCore":40}) // baked by sim/train/train.mjs from sim/train/cand/late.mjs
 Object.assign(P, {"huntFrom":90,"huntUntil":420,"seekUntil":420,"fightCube":55,"fightPick":70,"weave":0.6,"weaveAll":1,"cubeHit":1,"upSet":6}) // t32-stack-pick: t31-stack + in a fight without a laser, walk onto a known ground laser within 70 m (35 m below half HP) while still shooting (sim/variants/rad8.mjs)
-Object.assign(P, {"fixTreeMem":1,"fixLootGate":10,"fixBigNav":1}) // t36-fixes: t32 + three audit fixes: items hidden by tree foliage are no longer forgotten, the loot/explore flip during a zone shrink, navigation above 32 cubes (sim/variants/audit-fix.mjs)
-Object.assign(P, {"npcHp":0.92}) // t38a-dronehp: t36-fixes + farm drones only above 92% HP; while hurt, farm crates, which does not interrupt regeneration on the real server (sim/variants/rad10.mjs)
+Object.assign(P, {"fixTreeMem":1,"fixLootGate":10,"fixBigNav":1}) // t36-fixes
+Object.assign(P, {"fixLootReach":2.5,"fixFinish":0.08,"fixTreeSoft":4}) // t40-fixes2: t36-fixes + second audit pass: walk the last metre onto a cube / weapon the path stops short of (no more 30 s parks), do not leave a target under 8% HP when a third mech hits us, thin foliage (under 4 m of crown) does not hide an item (sim/variants/audit-fix.mjs)
 if (typeof process !== "undefined" && process.env && process.env.FM_P) Object.assign(P, JSON.parse(process.env.FM_P))
 if (typeof process !== "undefined" && process.env && process.env.FM_PFFA) Object.assign(P_FFA, JSON.parse(process.env.FM_PFFA))
 if (P.preferZap) {
@@ -372,12 +373,39 @@ export class Brain {
         zb = az + dz * u1
       return Math.max(za, zb) > zlo && Math.min(za, zb) < zhi
     }
+    // fixTreeSoft: metres of the segment inside that cylinder
+    const soft = P.fixTreeSoft > 0
+    const len3 = soft ? hyp(dx, dy, dz) : 0
+    let inCrown = 0
+    const chord = (cx, cy, r, zlo, zhi) => {
+      const fx = ax - cx,
+        fy = ay - cy
+      const b = fx * dx + fy * dy
+      const disc = b * b - l2 * (fx * fx + fy * fy - r * r)
+      if (disc <= 0) return 0
+      const sq = Math.sqrt(disc)
+      let u0 = Math.max(0, (-b - sq) / l2),
+        u1 = Math.min(1, (-b + sq) / l2)
+      if (u0 >= u1) return 0
+      if (Math.abs(dz) > 1e-9) {
+        const ua = (zlo - az) / dz,
+          ub = (zhi - az) / dz
+        u0 = Math.max(u0, Math.min(ua, ub))
+        u1 = Math.min(u1, Math.max(ua, ub))
+      } else if (az <= zlo || az >= zhi) return 0
+      return u1 > u0 ? (u1 - u0) * len3 : 0
+    }
     for (let k = 0; k < T.n; k++) {
       const r = T.cr[k] + 0.5
       const cx = T.cx[k],
         cy = T.cy[k]
       const far = cx < x0 - r || cx > x1 + r || cy < y0 - r || cy > y1 + r
-      if (crowns && !far && cyl(cx, cy, r, T.z[k] + T.cb[k] - 0.5, T.z[k] + T.h[k] + 0.5)) return true
+      if (crowns && !far) {
+        if (soft) {
+          inCrown += chord(cx, cy, T.cr[k], T.z[k] + T.cb[k], T.z[k] + T.h[k])
+          if (inCrown >= P.fixTreeSoft) return true
+        } else if (cyl(cx, cy, r, T.z[k] + T.cb[k] - 0.5, T.z[k] + T.h[k] + 0.5)) return true
+      }
       const tx = T.x[k],
         ty = T.y[k],
         tr = T.tr[k] + 0.3
@@ -1139,6 +1167,10 @@ export class Brain {
         return
       }
     } else if (hpS < P.hideHp && losE.length && !(this.mode === "fight" && target && target.hpS < 0.25)) retreat = true
+    if (retreat && P.fixFinish > 0 && this.mode === "fight" && target && target.los && target.hpS < P.fixFinish && hpS >= 0.5 && target.dist < 200) {
+      this.setFight(target) // two or three more hits and it is a kill (see P.fixFinish)
+      return
+    }
     const allIn = P.noRetAll || (P.endRush > 0 && t >= P.endRush)
     if (retreat && P.noRetreat && (atk.length <= 2 || allIn) && (target || atk.length || (allIn && losE.length))) {
       let e = target && target.los ? target : atk.find((q) => q.los) || (allIn ? losE.reduce((b, q) => (!b || q.hp < b.hp ? q : b), null) : null)
@@ -2427,7 +2459,7 @@ export class Brain {
       if (quiet) {
         for (const c of this.crates.values()) if (reachableZ(c.pos)) consider("crate", c, farming ? 55 : 30, 110 * reach)
         // drones hit back and pin us for seconds: in the rush they keep the old farming rule (no mech in sight inside 170 m)
-        if (this.hpS > (P.npcHp > 0 ? P.npcHp : farming ? 0.6 : 0.8) && t - this.lastMechDmgT > (farming ? 5 : 12) && !(rush && this.vis.some((e) => e.los && e.dist < 170)))
+        if (this.hpS > (farming ? 0.6 : 0.8) && t - this.lastMechDmgT > (farming ? 5 : 12) && !(rush && this.vis.some((e) => e.los && e.dist < 170)))
           for (const n of this.npcs.values()) if (t - n.t < (farming ? 6 : 2)) consider("npc", n, farming ? 80 : 44, 120 * reach)
       }
     }
@@ -2548,6 +2580,33 @@ export class Brain {
     } else this.lootStuck = 0
     const arrived = this.moveToPoint(A, L.pos[0], L.pos[1], L.pos[2], 1, (P.lasBoost > 0 && L.kind === "laser" && !this.laser && this.me.energy > P.lasBoost) || this.fbGo())
     if (!arrived && this.pathPartial && this.path && this.path.length < 5) fail()
+    if (P.fixLootReach > 0 && this.loot && d >= 1.2 && !this.jet && (arrived || hyp(A.move[0], A.move[1]) < 0.05)) {
+      // the path is over and the item is not ours yet (see P.fixLootReach)
+      if (L.id === -7) {
+        // a spot, not an item: the cubes lying there are ordinary cube targets for pickLoot()
+        this.killLoot = null
+        this.loot = null
+      } else {
+        if (this.reachId !== L.id || t - (this.reachSeenT ?? -99) > 1) {
+          this.reachId = L.id
+          this.reachT = t
+          this.reachD = d
+        }
+        this.reachSeenT = t
+        if (d < this.reachD - 0.3) {
+          this.reachD = d
+          this.reachT = t
+        }
+        if (t - this.reachT > P.fixLootReach) {
+          fail()
+          if (L.id <= -100) this.kcRun = null
+          this.reachId = null
+        } else if (Math.abs(L.pos[2] - z) < 2.5) {
+          const k = Math.min(1, Math.max(0.35, d / 3))
+          A.move = [((L.pos[0] - x) / d) * k, ((L.pos[1] - y) / d) * k]
+        }
+      }
+    }
     if (P.rushUntil > 0 && this.rushOn() && this.w && !this.vis.some((e) => e.los && e.dist < 170)) {
       // rush: shoot the nearest crate in view on the way (not with a mech in sight: we would turn our back to it) (it does not move; the cubes wait for us)
       let bc = null,
