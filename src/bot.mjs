@@ -91,6 +91,9 @@ export const P = {
   lootFix: 0, // 1 = drop the kill-loot spot once the path to it has ended, it proved unreachable, or we stood still for 2 s on the way (0 = off: keep returning to it for 30 s)
   // --- sim/train/cand/laser2.mjs
   laserRoof: 0, // laserFirst also runs to a laser on a roof (off the walk graph) when it lies at most this many m above our feet and a jet route to it exists (0 = off: roof lasers are skipped)
+  // --- sim/train/cand/laser3.mjs
+  laserRun: 0, // laserFirst: a laser goal within this many m (a) keeps us from starting a fight with a mech more than 60 m away, (b) ends a fight gone quiet (not hit for 4 s, no hit of ours for 2 s, target beyond 60 m) and (c) ends a retreat once not hit for 4 s at 60%+ HP with no mech in sight inside 120 m (0 = off)
+  laserAway: 0, // laserFirst: a mech nearer to the laser than we are (but not within 40 m of it) no longer cancels the run while it moves away from the laser faster than this many m/s (0 = off)
   // --- sim/train/cand/early.mjs
   oneFront: 0, // never open a second front: a mech that has not hit us for this many s (and is not our fight target, and not under finishHp) is not shot at while retreating / recovering, is not picked as the cornered target, and makes us hold fire while it stands in our line of fire (0 = off)
 }
@@ -99,9 +102,9 @@ export const P = {
 export const P_FFA = {
   hideHp: 0.4, resumeHp: 0.8, initHpLow: 0.75, initAdv: 0.2, vetoAdv: -0.12, vetoCubes: -5, crowd: 90, openingS: 45, calmS: 4,
   healBelow: 0, killLoot: false, dropHeal: false, fightRange: 0, bandRange: 14, noRetreat: false, berserk: false, zapRange: 0,
-  farmHard: false, huntUntil: 0, calmAfter: 0, laserFirst: 0, laserInit: 0, laserInitUntil: 0, lootFix: 0, laserRoof: 0, oneFront: 0,
+  farmHard: false, huntUntil: 0, calmAfter: 0, laserFirst: 0, laserInit: 0, laserInitUntil: 0, lootFix: 0, laserRoof: 0, laserRun: 0, laserAway: 0, oneFront: 0,
 }
-Object.assign(P, {"laserFirst":90,"oneFront":20}) // baked by sim/train/train.mjs from sim/train/cand/early.mjs
+Object.assign(P, {"laserFirst":90,"laserRoof":20,"laserRun":180,"laserAway":3,"oneFront":8}) // baked by sim/train/train.mjs from sim/train/cand/combo.mjs
 if (typeof process !== "undefined" && process.env && process.env.FM_P) Object.assign(P, JSON.parse(process.env.FM_P))
 if (typeof process !== "undefined" && process.env && process.env.FM_PFFA) Object.assign(P_FFA, JSON.parse(process.env.FM_PFFA))
 if (P.preferZap) {
@@ -639,7 +642,7 @@ export class Brain {
     if (e.hpS < P.finishHp && hpS > P.finishMyHp) return true
     // opening: a laser is a few seconds away and this mech is not on top of us yet -> pick it up first (see pickLoot)
     const lg = this.lasGoal
-    if (!defending && lg && this.t - lg.t < 0.3 && lg.d < 70 && e.dist > lg.d + 40) return false
+    if (!defending && lg && this.t - lg.t < 0.3 && ((lg.d < 70 && e.dist > lg.d + 40) || (lg.d < P.laserRun && e.dist > 60))) return false
     if (!defending && this.t < P.huntUntil && hpS > 0.6 && e.dist < 200 && e.los) return true
     if (!defending && P.calmAfter > 0 && this.t > P.calmAfter && e.hpS >= 0.35) return false
     if (this.others(e, P.crowd) >= 1) return false
@@ -666,6 +669,18 @@ export class Brain {
     // laser against no laser: the side that shoots first wins most of these, so do not wait to be shot
     if (P.laserInit > 0 && mine === 2 && theirs < 2 && e.los && e.dist < P.laserInit && hpS >= 0.6 && (P.laserInitUntil <= 0 || this.t < P.laserInitUntil)) return true
     return false
+  }
+
+  /**
+   * laserRun: should the opening laser run take over from the fight with e (or, e = null, from a retreat)? Only when we were not hit in
+   * the last 4 s, e is beyond 60 m, not being hit by us and not a finishing target, and pickLoot() has a laser goal inside P.laserRun m.
+   */
+  lasRunNow(e) {
+    const t = this.t
+    if (!(P.laserRun > 0) || !(t < P.laserFirst) || this.laser || this.finalPhase || this.hpS < (e ? 0.45 : 0.6) || t - this.lastMechDmgT < 4) return false
+    if (e ? e.dist < 60 || t - (e.myHitT ?? -99) < 2 || (e.hpS < P.finishHp && this.hpS > P.finishMyHp) : this.vis.some((q) => q.los && q.dist < 120)) return false
+    const L = this.pickLoot()
+    return !!(L && L.kind === "laser" && this.lasGoal && this.lasGoal.d < P.laserRun)
   }
 
   /** time-to-kill over time-to-die against e, from the last few seconds of trading. <1 = we are winning. */
@@ -777,7 +792,7 @@ export class Brain {
         return
       }
       const healed = hpS >= P.resumeHp || (sinceHit > this.regenDelay + 2 && hpS >= 0.7 && !exposed.length)
-      if (!(healed && sinceHit > 2.5) && t - this.recoverT < 40) return
+      if (!(healed && sinceHit > 2.5) && t - this.recoverT < 40 && !this.lasRunNow(null)) return
       this.mode = "hold"
       this.spotT = -99
     }
@@ -798,7 +813,7 @@ export class Brain {
     if (this.mode === "fight" && target) {
       const lost = t - (target.losT ?? -99)
       const chase = target.hpS < P.chaseHp && hpS > P.chaseMyHp && this.others(target, P.crowd) === 0
-      if (lost < (chase ? P.chaseS : 2.5) && t - this.fightStartT < 60) return
+      if (lost < (chase ? P.chaseS : 2.5) && t - this.fightStartT < 60 && !this.lasRunNow(target)) return
       this.mode = "hold"
       this.targetId = -1
     }
@@ -1729,7 +1744,11 @@ export class Brain {
         for (const e of this.en.values()) {
           if (t - e.t > 12) continue
           const de = hyp(p.pos[0] - e.pos[0], p.pos[1] - e.pos[1])
-          if (de < 40 || (de < 110 && de < d)) lost = true
+          if (de < 40 || (de < 110 && de < d)) {
+            // laserAway: it is walking away from the laser, so it is not the one that takes it
+            if (P.laserAway > 0 && de >= 40 && !e.phantom && e.vel && (e.vel[0] * (e.pos[0] - p.pos[0]) + e.vel[1] * (e.pos[1] - p.pos[1])) / de > P.laserAway) continue
+            lost = true
+          }
         }
         if (lost) continue
         if (roof && !this.roofRoute(p)) continue
