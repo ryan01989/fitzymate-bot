@@ -201,6 +201,7 @@ Object.assign(P, {"laserFirst":90,"noRetreat":true,"cubeRun":130,"rushUntil":120
 Object.assign(P, {"huntFrom":90,"huntUntil":420,"seekUntil":420,"fightCube":55,"fightPick":70,"weave":0.6,"weaveAll":1,"cubeHit":1,"upSet":6}) // t32-stack-pick: t31-stack + in a fight without a laser, walk onto a known ground laser within 70 m (35 m below half HP) while still shooting (sim/variants/rad8.mjs)
 Object.assign(P, {"fixTreeMem":1,"fixLootGate":10,"fixBigNav":1}) // t36-fixes: t32 + three audit fixes: items hidden by tree foliage are no longer forgotten, the loot/explore flip during a zone shrink, navigation above 32 cubes (sim/variants/audit-fix.mjs)
 Object.assign(P, {"lasHop":14,"laserRoof":30}) // l01-hop: t36 + laser scout hop (look over roofs and trees for a laser before 90 s) + run to roof lasers up to 30 m up (sim/agentL)
+Object.assign(P, {"lasHop":20}) // l04-hop20: l01 with a 20 m scout hop (sight test on real geometry with trees: a laser in sight for +30 points of laserless mechs at 45 s, vs +23 at 14 m; sim/agentL/vis.out)
 if (typeof process !== "undefined" && process.env && process.env.FM_P) Object.assign(P, JSON.parse(process.env.FM_P))
 if (typeof process !== "undefined" && process.env && process.env.FM_PFFA) Object.assign(P_FFA, JSON.parse(process.env.FM_PFFA))
 if (P.preferZap) {
