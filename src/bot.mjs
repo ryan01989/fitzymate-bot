@@ -143,6 +143,10 @@ export const P = {
   rearBonus: 15, // target score bonus for a mech facing away from us
   dropAll: 0, // 1 = go for every supply drop (3 cubes + full repair) when nobody is within dropCrowd m of it
   dropCrowd: 70,
+  huntFrom: 0, // huntUntil / seekUntil apply only from this time...
+  huntCubes: 0, // ...or once we hold this many cubes, whichever comes first (0 = no gate)
+  rangeLas: 0, // fight range while holding a laser (0 = fightRange rule)
+  rangeGun: 0, // fight range without a laser (0 = fightRange rule)
   focusLow: 0, // in a fight, switch to a mech in sight this much lower in HP share (0 = off)
 }
 // Free-for-all profile (qualifying and the final): the survival-first settings of the first two submissions.
@@ -156,7 +160,7 @@ export const P_FFA = {
   fBoost: 0, noRetAll: 0, cubeGoal: 0, seekUntil: 0, rearBonus: 15, dropAll: 0, focusLow: 0,
 }
 Object.assign(P, {"laserFirst":90,"noRetreat":true,"cubeRun":130,"rushUntil":120,"ffaN":3,"lateAt":330,"lateFin":1.01,"lateCore":40}) // baked by sim/train/train.mjs from sim/train/cand/late.mjs
-Object.assign(P, {"fightRange":200,"fBoost":40}) // t12-kite200: hold the gun's full reach and boost-strafe in fights (sim/variants/rad.mjs)
+Object.assign(P, {"huntFrom":90,"huntUntil":420,"seekUntil":420}) // t13-hunt90: from 90 s attack any mech in sight above 60% HP, and walk toward the last known mech (sim/variants/rad3.mjs)
 if (typeof process !== "undefined" && process.env && process.env.FM_P) Object.assign(P, JSON.parse(process.env.FM_P))
 if (typeof process !== "undefined" && process.env && process.env.FM_PFFA) Object.assign(P_FFA, JSON.parse(process.env.FM_PFFA))
 if (P.preferZap) {
@@ -717,7 +721,7 @@ export class Brain {
     // opening: a laser is a few seconds away and this mech is not on top of us yet -> pick it up first (see pickLoot)
     const lg = this.lasGoal
     if (!defending && lg && this.t - lg.t < 0.3 && ((lg.d < 70 && e.dist > lg.d + 40) || (lg.d < P.laserRun && e.dist > 60))) return false
-    if (!defending && this.t < P.huntUntil && hpS > 0.6 && e.dist < 200 && e.los) return true
+    if (!defending && this.t < P.huntUntil && this.huntOk() && hpS > 0.6 && e.dist < 200 && e.los) return true
     if (!defending && P.calmAfter > 0 && this.t > P.calmAfter && e.hpS >= 0.35) return false
     if (this.others(e, P.crowd) >= 1) return false
     if (cubeDiff <= P.vetoCubes) return false
@@ -757,6 +761,10 @@ export class Brain {
     return !!(L && L.kind === "laser" && this.lasGoal && this.lasGoal.d < P.laserRun)
   }
 
+  huntOk() {
+    if (!(P.huntFrom > 0 || P.huntCubes > 0)) return true
+    return (P.huntFrom > 0 && this.t >= P.huntFrom) || (P.huntCubes > 0 && (this.me.cubes || 0) >= P.huntCubes)
+  }
   /** rush: is the early cube rush on this tick (P.rushUntil)? */
   rushOn() {
     return P.rushUntil > 0 && this.t < P.rushUntil && !this.finalPhase && !this.sqz && !(P.cubeGoal > 0 && (this.me.cubes || 0) >= P.cubeGoal)
@@ -1029,7 +1037,7 @@ export class Brain {
       if (held || P.lootHoldRe <= 0 || t - (this.lootOffT ?? -99) <= P.lootHoldRe) this.lootBlockT = t
       if (wasLoot) this.lootOffT = t
     }
-    if (!this.loot && P.seekUntil > 0 && t < P.seekUntil && hpS > P.seekHp && this.zoneSlack > 20) {
+    if (!this.loot && P.seekUntil > 0 && t < P.seekUntil && this.huntOk() && hpS > P.seekHp && this.zoneSlack > 20) {
       let g = null
       for (const e of this.en.values()) if (!e.phantom && t - e.t < 20 && (!g || e.t > g.t)) g = e
       if (g) {
@@ -1741,6 +1749,8 @@ export class Brain {
     this.path = null
     // preferred range by loadout: far enough that bullets can be side-stepped
     let pr = P.fightRange > 0 ? P.fightRange + (this.laser ? 8 : 0) : this.laser ? 112 : 104
+    if (this.laser && P.rangeLas > 0) pr = P.rangeLas
+    if (!this.laser && P.rangeGun > 0) pr = P.rangeGun
     if (this.lightning && !this.laser && (this.hpS - e.hpS > 0.1 || e.hpS < 0.45) && !e.has("lightning")) pr = 34
     if (P.zapRange > 0 && this.lightning && this.me.energy > 22 && !(e.has("lightning") && this.hpS < e.hpS)) pr = P.zapRange
     if (this.finalPhase) pr = Math.min(pr, 45)

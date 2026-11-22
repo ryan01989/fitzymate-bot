@@ -230,6 +230,15 @@
    "lateCore": 40
   },
   "simPred": "sim cannot judge: never activates (bot dead by ~140 s in the sim)",
-  "when": "2026-11-22T02:43:44.608Z"
+  "when": "2026-11-22T02:51:18.469Z",
+  "real": 5.23,
+  "note": "within noise of t09 (5.28); late positioning neither helps nor hurts"
+ },
+ {
+  "name": "t12-kite200",
+  "file": "sim/variants/t12-kite200.mjs",
+  "real": 5.21,
+  "pred": "+0.74 +-0.16 over t11 (3 packs x 48 seeds)",
+  "note": "t11 + fightRange 200 + fBoost 40. Sim said +0.74, real is flat vs t11 (5.23) / best 5.38. Sim wrong again on a fight-behaviour change."
  }
 ]
