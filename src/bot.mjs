@@ -117,6 +117,27 @@ export const P = {
   cubeRunS: 20, // ...and for at most this many s after the kill
   // --- sim/train/cand/rush.mjs: early cube rush
   rushUntil: 0, // until this match time crates / drones / cubes come first: a mech in view no longer calls farming off, fights start only with a mech that hit us in the last rushHit s, is inside rushNear m or is nearly dead, a fight gone quiet ends, crates are shot from range (gun + laser), also while walking to cubes (0 = off)
+  // --- weapon grab: a better second weapon close by is worth more than the fight we are in
+  armGrab: 0, // go take a known laser / lightning that beats our second slot when it lies within this many m, even mid-fight (0 = off)
+  armGrabHp: 0.3, // ...only above this HP share
+  // --- fight ranges
+  laserRange: 0, // preferred fight range with a laser in m (0 = the fightRange rule)
+  finishRush: 0, // close to finishRushR m on a target below this HP share, while we are above finishRushMe and at most 2 mechs are on us (0 = off)
+  finishRushMe: 0.42,
+  finishRushR: 20,
+  // --- losing pulses: replace hide-and-regenerate with short breaks only while plainly losing
+  loseRule: 0, // seconds a retreat lasts once we stop losing (0 = off). Losing: 2+ mechs within 160 m and HP < 55%, 3+ and HP < 80%, or HP < 35% with the target 10+ points healthier
+  // --- second-mech-aware stepping: in a fight, prefer steps that other mechs in view cannot see
+  isoW: 0, // score penalty per other mech that would see where a step takes us (0 = off)
+  isoR: 170, // ...counting mechs within this many m
+  isoMem: 2, // ...seen in the last this many s (also mechs placed from the bearing of a recent hit)
+  isoAhead: 0.6, // ...judging the spot this many s of walking ahead
+  // --- boost dodge: in a fight, when no walking step clears the bullets in the air, sprint the step that does
+  dodgeBoost: 0, // ...only with more than this much energy (0 = off)
+  // --- no first shot without a laser
+  noFirst: 0, // holding no laser, do not open on a laser carrier or on a mech beyond this many m unless it is coming for us or nearly dead (0 = off)
+  // --- practice / free-for-all switch
+  ffaDead: 2, // deaths we did not cause before switching to the free-for-all profile
   rushNear: 70, // ...a mech in sight this close still calls the rush off / may be fought
   rushHit: 4, // ...and so does being hit by a mech in the last this many s
   rushVeto: 0, // ...1 = also start no fight with a mech beyond rushNear that has not hit us for rushHit s (unless nearly dead), and end such a fight gone quiet (0 = fights as usual)
@@ -128,7 +149,7 @@ export const P_FFA = {
   healBelow: 0, killLoot: false, dropHeal: false, fightRange: 0, bandRange: 14, noRetreat: false, berserk: false, zapRange: 0,
   farmHard: false, huntUntil: 0, calmAfter: 0, laserFirst: 0, laserInit: 0, laserInitUntil: 0, lootFix: 0, laserRoof: 0, laserRun: 0, laserAway: 0, oneFront: 0,
   guard: 0, guardArc: 0.25, guardFire: 0.25, sqzAt: 0, sqzAway: 0, sqzHp: 0, lootHold: 0, lootHoldRe: 0, weave: 0, weaveAll: 0, cubeRun: 0,
-  rushUntil: 0,
+  rushUntil: 0, armGrab: 0, laserRange: 0, finishRush: 0, loseRule: 0, isoW: 0, noFirst: 0, dodgeBoost: 0,
 }
 Object.assign(P, {"laserFirst":90,"noRetreat":true,"cubeRun":130,"rushUntil":120}) // baked by sim/train/train.mjs from sim/train/cand/rush.mjs
 if (typeof process !== "undefined" && process.env && process.env.FM_P) Object.assign(P, JSON.parse(process.env.FM_P))
@@ -550,7 +571,7 @@ export class Brain {
     // free-for-all or a house squad? In a squad the others never kill each other, so every death
     // other than ours is a kill of ours. Two or more deaths we did not cause means free-for-all.
     const othersDead = (this.cfg.match?.mechs ?? 16) - (o.alive ?? 16) - (this.myKills || 0)
-    if (othersDead >= 2 && !this.ffa) {
+    if (othersDead >= P.ffaDead && !this.ffa) {
       this.ffa = true
       if (!(typeof process !== "undefined" && process.env && process.env.FM_NOSWITCH)) Object.assign(P, P_FFA)
     }
@@ -699,6 +720,7 @@ export class Brain {
       return adv >= P.defAdv
     }
     if (outgunned && adv < P.outgunAdv) return false
+    if (P.noFirst > 0 && !this.laser && e.hunt < 2 && e.hpS >= P.finishHp && (e.has("laser") || e.dist > P.noFirst)) return false
     if (e.hpS < P.initHpLow) return true
     if (adv >= P.initAdv) return true
     if (this.t - e.busyT < 3 && e.hpS < P.busyHp) return true
@@ -791,6 +813,39 @@ export class Brain {
     return true
   }
 
+  /** P.armGrab: the nearest remembered pickup that outranks our second slot (and the gun), inside the circle, that no mech will reach first */
+  armGrabNow() {
+    if (!(P.armGrab > 0) || this.hpS < P.armGrabHp || this.zoneSlack < 14) return null
+    const t = this.t
+    const me = this.me
+    const [x, y, z] = me.pos
+    const s1 = me.weapons?.[1]
+    if (s1 && s1.kind === "laser") return null // nothing outranks it
+    const have = s1 ? WEAPON_RANK[s1.kind] ?? 0 : -1
+    const zc = this.o.zone
+    let best = null,
+      bd = P.armGrab
+    for (const p of this.picks.values()) {
+      const r = WEAPON_RANK[p.kind] ?? 0
+      if (r <= Math.max(have, WEAPON_RANK.gun) || this[p.kind]) continue
+      const d = hyp(p.pos[0] - x, p.pos[1] - y)
+      if (d >= bd) continue
+      if (hyp(p.pos[0] - zc.center[0], p.pos[1] - zc.center[1]) > zc.radius - 8) continue
+      if (this.w && Math.abs(this.w.standZ(p.pos[0], p.pos[1], z + 1.5) - p.pos[2]) > 3.2) continue // up on a roof: not a quick grab
+      if (this.badLoot && this.badLoot.get(p.id) > t) continue
+      let taken = false
+      for (const e of this.en.values()) {
+        if (t - e.t > 8 || e.phantom) continue
+        const de = hyp(p.pos[0] - e.pos[0], p.pos[1] - e.pos[1])
+        if (de < 25 || de < d - 30) taken = true // standing on it, or clearly closer than us
+      }
+      if (taken) continue
+      bd = d
+      best = p
+    }
+    return best
+  }
+
   /** time-to-kill over time-to-die against e, from the last few seconds of trading. <1 = we are winning. */
   race(e) {
     const t = this.t
@@ -833,6 +888,13 @@ export class Brain {
       this.targetId = -1
       return
     }
+    // --- weapon grab: walk over a better weapon before carrying on (doAimFire still answers whoever shoots at us)
+    const arm = this.armGrabNow()
+    if (arm) {
+      this.loot = { type: "pick", id: arm.id, pos: arm.pos, kind: arm.kind }
+      this.mode = "loot"
+      return
+    }
     // --- cornered: running is not working (a pursuer keeps hitting us), so turn and make it pay
     if (this.mode === "retreat" && atk.length && t - (this.retreatT ?? t) > 3.5 && t - this.lastMechDmgT < 0.8) {
       const close = atk.filter((e) => e.los && e.dist < 120)
@@ -853,6 +915,35 @@ export class Brain {
       if (!best) for (const e of losE) if (e.dist < 230 && (!best || e.hp + e.dist * 3 < best.hp + best.dist * 3)) best = e
       if (best) {
         this.setFight(best)
+        return
+      }
+    }
+    // --- losing pulses: break off only while plainly losing, and only briefly; otherwise stay in it
+    if (P.loseRule > 0 && !this.finalPhase) {
+      let near = 0
+      for (const q of this.vis) if (!q.phantom && q.dist < 160 && t - q.t < 3) near++
+      let losing = (near >= 2 && hpS < 0.55) || (near >= 3 && hpS < 0.8) || (hpS < 0.35 && target && target.hpS > hpS + 0.1)
+      if (target && target.hpS < 0.25 && hpS > 0.2 && near <= 2) losing = false
+      if (losing) {
+        if (this.mode !== "retreat") {
+          this.cover = null
+          this.coverT = -99
+          this.retreatT = t
+        }
+        this.loseT = t
+        this.mode = "retreat"
+        this.recoverT = t
+        this.targetId = -1
+        return
+      }
+      if (this.mode === "retreat") {
+        if (t - (this.loseT ?? -99) < P.loseRule) return
+        this.mode = "hold"
+        this.spotT = -99
+      }
+      const e = target && target.los ? target : atk.find((q) => q.los) || null
+      if (e) {
+        this.setFight(e)
         return
       }
     }
@@ -1680,7 +1771,9 @@ export class Brain {
     let pr = P.fightRange > 0 ? P.fightRange + (this.laser ? 8 : 0) : this.laser ? 112 : 104
     if (this.lightning && !this.laser && (this.hpS - e.hpS > 0.1 || e.hpS < 0.45) && !e.has("lightning")) pr = 34
     if (P.zapRange > 0 && this.lightning && this.me.energy > 22 && !(e.has("lightning") && this.hpS < e.hpS)) pr = P.zapRange
+    if (this.laser && P.laserRange > 0) pr = P.laserRange
     if (this.finalPhase) pr = Math.min(pr, 45)
+    if (P.finishRush > 0 && e.hpS < P.finishRush && this.hpS > P.finishRushMe && this.attackers(3).length <= 2) pr = Math.min(pr, P.finishRushR)
     const maxR = (this.gun?.stats?.range || 230) - 30
     pr = Math.min(pr, maxR)
     let radial = clamp((d - pr) / P.bandRange, -1, 1)
@@ -1719,15 +1812,27 @@ export class Brain {
     let best = null,
       bestScore = -1e9
     const need = this.R + 1.3
+    // isoW: other mechs in view that could join in; count which of them would see where each step takes us
+    // remembered too (seen in the last isoMem s, or placed from the bearing of a hit): the second mech is usually behind us
+    const others = []
+    if (P.isoW > 0 && w) for (const q of this.en.values()) if (q !== e && q.dist < P.isoR && t - q.t < P.isoMem && (!q.phantom || t - q.hitMeT < P.isoMem)) others.push(q)
+    const seenBy = (mv) => {
+      if (!others.length) return 0
+      const px = x + mv[0] * this.walk * P.isoAhead,
+        py = y + mv[1] * this.walk * P.isoAhead
+      let n = 0
+      for (const q of others) if (w.los(q.pos[0], q.pos[1], q.pos[2] + 8, px, py, z + 4.5)) n++
+      return n
+    }
     for (let k = 0; k < cands.length; k++) {
       const mv = cands[k]
       if (k < 6 && !free(mv)) continue
       const miss = Math.min(this.missDist(mv), need)
-      const score = miss * 10 - k * 0.6 - (k === 6 ? 3 : 0)
+      const score = miss * 10 - k * 0.6 - (k === 6 ? 3 : 0) - P.isoW * seenBy(mv)
       if (score > bestScore) {
         bestScore = score
         best = mv
-        if (k === 0 && miss >= need) break
+        if (k === 0 && miss >= need && !others.length) break
       }
     }
     if (!best) best = [-ux, -uy]
@@ -1736,6 +1841,26 @@ export class Brain {
       this.strafeFlipT = t + 0.25 + this.rand() * 0.5
     }
     A.move = best
+    // boost dodge: walking cannot get us off a bullet's line in time; a sprint step might
+    if (P.dodgeBoost > 0 && me.energy > P.dodgeBoost && !this.charging && me.grounded) {
+      const walkMiss = this.missDist(best)
+      if (walkMiss < need) {
+        let fast = null,
+          fastMiss = walkMiss + 0.4
+        for (let k = 0; k < 6; k++) {
+          if (!free(cands[k])) continue
+          const m = this.missDist(cands[k], this.boostV)
+          if (m > fastMiss) {
+            fastMiss = m
+            fast = cands[k]
+          }
+        }
+        if (fast) {
+          A.move = fast
+          A.boost = true
+        }
+      }
+    }
     // a lightning carrier inside its reach: open the range fast
     if (e.has("lightning") && d < 52 && this.me.energy > 25 && !(this.lightning && this.hpS > e.hpS)) {
       A.move = mk(s0 * 0.35, -1)
