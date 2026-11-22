@@ -115,6 +115,11 @@ export const P = {
   cubeHit: 2.5, // ...but not while a mech hit us in the last this many s, nor while a mech in sight is within 50 m of us, or a mech is within 50 m of the cubes, nearer to them than we are (inside 110 m), or within 25 m of the line to them
   cubeHp: 0.4, // ...nor below this HP share
   cubeRunS: 20, // ...and for at most this many s after the kill
+  // --- sim/train/cand/rush.mjs: early cube rush
+  rushUntil: 0, // until this match time crates / drones / cubes come first: a mech in view no longer calls farming off, fights start only with a mech that hit us in the last rushHit s, is inside rushNear m or is nearly dead, a fight gone quiet ends, crates are shot from range (gun + laser), also while walking to cubes (0 = off)
+  rushNear: 70, // ...a mech in sight this close still calls the rush off / may be fought
+  rushHit: 4, // ...and so does being hit by a mech in the last this many s
+  rushVeto: 0, // ...1 = also start no fight with a mech beyond rushNear that has not hit us for rushHit s (unless nearly dead), and end such a fight gone quiet (0 = fights as usual)
 }
 // Free-for-all profile (qualifying and the final): the survival-first settings of the first two submissions.
 // Applied once, the moment the bot sees mechs dying that it did not kill (see ingest()).
@@ -123,8 +128,9 @@ export const P_FFA = {
   healBelow: 0, killLoot: false, dropHeal: false, fightRange: 0, bandRange: 14, noRetreat: false, berserk: false, zapRange: 0,
   farmHard: false, huntUntil: 0, calmAfter: 0, laserFirst: 0, laserInit: 0, laserInitUntil: 0, lootFix: 0, laserRoof: 0, laserRun: 0, laserAway: 0, oneFront: 0,
   guard: 0, guardArc: 0.25, guardFire: 0.25, sqzAt: 0, sqzAway: 0, sqzHp: 0, lootHold: 0, lootHoldRe: 0, weave: 0, weaveAll: 0, cubeRun: 0,
+  rushUntil: 0,
 }
-Object.assign(P, {"laserFirst":90,"cubeRun":130,"noRetreat":true}) // baked by sim/train/train.mjs from sim/train/cand/cubes.mjs
+Object.assign(P, {"laserFirst":90,"noRetreat":true,"cubeRun":130,"rushUntil":120}) // baked by sim/train/train.mjs from sim/train/cand/rush.mjs
 if (typeof process !== "undefined" && process.env && process.env.FM_P) Object.assign(P, JSON.parse(process.env.FM_P))
 if (typeof process !== "undefined" && process.env && process.env.FM_PFFA) Object.assign(P_FFA, JSON.parse(process.env.FM_PFFA))
 if (P.preferZap) {
@@ -716,6 +722,22 @@ export class Brain {
     return !!(L && L.kind === "laser" && this.lasGoal && this.lasGoal.d < P.laserRun)
   }
 
+  /** rush: is the early cube rush on this tick (P.rushUntil)? */
+  rushOn() {
+    return P.rushUntil > 0 && this.t < P.rushUntil && !this.finalPhase && !this.sqz
+  }
+  /** rush: a mech that is not on us (beyond P.rushNear, no hit on us for P.rushHit s, not nearly dead) is no reason to start a fight */
+  rushSkip(e) {
+    return P.rushVeto > 0 && this.rushOn() && e.dist > P.rushNear && this.t - e.hitMeT >= P.rushHit && !(e.hpS < P.finishHp && this.hpS > P.finishMyHp)
+  }
+  /** rush: end a fight with e gone quiet (as lasRunNow(): not hit for 4 s, no hit of ours for 2 s, e beyond rushNear), or (e = null) a retreat */
+  rushQuiet(e) {
+    const t = this.t
+    if (!(P.rushVeto > 0) || !this.rushOn() || this.hpS < (e ? 0.45 : 0.6) || t - this.lastMechDmgT < Math.max(4, P.rushHit)) return false
+    if (e) return e.dist > P.rushNear && t - (e.myHitT ?? -99) >= 2 && !(e.hpS < P.finishHp && this.hpS > P.finishMyHp)
+    return !this.vis.some((q) => q.los && q.dist < 120)
+  }
+
   /**
    * cubeRun: should the walk to our last kill's cubes take over this tick? It follows the cubes seen near the kill spot (their centre),
    * ends once we stand on them, they are seen to be gone, the path fails, or P.cubeRunS has passed, and it pauses while we were hit in
@@ -885,7 +907,7 @@ export class Brain {
         return
       }
       const healed = hpS >= P.resumeHp || (sinceHit > this.regenDelay + 2 && hpS >= 0.7 && !exposed.length)
-      if (!(healed && sinceHit > 2.5) && t - this.recoverT < 40 && !this.lasRunNow(null)) return
+      if (!(healed && sinceHit > 2.5) && t - this.recoverT < 40 && !this.lasRunNow(null) && !this.rushQuiet(null)) return
       this.mode = "hold"
       this.spotT = -99
     }
@@ -912,7 +934,7 @@ export class Brain {
     if (this.mode === "fight" && target) {
       const lost = t - (target.losT ?? -99)
       const chase = target.hpS < P.chaseHp && hpS > P.chaseMyHp && this.others(target, P.crowd) === 0
-      if (lost < (chase ? P.chaseS : 2.5) && t - this.fightStartT < 60 && !this.lasRunNow(target)) return
+      if (lost < (chase ? P.chaseS : 2.5) && t - this.fightStartT < 60 && !this.lasRunNow(target) && !this.rushQuiet(target)) return
       this.mode = "hold"
       this.targetId = -1
     }
@@ -921,6 +943,7 @@ export class Brain {
       bestScore = -1e9
     for (const e of losE) {
       if (e.dist > P.startDist) continue
+      if (P.rushUntil > 0 && this.rushSkip(e)) continue
       if (!this.wantFight(e, false)) continue
       const s = (1 - e.hpS) * 100 - e.dist * P.scoreDist + (this.rearOf(e) ? 15 : 0)
       if (s > bestScore) {
@@ -938,7 +961,7 @@ export class Brain {
     const held = P.lootHold > 0 && t - (this.lootBlockT ?? -99) < P.lootHold
     this.lootHeld = held
     // --- grab the cubes a kill dropped while the coast is clear
-    if (!held && P.killLoot && this.killLoot && t - this.killLoot.t < 30 && !losE.some((e) => e.dist < 160)) {
+    if (!held && P.killLoot && this.killLoot && t - this.killLoot.t < 30 && !losE.some((e) => e.dist < (P.rushUntil > 0 && this.rushOn() ? P.rushNear : 160))) {
       const [x, y] = this.me.pos
       const d = hyp(this.killLoot.pos[0] - x, this.killLoot.pos[1] - y)
       if (d < 130) {
@@ -1904,11 +1927,15 @@ export class Brain {
       }
       if (best) return best
     }
-    const farming = P.farmHard && t < P.farmUntil && !this.sqz
+    const rush = P.rushUntil > 0 && this.rushOn()
+    const farming = (P.farmHard && t < P.farmUntil && !this.sqz) || rush
     // opening: the laser run is not called off just because a mech is in sight
     const lasFirst = t < P.laserFirst && !this.laser && this.hpS >= 0.45
     let gated = false
-    if (farming) {
+    if (rush) {
+      // rush: only a mech on us calls it off
+      if (this.hpS < 0.45 || t - this.lastMechDmgT < P.rushHit || this.vis.some((e) => e.los && e.dist < P.rushNear)) gated = true
+    } else if (farming) {
       if (this.hpS < 0.45 || t - this.lastMechDmgT < 4 || this.vis.some((e) => e.los && e.dist < 170)) gated = true
     } else if (!this.calm || this.hpS < 0.6) gated = true
     if (this.lootHeld) gated = true // P.lootHold, see decide()
@@ -1921,7 +1948,7 @@ export class Brain {
     const okPlace = (p, d) => insideNow(p) && (insideNext(p) || (!this.sqz && this.zoneSlack > d / this.walk + 25))
     const reachableZ = (p) => !this.w || Math.abs(this.w.standZ(p[0], p[1], z + 1.5) - p[2]) < 3.2 || (this.w.nodeAt(p[0], p[1], p[2], 3) >= 0 && this.main && this.main[this.w.nodeAt(p[0], p[1], p[2], 3)])
     const nearEnemy = (p) => {
-      for (const e of this.en.values()) if (t - e.t < 12 && hyp(p[0] - e.pos[0], p[1] - e.pos[1]) < 110) return true
+      for (const e of this.en.values()) if (t - e.t < 12 && hyp(p[0] - e.pos[0], p[1] - e.pos[1]) < (rush ? 80 : 110)) return true
       return false
     }
     if (lasFirst) {
@@ -1994,7 +2021,8 @@ export class Brain {
       const quiet = farming || !this.sounds.some((s) => t - s.t < 5 && s.D < 160 && (s.kind === "gun" || s.kind === "laser" || s.kind === "lightning" || s.kind === "laser_charge"))
       if (quiet) {
         for (const c of this.crates.values()) if (reachableZ(c.pos)) consider("crate", c, farming ? 55 : 30, 110 * reach)
-        if (this.hpS > (farming ? 0.6 : 0.8) && t - this.lastMechDmgT > (farming ? 5 : 12))
+        // drones hit back and pin us for seconds: in the rush they keep the old farming rule (no mech in sight inside 170 m)
+        if (this.hpS > (farming ? 0.6 : 0.8) && t - this.lastMechDmgT > (farming ? 5 : 12) && !(rush && this.vis.some((e) => e.los && e.dist < 170)))
           for (const n of this.npcs.values()) if (t - n.t < (farming ? 6 : 2)) consider("npc", n, farming ? 80 : 44, 120 * reach)
       }
     }
@@ -2052,7 +2080,7 @@ export class Brain {
       }
       const tz = tgt.pos[2] + (L.type === "crate" ? 1.2 : 1.8)
       const los = !this.w || this.w.ray(x, y, z + this.muzH, tgt.pos[0], tgt.pos[1], tz, 2) >= 1
-      const want = L.type === "crate" ? 38 : 72
+      const want = L.type === "crate" ? (P.rushUntil > 0 && this.rushOn() ? 90 : 38) : 72
       if (!los || d > want + 8) {
         if (!this.moveToPoint(A, tgt.pos[0], tgt.pos[1], tgt.pos[2], 1, false) && this.pathPartial && this.path && this.path.length < 5) fail()
       } else if (L.type === "npc") {
@@ -2099,6 +2127,20 @@ export class Brain {
     } else this.lootStuck = 0
     const arrived = this.moveToPoint(A, L.pos[0], L.pos[1], L.pos[2], 1, false)
     if (!arrived && this.pathPartial && this.path && this.path.length < 5) fail()
+    if (P.rushUntil > 0 && this.rushOn() && this.w && !this.vis.some((e) => e.los && e.dist < 170)) {
+      // rush: shoot the nearest crate in view on the way (not with a mech in sight: we would turn our back to it) (it does not move; the cubes wait for us)
+      let bc = null,
+        bd = 90
+      for (const c of this.crates.values()) {
+        if (c.t !== t) continue
+        const dc = hyp(c.pos[0] - x, c.pos[1] - y)
+        if (dc < bd && this.w.ray(x, y, z + this.muzH, c.pos[0], c.pos[1], c.pos[2] + 1.2, 2) >= 1) {
+          bd = dc
+          bc = c
+        }
+      }
+      if (bc) this.farmTarget = { pos: bc.pos, z: bc.pos[2] + 1.2, vel: [0, 0, 0], r: 1.2, d: bd, npc: false }
+    }
     if (P.lootFix && L.id === -7 && this.killLoot) {
       // The kill spot is a guess, not a cube: the nearest mesh node can be more than 1.2 m from it, so the d < 1.2 test above may never pass
       // and decide() would send us back here every tick for 30 s. Done once the path has ended, the spot was given up as unreachable, or
@@ -2302,7 +2344,7 @@ export class Brain {
       }
     }
     // never let a charged laser go to waste / fire wild: keep tracking someone
-    if (!e && this.charging) {
+    if (!e && this.charging && !(P.rushUntil > 0 && this.mode === "loot" && this.rushOn())) {
       for (const q of this.vis) if (q.los && (!e || q.dist < e.dist)) e = q
     }
     if (e && e.los) {
@@ -2381,6 +2423,18 @@ export class Brain {
       A.aim = [sol.yaw, sol.pitch]
       if (gun.ammo > 0 && !(gun.reload > 0) && sol.dist < gun.stats.range - 4 && this.onTarget(sol, f.r * 0.8, 1.0)) fire[this.slotOf.gun] = true
       if (lightning && f.d < (lightning.stats.range ?? 45) - 3 && Math.abs(angNorm(sol.yaw - me.aim[0])) < 0.2 && me.energy > 40) fire[this.slotOf.lightning] = true
+      if (P.rushUntil > 0 && laser && this.rushOn()) {
+        // rush: the laser too (hitscan, so no lead for a crate): charge, put the beam on it, let go
+        const ls = this.slotOf.laser
+        const full = laser.stats.charge ?? 0.75
+        const lsol = this.lead(f.pos, f.vel, f.z, 0, 0.09)
+        const inRange = lsol.dist < (laser.stats.range ?? 280) - 6
+        if (this.charging) {
+          const ready = laser.charge >= full - 0.051
+          if (ready || laser.charge >= full * 0.5) A.aim = [lsol.yaw, lsol.pitch]
+          fire[ls] = !((ready && this.onTarget(lsol, f.r * 0.8, 1.0)) || (ready && laser.charge > full + (laser.stats.hold_s ?? 2) - 0.35))
+        } else if ((laser.cooldown || 0) <= 0.11 && inRange && !(t < this.shortUntil)) fire[ls] = true
+      }
     }
     this.farmTarget = null
     // reload in the quiet moments
