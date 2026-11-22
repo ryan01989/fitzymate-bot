@@ -1,0 +1,2571 @@
+{
+ "incumbent": {
+  "file": "sim/train/cand/rush.mjs",
+  "p": {
+   "laserFirst": 90,
+   "noRetreat": true,
+   "cubeRun": 130,
+   "rushUntil": 120
+  }
+ },
+ "packs": [
+  {
+   "noise": 2,
+   "perKill": 1,
+   "retaliate": 0,
+   "ff": 0
+  },
+  {
+   "every": 120,
+   "noise": 2.5,
+   "perKill": 1,
+   "retaliate": 0,
+   "ff": 0
+  }
+ ],
+ "lambda": 2,
+ "earlyT": 90,
+ "gate": 0.4,
+ "round": 11,
+ "archive": [
+  {
+   "round": 1,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "laserFirst": 90,
+    "laserInit": 150,
+    "laserInitUntil": 180
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 1.063,
+   "se": 0.649,
+   "dPts": 0.938,
+   "name": "opening"
+  },
+  {
+   "round": 1,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "laserFirst": 90
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 1.125,
+   "se": 0.718,
+   "dPts": 1,
+   "name": "opening-grab"
+  },
+  {
+   "round": 1,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "laserInit": 150,
+    "laserInitUntil": 180
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": -0.062,
+   "se": 0.249,
+   "dPts": -0.062,
+   "name": "opening-shot"
+  },
+  {
+   "round": 1,
+   "file": "sim/train/cand/guard.mjs",
+   "delta": {
+    "guard": 3
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": -0.312,
+   "se": 0.313,
+   "dPts": -0.312,
+   "name": "guard"
+  },
+  {
+   "round": 1,
+   "file": "sim/train/cand/guard.mjs",
+   "delta": {
+    "guard": 3,
+    "guardFire": 1
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": -0.312,
+   "se": 0.313,
+   "dPts": -0.312,
+   "name": "guard-fire"
+  },
+  {
+   "round": 1,
+   "file": "sim/train/cand/squeeze.mjs",
+   "delta": {
+    "sqzAt": 165,
+    "sqzAway": 25,
+    "sqzHp": 0.75
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0.125,
+   "se": 0.125,
+   "dPts": 0.125,
+   "name": "squeeze"
+  },
+  {
+   "round": 1,
+   "file": "sim/train/cand/squeeze.mjs",
+   "delta": {
+    "sqzAt": 165,
+    "sqzAway": 25,
+    "sqzHp": 0
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0.063,
+   "se": 0.063,
+   "dPts": 0.063,
+   "name": "squeeze-noheal"
+  },
+  {
+   "round": 1,
+   "file": "sim/train/cand/squeeze.mjs",
+   "delta": {
+    "sqzAt": 150,
+    "sqzAway": 25,
+    "sqzHp": 0
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": -0.062,
+   "se": 0.143,
+   "dPts": -0.062,
+   "name": "squeeze-150"
+  },
+  {
+   "round": 1,
+   "file": "sim/train/base.mjs",
+   "delta": {
+    "huntUntil": 100
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": -0.5,
+   "se": 1.238,
+   "dPts": -0.125,
+   "name": "hunt100"
+  },
+  {
+   "round": 1,
+   "file": "sim/train/base.mjs",
+   "delta": {
+    "calmAfter": 150
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0,
+   "se": 0,
+   "dPts": 0,
+   "name": "calm150"
+  },
+  {
+   "round": 1,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "laserFirst": 90
+   },
+   "stage": "B",
+   "n": 48,
+   "dFit": 1,
+   "se": 0.388,
+   "dPts": 1,
+   "name": "opening-grab"
+  },
+  {
+   "round": 1,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "laserFirst": 90,
+    "laserInit": 150,
+    "laserInitUntil": 180
+   },
+   "stage": "B",
+   "n": 48,
+   "dFit": 0.667,
+   "se": 0.358,
+   "dPts": 0.792,
+   "name": "opening"
+  },
+  {
+   "round": 1,
+   "file": "sim/train/cand/squeeze.mjs",
+   "delta": {
+    "sqzAt": 165,
+    "sqzAway": 25,
+    "sqzHp": 0.75
+   },
+   "stage": "B",
+   "n": 48,
+   "dFit": 0.021,
+   "se": 0.056,
+   "dPts": 0.021,
+   "name": "squeeze"
+  },
+  {
+   "round": 1,
+   "file": "sim/train/cand/squeeze.mjs",
+   "delta": {
+    "sqzAt": 165,
+    "sqzAway": 25,
+    "sqzHp": 0
+   },
+   "stage": "B",
+   "n": 48,
+   "dFit": -0.021,
+   "se": 0.036,
+   "dPts": -0.021,
+   "name": "squeeze-noheal"
+  },
+  {
+   "round": 1,
+   "file": "sim/train/base.mjs",
+   "delta": {
+    "calmAfter": 150
+   },
+   "stage": "B",
+   "n": 48,
+   "dFit": 0,
+   "se": 0.06,
+   "dPts": 0,
+   "name": "calm150"
+  },
+  {
+   "round": 1,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "laserFirst": 90
+   },
+   "stage": "C",
+   "n": 192,
+   "dFit": 0.698,
+   "se": 0.231,
+   "dPts": 0.583,
+   "name": "opening-grab"
+  },
+  {
+   "round": 1,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "laserFirst": 90,
+    "laserInit": 150,
+    "laserInitUntil": 180
+   },
+   "stage": "C",
+   "n": 192,
+   "dFit": 0.526,
+   "se": 0.224,
+   "dPts": 0.432,
+   "name": "opening"
+  },
+  {
+   "round": 2,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "laserFirst": 60
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0,
+   "se": 0,
+   "dPts": 0
+  },
+  {
+   "round": 2,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "laserFirst": 130
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0,
+   "se": 0,
+   "dPts": 0
+  },
+  {
+   "round": 2,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "laserInit": 110
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": -0.062,
+   "se": 0.37,
+   "dPts": -0.062
+  },
+  {
+   "round": 2,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "crowd": 70
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": -0.062,
+   "se": 1.006,
+   "dPts": -0.062
+  },
+  {
+   "round": 2,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "crowd": 115
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": -0.312,
+   "se": 0.902,
+   "dPts": -0.437
+  },
+  {
+   "round": 2,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "raceOut": 0.9
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0.063,
+   "se": 0.063,
+   "dPts": 0.063
+  },
+  {
+   "round": 2,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "raceOut": 1.4
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": -0.187,
+   "se": 0.344,
+   "dPts": -0.187
+  },
+  {
+   "round": 2,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "hideHp": 0.25
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": -0.375,
+   "se": 0.427,
+   "dPts": -0.375
+  },
+  {
+   "round": 2,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "hideHp": 0.55
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0.5,
+   "se": 0.492,
+   "dPts": 0.375
+  },
+  {
+   "round": 2,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "retAdv": -0.35
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0,
+   "se": 0,
+   "dPts": 0
+  },
+  {
+   "round": 2,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "retAdv": -0.1
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0,
+   "se": 0,
+   "dPts": 0
+  },
+  {
+   "round": 2,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "startDist": 180
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0.125,
+   "se": 0.125,
+   "dPts": 0.125
+  },
+  {
+   "round": 2,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "nearDist": 50
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0.063,
+   "se": 0.322,
+   "dPts": -0.062
+  },
+  {
+   "round": 2,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "nearDist": 110
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0.125,
+   "se": 0.682,
+   "dPts": -0.125
+  },
+  {
+   "round": 2,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "huntDist": 120
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0.25,
+   "se": 0.609,
+   "dPts": 0.25
+  },
+  {
+   "round": 2,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "huntDist": 215
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": -0.25,
+   "se": 0.25,
+   "dPts": -0.125
+  },
+  {
+   "round": 2,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "initAdv": 0.05
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0.188,
+   "se": 0.493,
+   "dPts": 0.188
+  },
+  {
+   "round": 2,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "initAdv": 0.35
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0,
+   "se": 0,
+   "dPts": 0
+  },
+  {
+   "round": 2,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "initHpLow": 0.55
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0,
+   "se": 0,
+   "dPts": 0
+  },
+  {
+   "round": 2,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "initHpLow": 0.9
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0.313,
+   "se": 0.338,
+   "dPts": 0.313
+  },
+  {
+   "round": 2,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "finishHp": 0.25
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": -0.375,
+   "se": 0.375,
+   "dPts": -0.25
+  },
+  {
+   "round": 2,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "finishHp": 0.45
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": -0.312,
+   "se": 0.489,
+   "dPts": -0.437
+  },
+  {
+   "round": 2,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "chaseHp": 0.25
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0.063,
+   "se": 0.063,
+   "dPts": 0.063
+  },
+  {
+   "round": 2,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "chaseHp": 0.55
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0,
+   "se": 0,
+   "dPts": 0
+  },
+  {
+   "round": 2,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "chaseS": 4
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": -0.125,
+   "se": 0.125,
+   "dPts": -0.125
+  },
+  {
+   "round": 2,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "chaseS": 11
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0,
+   "se": 0,
+   "dPts": 0
+  },
+  {
+   "round": 2,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "farmUntil": 160
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0,
+   "se": 0,
+   "dPts": 0
+  },
+  {
+   "round": 2,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "farmUntil": 250
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0,
+   "se": 0,
+   "dPts": 0
+  },
+  {
+   "round": 2,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "fightRange": 92
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": -0.562,
+   "se": 0.701,
+   "dPts": -0.562
+  },
+  {
+   "round": 2,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "fightRange": 125
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": -1.312,
+   "se": 0.65,
+   "dPts": -1.062
+  },
+  {
+   "round": 2,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "huntUntil": 60
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": -1.375,
+   "se": 1.423,
+   "dPts": -1.125
+  },
+  {
+   "round": 2,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "healBelow": 0.5
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": -0.187,
+   "se": 0.209,
+   "dPts": -0.187
+  },
+  {
+   "round": 2,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "defAdv": -0.2
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0,
+   "se": 0,
+   "dPts": 0
+  },
+  {
+   "round": 2,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "defAdv": 0.05
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": -0.437,
+   "se": 0.532,
+   "dPts": -0.312
+  },
+  {
+   "round": 2,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "hideHp": 0.55
+   },
+   "stage": "B",
+   "n": 48,
+   "dFit": 0.167,
+   "se": 0.327,
+   "dPts": 0.125
+  },
+  {
+   "round": 2,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "initHpLow": 0.9
+   },
+   "stage": "B",
+   "n": 48,
+   "dFit": 0.083,
+   "se": 0.133,
+   "dPts": 0.083
+  },
+  {
+   "round": 2,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "huntDist": 120
+   },
+   "stage": "B",
+   "n": 48,
+   "dFit": 0.042,
+   "se": 0.306,
+   "dPts": -0.042
+  },
+  {
+   "round": 2,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "initAdv": 0.05
+   },
+   "stage": "B",
+   "n": 48,
+   "dFit": 0.167,
+   "se": 0.225,
+   "dPts": 0.167
+  },
+  {
+   "round": 2,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "startDist": 180
+   },
+   "stage": "B",
+   "n": 48,
+   "dFit": 0.125,
+   "se": 0.097,
+   "dPts": 0.125
+  },
+  {
+   "round": 3,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "hideHp": 0.25
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": -0.375,
+   "se": 0.427,
+   "dPts": -0.375
+  },
+  {
+   "round": 3,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "hideHp": 0.55
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0.5,
+   "se": 0.492,
+   "dPts": 0.375
+  },
+  {
+   "round": 3,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "initAdv": 0.05
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0.188,
+   "se": 0.493,
+   "dPts": 0.188
+  },
+  {
+   "round": 3,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "initAdv": 0.35
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0,
+   "se": 0,
+   "dPts": 0
+  },
+  {
+   "round": 3,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "startDist": 180
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0.125,
+   "se": 0.125,
+   "dPts": 0.125
+  },
+  {
+   "round": 3,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "initHpLow": 0.55
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0,
+   "se": 0,
+   "dPts": 0
+  },
+  {
+   "round": 3,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "initHpLow": 0.9
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0.313,
+   "se": 0.338,
+   "dPts": 0.313
+  },
+  {
+   "round": 3,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "huntDist": 120
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0.25,
+   "se": 0.609,
+   "dPts": 0.25
+  },
+  {
+   "round": 3,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "huntDist": 215
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": -0.25,
+   "se": 0.25,
+   "dPts": -0.125
+  },
+  {
+   "round": 3,
+   "file": "sim/train/cand/lootfix.mjs",
+   "delta": {
+    "lootFix": 1
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": -0.437,
+   "se": 0.329,
+   "dPts": -0.437,
+   "name": "lootfix"
+  },
+  {
+   "round": 3,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "hideHp": 0.55
+   },
+   "stage": "B",
+   "n": 48,
+   "dFit": 0.167,
+   "se": 0.327,
+   "dPts": 0.125
+  },
+  {
+   "round": 3,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "initHpLow": 0.9
+   },
+   "stage": "B",
+   "n": 48,
+   "dFit": 0.083,
+   "se": 0.133,
+   "dPts": 0.083
+  },
+  {
+   "round": 3,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "huntDist": 120
+   },
+   "stage": "B",
+   "n": 48,
+   "dFit": 0.042,
+   "se": 0.306,
+   "dPts": -0.042
+  },
+  {
+   "round": 3,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "initAdv": 0.05
+   },
+   "stage": "B",
+   "n": 48,
+   "dFit": 0.167,
+   "se": 0.225,
+   "dPts": 0.167
+  },
+  {
+   "round": 3,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "startDist": 180
+   },
+   "stage": "B",
+   "n": 48,
+   "dFit": 0.125,
+   "se": 0.097,
+   "dPts": 0.125
+  },
+  {
+   "round": 3,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "hideHp": 0.55
+   },
+   "stage": "C",
+   "n": 192,
+   "dFit": -0.224,
+   "se": 0.103,
+   "dPts": -0.161
+  },
+  {
+   "round": 3,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "initAdv": 0.05
+   },
+   "stage": "C",
+   "n": 192,
+   "dFit": 0,
+   "se": 0.102,
+   "dPts": 0
+  },
+  {
+   "round": 4,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "silentNear": 40
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": -0.062,
+   "se": 0.063,
+   "dPts": -0.062
+  },
+  {
+   "round": 4,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "silentNear": 110
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": -0.187,
+   "se": 0.136,
+   "dPts": -0.187
+  },
+  {
+   "round": 4,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "openingS": 20
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0,
+   "se": 0,
+   "dPts": 0
+  },
+  {
+   "round": 4,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "openingS": 70
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0.125,
+   "se": 0.125,
+   "dPts": 0.125
+  },
+  {
+   "round": 4,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "calmS": 2
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0,
+   "se": 0,
+   "dPts": 0
+  },
+  {
+   "round": 4,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "calmS": 7
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0,
+   "se": 0,
+   "dPts": 0
+  },
+  {
+   "round": 4,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "zoneMarginFrac": 0.08
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0.063,
+   "se": 0.213,
+   "dPts": 0.063
+  },
+  {
+   "round": 4,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "zoneMarginFrac": 0.22
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0,
+   "se": 0,
+   "dPts": 0
+  },
+  {
+   "round": 4,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "killLoot": false
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": -1.125,
+   "se": 0.894,
+   "dPts": -1.125
+  },
+  {
+   "round": 4,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "dropHeal": true
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0.063,
+   "se": 0.063,
+   "dPts": 0.063
+  },
+  {
+   "round": 4,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "vetoAdv": -0.3
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0.125,
+   "se": 0.539,
+   "dPts": -0.125
+  },
+  {
+   "round": 4,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "vetoAdv": 0
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": -0.375,
+   "se": 0.763,
+   "dPts": -0.375
+  },
+  {
+   "round": 4,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "vetoCubes": -8
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0,
+   "se": 0,
+   "dPts": 0
+  },
+  {
+   "round": 4,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "vetoCubes": -3
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0,
+   "se": 0,
+   "dPts": 0
+  },
+  {
+   "round": 4,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "bandRange": 8
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": -0.375,
+   "se": 0.724,
+   "dPts": -0.375
+  },
+  {
+   "round": 4,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "bandRange": 22
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": -0.437,
+   "se": 0.671,
+   "dPts": -0.437
+  },
+  {
+   "round": 4,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "busyHp": 0.7
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0.563,
+   "se": 0.302,
+   "dPts": 0.563
+  },
+  {
+   "round": 4,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "busyHp": 1.01
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0.063,
+   "se": 0.249,
+   "dPts": 0.063
+  },
+  {
+   "round": 4,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "huntHp": 0.5
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0,
+   "se": 0,
+   "dPts": 0
+  },
+  {
+   "round": 4,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "huntHp": 0.85
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0,
+   "se": 0,
+   "dPts": 0
+  },
+  {
+   "round": 4,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "nearAdv": -0.2
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0,
+   "se": 0,
+   "dPts": 0
+  },
+  {
+   "round": 4,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "nearAdv": 0.1
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0.313,
+   "se": 0.435,
+   "dPts": 0.188
+  },
+  {
+   "round": 4,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "nearHp": 0.45
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0,
+   "se": 0,
+   "dPts": 0
+  },
+  {
+   "round": 4,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "nearHp": 0.75
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0,
+   "se": 0,
+   "dPts": 0
+  },
+  {
+   "round": 4,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "rearDist": 110
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0.313,
+   "se": 0.313,
+   "dPts": 0.313
+  },
+  {
+   "round": 4,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "rearDist": 200
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": -0.312,
+   "se": 0.384,
+   "dPts": -0.187
+  },
+  {
+   "round": 4,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "rearHp": 0.6
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0,
+   "se": 0,
+   "dPts": 0
+  },
+  {
+   "round": 4,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "raceHurt": 0.6
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0,
+   "se": 0,
+   "dPts": 0
+  },
+  {
+   "round": 4,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "raceHurt": 1
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0,
+   "se": 0,
+   "dPts": 0
+  },
+  {
+   "round": 4,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "retHp": 0.5
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0,
+   "se": 0,
+   "dPts": 0
+  },
+  {
+   "round": 4,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "retHp": 0.85
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0,
+   "se": 0,
+   "dPts": 0
+  },
+  {
+   "round": 4,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "chaseMyHp": 0.4
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0,
+   "se": 0,
+   "dPts": 0
+  },
+  {
+   "round": 4,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "chaseMyHp": 0.7
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0,
+   "se": 0.091,
+   "dPts": 0
+  },
+  {
+   "round": 4,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "scoreDist": 0.05
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0,
+   "se": 0,
+   "dPts": 0
+  },
+  {
+   "round": 4,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "scoreDist": 0.5
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0,
+   "se": 0,
+   "dPts": 0
+  },
+  {
+   "round": 4,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "exploreHp": 0.35
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0.063,
+   "se": 0.063,
+   "dPts": 0.063
+  },
+  {
+   "round": 4,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "exploreHp": 0.7
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": -0.187,
+   "se": 0.421,
+   "dPts": -0.187
+  },
+  {
+   "round": 4,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "calmAfter": 150
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": -0.25,
+   "se": 0.25,
+   "dPts": -0.25
+  },
+  {
+   "round": 4,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "resumeHp": 0.65
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": -0.125,
+   "se": 0.272,
+   "dPts": -0.125
+  },
+  {
+   "round": 4,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "resumeHp": 0.92
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0,
+   "se": 0.592,
+   "dPts": 0
+  },
+  {
+   "round": 4,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "finishMyHp": 0.15
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": -0.187,
+   "se": 0.332,
+   "dPts": -0.187
+  },
+  {
+   "round": 4,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "finishMyHp": 0.45
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0.063,
+   "se": 0.063,
+   "dPts": 0.063
+  },
+  {
+   "round": 4,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "defAdvOut": 0.1
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0,
+   "se": 0,
+   "dPts": 0
+  },
+  {
+   "round": 4,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "defAdvOut": 0.4
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0,
+   "se": 0,
+   "dPts": 0
+  },
+  {
+   "round": 4,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "outgunAdv": 0
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": -0.062,
+   "se": 0.143,
+   "dPts": -0.062
+  },
+  {
+   "round": 4,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "outgunAdv": 0.35
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0,
+   "se": 0,
+   "dPts": 0
+  },
+  {
+   "round": 4,
+   "file": "sim/train/cand/dither.mjs",
+   "delta": {
+    "lootHold": 3,
+    "lootHoldRe": 3
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": -0.812,
+   "se": 0.44,
+   "dPts": -0.812,
+   "name": "dither"
+  },
+  {
+   "round": 4,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "busyHp": 0.7
+   },
+   "stage": "B",
+   "n": 48,
+   "dFit": 0.292,
+   "se": 0.123,
+   "dPts": 0.292
+  },
+  {
+   "round": 4,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "nearAdv": 0.1
+   },
+   "stage": "B",
+   "n": 48,
+   "dFit": 0.417,
+   "se": 0.259,
+   "dPts": 0.375
+  },
+  {
+   "round": 4,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "rearDist": 110
+   },
+   "stage": "B",
+   "n": 48,
+   "dFit": 0.146,
+   "se": 0.197,
+   "dPts": 0.146
+  },
+  {
+   "round": 4,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "openingS": 70
+   },
+   "stage": "B",
+   "n": 48,
+   "dFit": 0.208,
+   "se": 0.217,
+   "dPts": 0.167
+  },
+  {
+   "round": 4,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "vetoAdv": -0.3
+   },
+   "stage": "B",
+   "n": 48,
+   "dFit": 0.292,
+   "se": 0.278,
+   "dPts": 0.208
+  },
+  {
+   "round": 4,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "nearAdv": 0.1
+   },
+   "stage": "C",
+   "n": 192,
+   "dFit": 0.031,
+   "se": 0.117,
+   "dPts": 0.01
+  },
+  {
+   "round": 4,
+   "file": "sim/train/cand/opening.mjs",
+   "delta": {
+    "busyHp": 0.7
+   },
+   "stage": "C",
+   "n": 192,
+   "dFit": -0.094,
+   "se": 0.119,
+   "dPts": -0.135
+  },
+  {
+   "round": 5,
+   "file": "sim/train/cand/laser3.mjs",
+   "delta": {
+    "laserRoof": 20,
+    "laserRun": 180,
+    "laserAway": 3
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 1,
+   "se": 0.713,
+   "dPts": 0.75,
+   "name": "laser-run"
+  },
+  {
+   "round": 5,
+   "file": "sim/train/cand/laser3.mjs",
+   "delta": {
+    "laserRoof": 20,
+    "laserRun": 120,
+    "laserAway": 3
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0.063,
+   "se": 0.111,
+   "dPts": 0.063,
+   "name": "laser-run-120"
+  },
+  {
+   "round": 5,
+   "file": "sim/train/cand/laser3.mjs",
+   "delta": {
+    "laserRun": 180,
+    "laserAway": 3
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 1,
+   "se": 0.707,
+   "dPts": 0.75,
+   "name": "laser-run-noroof"
+  },
+  {
+   "round": 5,
+   "file": "sim/train/cand/laser2.mjs",
+   "delta": {
+    "laserRoof": 20
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0,
+   "se": 0.091,
+   "dPts": 0,
+   "name": "laser-roof"
+  },
+  {
+   "round": 5,
+   "file": "sim/train/cand/early.mjs",
+   "delta": {
+    "oneFront": 8
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0.063,
+   "se": 1.283,
+   "dPts": -0.187,
+   "name": "one-front"
+  },
+  {
+   "round": 5,
+   "file": "sim/train/cand/early.mjs",
+   "delta": {
+    "oneFront": 20
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0.188,
+   "se": 1.256,
+   "dPts": 0.188,
+   "name": "one-front-20"
+  },
+  {
+   "round": 5,
+   "file": "sim/train/cand/combo.mjs",
+   "delta": {
+    "laserRoof": 20,
+    "laserRun": 180,
+    "laserAway": 3,
+    "oneFront": 8
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 1,
+   "se": 1.402,
+   "dPts": 0.75,
+   "name": "combo"
+  },
+  {
+   "round": 5,
+   "file": "sim/train/cand/laser3.mjs",
+   "delta": {
+    "laserRoof": 20,
+    "laserRun": 180,
+    "laserAway": 3
+   },
+   "stage": "B",
+   "n": 48,
+   "dFit": -0.021,
+   "se": 0.411,
+   "dPts": -0.021,
+   "name": "laser-run"
+  },
+  {
+   "round": 5,
+   "file": "sim/train/cand/laser3.mjs",
+   "delta": {
+    "laserRun": 180,
+    "laserAway": 3
+   },
+   "stage": "B",
+   "n": 48,
+   "dFit": 0.271,
+   "se": 0.376,
+   "dPts": 0.271,
+   "name": "laser-run-noroof"
+  },
+  {
+   "round": 5,
+   "file": "sim/train/cand/combo.mjs",
+   "delta": {
+    "laserRoof": 20,
+    "laserRun": 180,
+    "laserAway": 3,
+    "oneFront": 8
+   },
+   "stage": "B",
+   "n": 48,
+   "dFit": 0.667,
+   "se": 0.638,
+   "dPts": 0.458,
+   "name": "combo"
+  },
+  {
+   "round": 5,
+   "file": "sim/train/cand/early.mjs",
+   "delta": {
+    "oneFront": 20
+   },
+   "stage": "B",
+   "n": 48,
+   "dFit": 0.563,
+   "se": 0.486,
+   "dPts": 0.396,
+   "name": "one-front-20"
+  },
+  {
+   "round": 5,
+   "file": "sim/train/cand/laser3.mjs",
+   "delta": {
+    "laserRoof": 20,
+    "laserRun": 120,
+    "laserAway": 3
+   },
+   "stage": "B",
+   "n": 48,
+   "dFit": -0.312,
+   "se": 0.27,
+   "dPts": -0.229,
+   "name": "laser-run-120"
+  },
+  {
+   "round": 5,
+   "file": "sim/train/cand/combo.mjs",
+   "delta": {
+    "laserRoof": 20,
+    "laserRun": 180,
+    "laserAway": 3,
+    "oneFront": 8
+   },
+   "stage": "C",
+   "n": 192,
+   "dFit": 0.698,
+   "se": 0.204,
+   "dPts": 0.521,
+   "name": "combo"
+  },
+  {
+   "round": 5,
+   "file": "sim/train/cand/early.mjs",
+   "delta": {
+    "oneFront": 20
+   },
+   "stage": "C",
+   "n": 192,
+   "dFit": 0.682,
+   "se": 0.164,
+   "dPts": 0.464,
+   "name": "one-front-20"
+  },
+  {
+   "round": 6,
+   "file": "sim/train/cand/all.mjs",
+   "delta": {
+    "guard": 3
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0,
+   "se": 0.289,
+   "dPts": -0.125,
+   "name": "guard"
+  },
+  {
+   "round": 6,
+   "file": "sim/train/cand/all.mjs",
+   "delta": {
+    "guard": 3,
+    "guardFire": 1
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": -0.187,
+   "se": 0.209,
+   "dPts": -0.312,
+   "name": "guard-fire"
+  },
+  {
+   "round": 6,
+   "file": "sim/train/cand/all.mjs",
+   "delta": {
+    "sqzAt": 165,
+    "sqzAway": 25,
+    "sqzHp": 0.75
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0,
+   "se": 0,
+   "dPts": 0,
+   "name": "squeeze"
+  },
+  {
+   "round": 6,
+   "file": "sim/train/cand/all.mjs",
+   "delta": {
+    "sqzAt": 165,
+    "sqzAway": 25,
+    "sqzHp": 0
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0,
+   "se": 0,
+   "dPts": 0,
+   "name": "squeeze-noheal"
+  },
+  {
+   "round": 6,
+   "file": "sim/train/cand/all.mjs",
+   "delta": {
+    "sqzAt": 150,
+    "sqzAway": 25,
+    "sqzHp": 0
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0,
+   "se": 0,
+   "dPts": 0,
+   "name": "squeeze-150"
+  },
+  {
+   "round": 6,
+   "file": "sim/train/cand/all.mjs",
+   "delta": {
+    "lootFix": 1
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": -0.062,
+   "se": 0.063,
+   "dPts": -0.062,
+   "name": "lootfix"
+  },
+  {
+   "round": 6,
+   "file": "sim/train/cand/all.mjs",
+   "delta": {
+    "lootHold": 3,
+    "lootHoldRe": 3
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": -0.187,
+   "se": 0.245,
+   "dPts": -0.187,
+   "name": "dither"
+  },
+  {
+   "round": 6,
+   "file": "sim/train/cand/all.mjs",
+   "delta": {
+    "laserRoof": 20
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": -0.125,
+   "se": 0.085,
+   "dPts": 0,
+   "name": "laser-roof"
+  },
+  {
+   "round": 6,
+   "file": "sim/train/cand/all.mjs",
+   "delta": {
+    "laserAway": 3
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": -0.187,
+   "se": 0.188,
+   "dPts": -0.062,
+   "name": "laser-away"
+  },
+  {
+   "round": 6,
+   "file": "sim/train/cand/all.mjs",
+   "delta": {
+    "laserRoof": 20,
+    "laserRun": 180,
+    "laserAway": 3
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": -0.125,
+   "se": 0.125,
+   "dPts": 0.125,
+   "name": "laser-run"
+  },
+  {
+   "round": 6,
+   "file": "sim/train/cand/all.mjs",
+   "delta": {
+    "laserInit": 150,
+    "laserInitUntil": 180
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": -0.312,
+   "se": 0.373,
+   "dPts": -0.187,
+   "name": "laser-shot"
+  },
+  {
+   "round": 6,
+   "file": "sim/train/cand/all.mjs",
+   "delta": {
+    "huntUntil": 100
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": -1.812,
+   "se": 0.66,
+   "dPts": -1.062,
+   "name": "hunt100"
+  },
+  {
+   "round": 6,
+   "file": "sim/train/cand/all.mjs",
+   "delta": {
+    "calmAfter": 150
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0,
+   "se": 0,
+   "dPts": 0,
+   "name": "calm150"
+  },
+  {
+   "round": 6,
+   "file": "sim/train/cand/all.mjs",
+   "delta": {
+    "oneFront": 20
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": -0.75,
+   "se": 0.393,
+   "dPts": -0.375,
+   "name": "one-front-20"
+  },
+  {
+   "round": 6,
+   "file": "sim/train/cand/all.mjs",
+   "delta": {
+    "guard": 3
+   },
+   "stage": "B",
+   "n": 48,
+   "dFit": 0,
+   "se": 0.123,
+   "dPts": 0,
+   "name": "guard"
+  },
+  {
+   "round": 6,
+   "file": "sim/train/cand/all.mjs",
+   "delta": {
+    "sqzAt": 165,
+    "sqzAway": 25,
+    "sqzHp": 0.75
+   },
+   "stage": "B",
+   "n": 48,
+   "dFit": -0.021,
+   "se": 0.021,
+   "dPts": -0.021,
+   "name": "squeeze"
+  },
+  {
+   "round": 6,
+   "file": "sim/train/cand/all.mjs",
+   "delta": {
+    "sqzAt": 165,
+    "sqzAway": 25,
+    "sqzHp": 0
+   },
+   "stage": "B",
+   "n": 48,
+   "dFit": 0,
+   "se": 0,
+   "dPts": 0,
+   "name": "squeeze-noheal"
+  },
+  {
+   "round": 6,
+   "file": "sim/train/cand/all.mjs",
+   "delta": {
+    "sqzAt": 150,
+    "sqzAway": 25,
+    "sqzHp": 0
+   },
+   "stage": "B",
+   "n": 48,
+   "dFit": -0.042,
+   "se": 0.042,
+   "dPts": -0.042,
+   "name": "squeeze-150"
+  },
+  {
+   "round": 6,
+   "file": "sim/train/cand/all.mjs",
+   "delta": {
+    "calmAfter": 150
+   },
+   "stage": "B",
+   "n": 48,
+   "dFit": 0,
+   "se": 0,
+   "dPts": 0,
+   "name": "calm150"
+  },
+  {
+   "round": 7,
+   "file": "sim/train/cand/dodge.mjs",
+   "delta": {
+    "weave": 0.45
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0.688,
+   "se": 0.546,
+   "dPts": 0.438,
+   "name": "weave-45"
+  },
+  {
+   "round": 7,
+   "file": "sim/train/cand/dodge.mjs",
+   "delta": {
+    "weave": 0.7
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": -0.5,
+   "se": 0.492,
+   "dPts": 0,
+   "name": "weave-70"
+  },
+  {
+   "round": 7,
+   "file": "sim/train/cand/dodge.mjs",
+   "delta": {
+    "weave": 0.45,
+    "weaveAll": 1
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": -0.375,
+   "se": 0.735,
+   "dPts": 0.125,
+   "name": "weave-all"
+  },
+  {
+   "round": 7,
+   "file": "sim/train/cand/dodge.mjs",
+   "delta": {
+    "weave": 0.45
+   },
+   "stage": "B",
+   "n": 48,
+   "dFit": 0.667,
+   "se": 0.264,
+   "dPts": 0.458,
+   "name": "weave-45"
+  },
+  {
+   "round": 7,
+   "file": "sim/train/cand/dodge.mjs",
+   "delta": {
+    "weave": 0.45
+   },
+   "stage": "C",
+   "n": 192,
+   "dFit": -0.156,
+   "se": 0.143,
+   "dPts": -0.042,
+   "name": "weave-45"
+  },
+  {
+   "round": 8,
+   "file": "sim/train/cand/all.mjs",
+   "delta": {
+    "noRetreat": true
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0.188,
+   "se": 0.802,
+   "dPts": 0.438,
+   "name": "no-retreat"
+  },
+  {
+   "round": 8,
+   "file": "sim/train/cand/all.mjs",
+   "delta": {
+    "dropHeal": true
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0,
+   "se": 0,
+   "dPts": 0,
+   "name": "drop-heal"
+  },
+  {
+   "round": 8,
+   "file": "sim/train/cand/all.mjs",
+   "delta": {
+    "noRetreat": true,
+    "dropHeal": true
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0.188,
+   "se": 0.857,
+   "dPts": 0.438,
+   "name": "no-retreat+drop"
+  },
+  {
+   "round": 8,
+   "file": "sim/train/cand/all.mjs",
+   "delta": {
+    "huntUntil": 420
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": -1.75,
+   "se": 0.674,
+   "dPts": -1,
+   "name": "hunt-all"
+  },
+  {
+   "round": 8,
+   "file": "sim/train/cand/all.mjs",
+   "delta": {
+    "noRetreat": true
+   },
+   "stage": "B",
+   "n": 48,
+   "dFit": 0.042,
+   "se": 0.362,
+   "dPts": 0.125,
+   "name": "no-retreat"
+  },
+  {
+   "round": 8,
+   "file": "sim/train/cand/all.mjs",
+   "delta": {
+    "noRetreat": true,
+    "dropHeal": true
+   },
+   "stage": "B",
+   "n": 48,
+   "dFit": 0.042,
+   "se": 0.375,
+   "dPts": 0.167,
+   "name": "no-retreat+drop"
+  },
+  {
+   "round": 8,
+   "file": "sim/train/cand/all.mjs",
+   "delta": {
+    "dropHeal": true
+   },
+   "stage": "B",
+   "n": 48,
+   "dFit": 0,
+   "se": 0,
+   "dPts": 0,
+   "name": "drop-heal"
+  },
+  {
+   "round": 8,
+   "file": "sim/train/cand/all.mjs",
+   "delta": {
+    "noRetreat": true
+   },
+   "stage": "C",
+   "n": 192,
+   "dFit": -0.724,
+   "se": 0.15,
+   "dPts": -0.318,
+   "name": "no-retreat"
+  },
+  {
+   "round": 8,
+   "file": "sim/train/cand/all.mjs",
+   "delta": {
+    "noRetreat": true,
+    "dropHeal": true
+   },
+   "stage": "C",
+   "n": 192,
+   "dFit": -0.724,
+   "se": 0.15,
+   "dPts": -0.318,
+   "name": "no-retreat+drop"
+  },
+  {
+   "round": 9,
+   "file": "sim/train/cand/finish.mjs",
+   "delta": {
+    "finish": 0.5,
+    "focus": 0.15
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0.063,
+   "se": 0.423,
+   "dPts": 0.188,
+   "name": "finish+focus"
+  },
+  {
+   "round": 9,
+   "file": "sim/train/cand/finish.mjs",
+   "delta": {
+    "finish": 0.5
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": -0.125,
+   "se": 0.417,
+   "dPts": 0,
+   "name": "finish"
+  },
+  {
+   "round": 9,
+   "file": "sim/train/cand/finish.mjs",
+   "delta": {
+    "focus": 0.15
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0.375,
+   "se": 0.256,
+   "dPts": 0.375,
+   "name": "focus"
+  },
+  {
+   "round": 9,
+   "file": "sim/train/cand/finish.mjs",
+   "delta": {
+    "focus": 0.15
+   },
+   "stage": "B",
+   "n": 48,
+   "dFit": 0.104,
+   "se": 0.124,
+   "dPts": 0.146,
+   "name": "focus"
+  },
+  {
+   "round": 9,
+   "file": "sim/train/cand/finish.mjs",
+   "delta": {
+    "finish": 0.5,
+    "focus": 0.15
+   },
+   "stage": "B",
+   "n": 48,
+   "dFit": 0.354,
+   "se": 0.196,
+   "dPts": 0.271,
+   "name": "finish+focus"
+  },
+  {
+   "round": 9,
+   "file": "sim/train/cand/finish.mjs",
+   "delta": {
+    "finish": 0.5
+   },
+   "stage": "B",
+   "n": 48,
+   "dFit": 0.313,
+   "se": 0.207,
+   "dPts": 0.229,
+   "name": "finish"
+  },
+  {
+   "round": 9,
+   "file": "sim/train/cand/finish.mjs",
+   "delta": {
+    "finish": 0.5,
+    "focus": 0.15
+   },
+   "stage": "C",
+   "n": 192,
+   "dFit": 0.089,
+   "se": 0.099,
+   "dPts": 0.12,
+   "name": "finish+focus"
+  },
+  {
+   "round": 9,
+   "file": "sim/train/cand/finish.mjs",
+   "delta": {
+    "finish": 0.5
+   },
+   "stage": "C",
+   "n": 192,
+   "dFit": -0.016,
+   "se": 0.09,
+   "dPts": 0.047,
+   "name": "finish"
+  },
+  {
+   "round": 10,
+   "file": "sim/train/cand/cubes.mjs",
+   "delta": {
+    "cubeRun": 130
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0,
+   "se": 0.563,
+   "dPts": 0.25,
+   "name": "cube-run"
+  },
+  {
+   "round": 10,
+   "file": "sim/train/cand/cubes.mjs",
+   "delta": {
+    "cubeRun": 130,
+    "noRetreat": true
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": -1.562,
+   "se": 0.645,
+   "dPts": -0.812,
+   "name": "cube-run+NR"
+  },
+  {
+   "round": 10,
+   "file": "sim/train/cand/all.mjs",
+   "delta": {
+    "noRetreat": true
+   },
+   "stage": "A",
+   "n": 16,
+   "dFit": 0.188,
+   "se": 0.802,
+   "dPts": 0.438,
+   "name": "no-retreat"
+  },
+  {
+   "round": 10,
+   "file": "sim/train/cand/all.mjs",
+   "delta": {
+    "noRetreat": true
+   },
+   "stage": "B",
+   "n": 48,
+   "dFit": 0.042,
+   "se": 0.362,
+   "dPts": 0.125,
+   "name": "no-retreat"
+  },
+  {
+   "round": 10,
+   "file": "sim/train/cand/cubes.mjs",
+   "delta": {
+    "cubeRun": 130
+   },
+   "stage": "B",
+   "n": 48,
+   "dFit": -0.042,
+   "se": 0.29,
+   "dPts": 0,
+   "name": "cube-run"
+  },
+  {
+   "round": 10,
+   "file": "sim/train/cand/all.mjs",
+   "delta": {
+    "noRetreat": true
+   },
+   "stage": "C",
+   "n": 192,
+   "dFit": -0.724,
+   "se": 0.15,
+   "dPts": -0.318,
+   "name": "no-retreat"
+  },
+  {
+   "round": 11,
+   "file": "sim/train/cand/rush2.mjs",
+   "delta": {
+    "gunMax": 140
+   },
+   "stage": "A",
+   "n": 32,
+   "dFit": -0.125,
+   "se": 0.29,
+   "dPts": -0.125,
+   "name": "gun140"
+  },
+  {
+   "round": 11,
+   "file": "sim/train/cand/rush2.mjs",
+   "delta": {
+    "gunMax": 160
+   },
+   "stage": "A",
+   "n": 32,
+   "dFit": -0.281,
+   "se": 0.157,
+   "dPts": -0.219,
+   "name": "gun160"
+  },
+  {
+   "round": 11,
+   "file": "sim/train/cand/rush2.mjs",
+   "delta": {
+    "rushUntil": 150
+   },
+   "stage": "A",
+   "n": 32,
+   "dFit": 0,
+   "se": 0,
+   "dPts": 0,
+   "name": "rush150"
+  },
+  {
+   "round": 11,
+   "file": "sim/train/cand/rush2.mjs",
+   "delta": {
+    "rushVeto": 1
+   },
+   "stage": "A",
+   "n": 32,
+   "dFit": -0.406,
+   "se": 0.359,
+   "dPts": -0.719,
+   "name": "rush-veto"
+  },
+  {
+   "round": 11,
+   "file": "sim/train/cand/rush2.mjs",
+   "delta": {
+    "rushUntil": 150
+   },
+   "stage": "B",
+   "n": 48,
+   "dFit": 0.042,
+   "se": 0.042,
+   "dPts": 0.042,
+   "name": "rush150"
+  },
+  {
+   "round": 11,
+   "file": "sim/train/cand/rush2.mjs",
+   "delta": {
+    "gunMax": 140
+   },
+   "stage": "B",
+   "n": 48,
+   "dFit": -0.125,
+   "se": 0.212,
+   "dPts": -0.083,
+   "name": "gun140"
+  },
+  {
+   "round": 11,
+   "file": "sim/train/cand/rush2.mjs",
+   "delta": {
+    "rushUntil": 150
+   },
+   "stage": "C",
+   "n": 192,
+   "dFit": 0.005,
+   "se": 0.012,
+   "dPts": 0.005,
+   "name": "rush150"
+  }
+ ],
+ "promoted": [
+  {
+   "round": 1,
+   "from": {
+    "file": "sim/train/base.mjs",
+    "p": {}
+   },
+   "to": {
+    "file": "sim/train/cand/opening.mjs",
+    "p": {
+     "laserFirst": 90
+    }
+   },
+   "name": "opening-grab",
+   "dFit": 0.698,
+   "lo": 0.319,
+   "dPts": 0.583
+  },
+  {
+   "round": 5,
+   "from": {
+    "file": "sim/train/cand/opening.mjs",
+    "p": {
+     "laserFirst": 90
+    }
+   },
+   "to": {
+    "file": "sim/train/cand/combo.mjs",
+    "p": {
+     "laserFirst": 90,
+     "laserRoof": 20,
+     "laserRun": 180,
+     "laserAway": 3,
+     "oneFront": 8
+    }
+   },
+   "name": "combo",
+   "dFit": 0.698,
+   "lo": 0.362,
+   "dPts": 0.521
+  }
+ ],
+ "autoPromote": false,
+ "notes": [
+  "2026-11-21 ~20:00: t02-one-front (4.73) and t03-combo (4.71) both scored below t01-laser-first (4.96, 4.85) although the sim predicted about +0.5. Stop rule triggered: sim wrong on 2 of 3 loop-chosen builds. Current best reset to t01.",
+  "2026-11-21 20:13: packs switched to no-retaliation settings (bystanders ignore stray hits); base file is now cand/all.mjs (all behaviours merged, off by default).",
+  "2026-11-21 ~21:20: incumbent set to t09-rush (real 5.28, best).",
+  "2026-11-21 21:22: ff:0 added to both packs at the user request (house bots never damage each other); calibration found it neutral within noise."
+ ]
+}

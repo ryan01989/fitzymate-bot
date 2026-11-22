@@ -1,0 +1,173 @@
+[
+ {
+  "name": "squeeze",
+  "file": "sim/train/cand/squeeze.mjs",
+  "p": {
+   "sqzAt": 165,
+   "sqzAway": 25,
+   "sqzHp": 0.75
+  },
+  "note": "stop farming at 165 s, hold far side of next circle, arrive healed"
+ },
+ {
+  "name": "squeeze-noheal",
+  "file": "sim/train/cand/squeeze.mjs",
+  "p": {
+   "sqzAt": 165,
+   "sqzAway": 25,
+   "sqzHp": 0
+  },
+  "note": "rotation only"
+ },
+ {
+  "name": "squeeze-150",
+  "file": "sim/train/cand/squeeze.mjs",
+  "p": {
+   "sqzAt": 150,
+   "sqzAway": 25,
+   "sqzHp": 0
+  },
+  "note": "rotation only, earlier"
+ },
+ {
+  "name": "guard",
+  "file": "sim/train/cand/guard.mjs",
+  "p": {
+   "guard": 3
+  },
+  "note": "keep attackers inside the front arc; when cornered, shoot the mech that is hitting us"
+ },
+ {
+  "name": "guard-fire",
+  "file": "sim/train/cand/guard.mjs",
+  "p": {
+   "guard": 3,
+   "guardFire": 1
+  },
+  "note": "same, but never give up a shot at a visible target"
+ },
+ {
+  "name": "opening",
+  "file": "sim/train/cand/opening.mjs",
+  "p": {
+   "laserFirst": 90,
+   "laserInit": 150,
+   "laserInitUntil": 180
+  },
+  "note": "go for a known laser first, then take the first shot with it"
+ },
+ {
+  "name": "opening-grab",
+  "file": "sim/train/cand/opening.mjs",
+  "p": {
+   "laserFirst": 90
+  },
+  "note": "laser run only"
+ },
+ {
+  "name": "opening-shot",
+  "file": "sim/train/cand/opening.mjs",
+  "p": {
+   "laserInit": 150,
+   "laserInitUntil": 180
+  },
+  "note": "first shot with a laser only"
+ },
+ {
+  "name": "hunt100",
+  "file": "sim/train/base.mjs",
+  "p": {
+   "huntUntil": 100
+  },
+  "note": "same as exp-hunt100"
+ },
+ {
+  "name": "calm150",
+  "file": "sim/train/base.mjs",
+  "p": {
+   "calmAfter": 150
+  },
+  "note": "same as exp-calm150"
+ },
+ {
+  "name": "lootfix",
+  "file": "sim/train/cand/lootfix.mjs",
+  "p": {
+   "lootFix": 1
+  },
+  "note": "stop returning to an already-collected kill-loot spot (built on opening.mjs)"
+ },
+ {
+  "name": "dither",
+  "file": "sim/train/cand/dither.mjs",
+  "p": {
+   "lootHold": 3,
+   "lootHoldRe": 3
+  },
+  "note": "stay off loot for 3 s once a visible mech has called it off twice (lootFix left off)"
+ },
+ {
+  "name": "laser-roof",
+  "file": "sim/train/cand/laser2.mjs",
+  "p": {
+   "laserRoof": 20
+  },
+  "note": "let the laser run go to roof lasers up to 20 m above us"
+ },
+ {
+  "name": "laser-run",
+  "file": "sim/train/cand/laser3.mjs",
+  "p": {
+   "laserRoof": 20,
+   "laserRun": 180,
+   "laserAway": 3
+  },
+  "note": "roof lasers + resume the laser run after a fight/retreat + ignore mechs moving away from the laser"
+ },
+ {
+  "name": "laser-run-120",
+  "file": "sim/train/cand/laser3.mjs",
+  "p": {
+   "laserRoof": 20,
+   "laserRun": 120,
+   "laserAway": 3
+  },
+  "note": "same, shorter reach (cautious)"
+ },
+ {
+  "name": "laser-run-noroof",
+  "file": "sim/train/cand/laser3.mjs",
+  "p": {
+   "laserRun": 180,
+   "laserAway": 3
+  },
+  "note": "same without roof lasers"
+ },
+ {
+  "name": "one-front",
+  "file": "sim/train/cand/early.mjs",
+  "p": {
+   "oneFront": 8
+  },
+  "note": "do not shoot mechs that have not hit us: no second front"
+ },
+ {
+  "name": "one-front-20",
+  "file": "sim/train/cand/early.mjs",
+  "p": {
+   "oneFront": 20
+  },
+  "note": "same, 20 s memory"
+ },
+ {
+  "name": "combo",
+  "file": "sim/train/cand/combo.mjs",
+  "p": {
+   "laserRoof": 20,
+   "laserRun": 180,
+   "laserAway": 3,
+   "oneFront": 8
+  },
+  "note": "laser-run + one-front"
+ }
+]

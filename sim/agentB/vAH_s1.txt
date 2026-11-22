@@ -1,0 +1,4 @@
+bot.mjs practice pack={"noise":4,"near":0,"every":150,"react":2}: pts 3.85 ±0.24 (n=96)  kills 3.38  surv 119s  cubes 2.0  wins 0  acc me 0.86 pack 0.30  maxMs 35.4  crashes 0  293s
+  deaths: {"hard":22,"easy":23,"expert":11,"zone":2,"medium":37,"npc":1}  npcK 0.58 crates 0.85 cubePicks 1.96 cubesBy120 1.78 upgrades 1.00
+  diag n=96: atk>=2 79  atk1 16  rear>30% 16  npc 3  died<60s 20 60-150 45 150+ 31
+  mode at death: {"retreat":44,"fight":44,"zone":8}  hp% 20s before death (median): 74

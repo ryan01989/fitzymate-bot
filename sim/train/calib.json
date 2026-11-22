@@ -1,0 +1,456 @@
+[
+ {
+  "pack": {
+   "noise": 2,
+   "perKill": 1,
+   "retaliate": 0,
+   "ff": 0
+  },
+  "off": -0.9097222222222224,
+  "rmse": 0.9345973583432722,
+  "rmse0": 0.21419080423137682,
+  "agree": 26,
+  "pairs": 27,
+  "tl": {
+   "k90": 2.65625,
+   "k180": 3.40625,
+   "kEnd": 3.4375,
+   "surv": 107.9796875,
+   "early": 0.375
+  },
+  "tlErr": 0.9117399802940895,
+  "deltaErr": 0.2304886114323222,
+  "signOk": 4,
+  "signN": 4,
+  "dl": [
+   {
+    "pair": "v2->v3-farm",
+    "real": 0.7050000000000001,
+    "sim": 0.3125
+   },
+   {
+    "pair": "v3-farm->farm-all",
+    "real": -0.054999999999999716,
+    "sim": 0
+   },
+   {
+    "pair": "v3-farm->v5-peek",
+    "real": -0.3049999999999997,
+    "sim": -0.15625
+   },
+   {
+    "pair": "v3-farm->t01-laser-first",
+    "real": 0.4500000000000002,
+    "sim": 0.625
+   },
+   {
+    "pair": "t01-laser-first->t02-one-front",
+    "real": -0.17499999999999982,
+    "sim": -0.40625
+   },
+   {
+    "pair": "t01-laser-first->t04-no-retreat",
+    "real": 0.09499999999999975,
+    "sim": -0.25
+   },
+   {
+    "pair": "t01-laser-first->t05-drop-heal",
+    "real": -0.025000000000000355,
+    "sim": 0.03125
+   },
+   {
+    "pair": "t04-no-retreat->t08-nr-cubes",
+    "real": -0.019999999999999574,
+    "sim": -0.21875
+   }
+  ],
+  "rows": [
+   {
+    "name": "v2",
+    "real": 3.75,
+    "sim": 3.188
+   },
+   {
+    "name": "v3-farm",
+    "real": 4.455,
+    "sim": 3.5
+   },
+   {
+    "name": "farm-all",
+    "real": 4.4,
+    "sim": 3.5
+   },
+   {
+    "name": "v5-peek",
+    "real": 4.15,
+    "sim": 3.344
+   },
+   {
+    "name": "t01-laser-first",
+    "real": 4.905,
+    "sim": 4.125
+   },
+   {
+    "name": "t02-one-front",
+    "real": 4.73,
+    "sim": 3.719
+   },
+   {
+    "name": "t04-no-retreat",
+    "real": 5,
+    "sim": 3.875
+   },
+   {
+    "name": "t05-drop-heal",
+    "real": 4.88,
+    "sim": 4.156
+   },
+   {
+    "name": "t08-nr-cubes",
+    "real": 4.98,
+    "sim": 3.656
+   }
+  ]
+ },
+ {
+  "pack": {
+   "noise": 1.5,
+   "perKill": 1,
+   "retaliate": 0,
+   "ff": 0
+  },
+  "off": -1.2743055555555556,
+  "rmse": 1.2925987900135312,
+  "rmse0": 0.2166955999200061,
+  "agree": 23,
+  "pairs": 27,
+  "tl": {
+   "k90": 2.09375,
+   "k180": 2.96875,
+   "kEnd": 2.96875,
+   "surv": 96.0328125,
+   "early": 0.46875
+  },
+  "tlErr": 1.0382183757925563,
+  "deltaErr": 0.27928130419883085,
+  "signOk": 2,
+  "signN": 4,
+  "dl": [
+   {
+    "pair": "v2->v3-farm",
+    "real": 0.7050000000000001,
+    "sim": 0.1875
+   },
+   {
+    "pair": "v3-farm->farm-all",
+    "real": -0.054999999999999716,
+    "sim": 0
+   },
+   {
+    "pair": "v3-farm->v5-peek",
+    "real": -0.3049999999999997,
+    "sim": 0.21875
+   },
+   {
+    "pair": "v3-farm->t01-laser-first",
+    "real": 0.4500000000000002,
+    "sim": 0.53125
+   },
+   {
+    "pair": "t01-laser-first->t02-one-front",
+    "real": -0.17499999999999982,
+    "sim": 0
+   },
+   {
+    "pair": "t01-laser-first->t04-no-retreat",
+    "real": 0.09499999999999975,
+    "sim": -0.0625
+   },
+   {
+    "pair": "t01-laser-first->t05-drop-heal",
+    "real": -0.025000000000000355,
+    "sim": -0.125
+   },
+   {
+    "pair": "t04-no-retreat->t08-nr-cubes",
+    "real": -0.019999999999999574,
+    "sim": 0.0625
+   }
+  ],
+  "rows": [
+   {
+    "name": "v2",
+    "real": 3.75,
+    "sim": 2.844
+   },
+   {
+    "name": "v3-farm",
+    "real": 4.455,
+    "sim": 3.031
+   },
+   {
+    "name": "farm-all",
+    "real": 4.4,
+    "sim": 3.031
+   },
+   {
+    "name": "v5-peek",
+    "real": 4.15,
+    "sim": 3.25
+   },
+   {
+    "name": "t01-laser-first",
+    "real": 4.905,
+    "sim": 3.563
+   },
+   {
+    "name": "t02-one-front",
+    "real": 4.73,
+    "sim": 3.563
+   },
+   {
+    "name": "t04-no-retreat",
+    "real": 5,
+    "sim": 3.5
+   },
+   {
+    "name": "t05-drop-heal",
+    "real": 4.88,
+    "sim": 3.438
+   },
+   {
+    "name": "t08-nr-cubes",
+    "real": 4.98,
+    "sim": 3.563
+   }
+  ]
+ },
+ {
+  "pack": {
+   "noise": 2,
+   "perKill": 1,
+   "retaliate": 0,
+   "share": 5,
+   "ff": 0
+  },
+  "off": -0.5763888888888891,
+  "rmse": 0.7013998899027257,
+  "rmse0": 0.3996719333665897,
+  "agree": 17,
+  "pairs": 27,
+  "tl": {
+   "k90": 2.625,
+   "k180": 4.0625,
+   "kEnd": 4.1875,
+   "surv": 119.05000000000003,
+   "early": 0.21875
+  },
+  "tlErr": 0.7021128826620403,
+  "deltaErr": 0.26404863129260864,
+  "signOk": 4,
+  "signN": 4,
+  "dl": [
+   {
+    "pair": "v2->v3-farm",
+    "real": 0.7050000000000001,
+    "sim": 0.5
+   },
+   {
+    "pair": "v3-farm->farm-all",
+    "real": -0.054999999999999716,
+    "sim": 0.03125
+   },
+   {
+    "pair": "v3-farm->v5-peek",
+    "real": -0.3049999999999997,
+    "sim": -0.5
+   },
+   {
+    "pair": "v3-farm->t01-laser-first",
+    "real": 0.4500000000000002,
+    "sim": 0.03125
+   },
+   {
+    "pair": "t01-laser-first->t02-one-front",
+    "real": -0.17499999999999982,
+    "sim": -0.21875
+   },
+   {
+    "pair": "t01-laser-first->t04-no-retreat",
+    "real": 0.09499999999999975,
+    "sim": -0.4375
+   },
+   {
+    "pair": "t01-laser-first->t05-drop-heal",
+    "real": -0.025000000000000355,
+    "sim": 0.0625
+   },
+   {
+    "pair": "t04-no-retreat->t08-nr-cubes",
+    "real": -0.019999999999999574,
+    "sim": -0.0625
+   }
+  ],
+  "rows": [
+   {
+    "name": "v2",
+    "real": 3.75,
+    "sim": 3.719
+   },
+   {
+    "name": "v3-farm",
+    "real": 4.455,
+    "sim": 4.219
+   },
+   {
+    "name": "farm-all",
+    "real": 4.4,
+    "sim": 4.25
+   },
+   {
+    "name": "v5-peek",
+    "real": 4.15,
+    "sim": 3.719
+   },
+   {
+    "name": "t01-laser-first",
+    "real": 4.905,
+    "sim": 4.25
+   },
+   {
+    "name": "t02-one-front",
+    "real": 4.73,
+    "sim": 4.031
+   },
+   {
+    "name": "t04-no-retreat",
+    "real": 5,
+    "sim": 3.813
+   },
+   {
+    "name": "t05-drop-heal",
+    "real": 4.88,
+    "sim": 4.313
+   },
+   {
+    "name": "t08-nr-cubes",
+    "real": 4.98,
+    "sim": 3.75
+   }
+  ]
+ },
+ {
+  "pack": {
+   "noise": 2,
+   "perKill": 1,
+   "retaliate": 0,
+   "range": 1.3,
+   "ff": 0
+  },
+  "off": -0.8159722222222224,
+  "rmse": 0.8537321049043691,
+  "rmse0": 0.2510932884530625,
+  "agree": 25,
+  "pairs": 27,
+  "tl": {
+   "k90": 2.46875,
+   "k180": 3.53125,
+   "kEnd": 3.5625,
+   "surv": 105.60000000000004,
+   "early": 0.34375
+  },
+  "tlErr": 0.7805039771412656,
+  "deltaErr": 0.20312500000000003,
+  "signOk": 4,
+  "signN": 4,
+  "dl": [
+   {
+    "pair": "v2->v3-farm",
+    "real": 0.7050000000000001,
+    "sim": 0.21875
+   },
+   {
+    "pair": "v3-farm->farm-all",
+    "real": -0.054999999999999716,
+    "sim": 0
+   },
+   {
+    "pair": "v3-farm->v5-peek",
+    "real": -0.3049999999999997,
+    "sim": -0.21875
+   },
+   {
+    "pair": "v3-farm->t01-laser-first",
+    "real": 0.4500000000000002,
+    "sim": 0.34375
+   },
+   {
+    "pair": "t01-laser-first->t02-one-front",
+    "real": -0.17499999999999982,
+    "sim": -0.1875
+   },
+   {
+    "pair": "t01-laser-first->t04-no-retreat",
+    "real": 0.09499999999999975,
+    "sim": -0.15625
+   },
+   {
+    "pair": "t01-laser-first->t05-drop-heal",
+    "real": -0.025000000000000355,
+    "sim": 0.03125
+   },
+   {
+    "pair": "t04-no-retreat->t08-nr-cubes",
+    "real": -0.019999999999999574,
+    "sim": -0.09375
+   }
+  ],
+  "rows": [
+   {
+    "name": "v2",
+    "real": 3.75,
+    "sim": 3.469
+   },
+   {
+    "name": "v3-farm",
+    "real": 4.455,
+    "sim": 3.688
+   },
+   {
+    "name": "farm-all",
+    "real": 4.4,
+    "sim": 3.688
+   },
+   {
+    "name": "v5-peek",
+    "real": 4.15,
+    "sim": 3.469
+   },
+   {
+    "name": "t01-laser-first",
+    "real": 4.905,
+    "sim": 4.031
+   },
+   {
+    "name": "t02-one-front",
+    "real": 4.73,
+    "sim": 3.844
+   },
+   {
+    "name": "t04-no-retreat",
+    "real": 5,
+    "sim": 3.875
+   },
+   {
+    "name": "t05-drop-heal",
+    "real": 4.88,
+    "sim": 4.063
+   },
+   {
+    "name": "t08-nr-cubes",
+    "real": 4.98,
+    "sim": 3.781
+   }
+  ]
+ }
+]

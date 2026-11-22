@@ -1,0 +1,153 @@
+--- ../variants/v3-farm.mjs	2026-11-21 15:50:54
++++ ../agentB/bot.mjs	2026-11-21 16:16:45
+@@ -57,6 +57,19 @@
+   preferZap: false, // rank lightning above the laser when picking up weapons
+   farmHard: true, // farm crates / drones / cubes far and wide, and explore to find them
+   farmUntil: 200, // ...until this match time
++  // --- agentB experiments
++  coverKeep: 80, // leave a cover spot when a known threat is this close to it
++  relocate: true, // while hiding, also flee from hunters known in the last relocMem s and nearby footsteps
++  relocMem: 15,
++  coverCost: 220, // cover search reach (path cost)
++  coverCap: 220, // distance from threats counts up to this
++  coverW: 0.7, // weight of distance from threats vs path length (0.55)
++  hostileOnly: true, // mechs that never showed hostility do not veto fights (house pack: inactive members wander)
++  hostileMem: 25,
++  arcKeep: 0.8, // in a fight, weight of backing away from a second hostile outside the front arc
++  exploreSafe: 150, // no exploring while a hostile mech was seen within this range in the last 10 s
++  hostileHunt: 2,
++  seenW: 0.5, // weight of distance from where we were last seen (the pack converges there)
+ }
+ // Free-for-all profile (qualifying and the final): the survival-first settings of the first two submissions.
+ // Applied once, the moment the bot sees mechs dying that it did not kill (see ingest()).
+@@ -65,6 +78,8 @@
+   healBelow: 0, killLoot: false, dropHeal: false, fightRange: 0, bandRange: 14, noRetreat: false, berserk: false, zapRange: 0,
+   farmHard: false,
+ }
++// agentB practice-only changes, back to the old behaviour once free-for-all is detected
++const B_FFA = { coverKeep: 48, relocate: false, coverCost: 150, coverCap: 160, coverW: 0.7, seenW: 0, hostileOnly: false, arcKeep: 0, exploreSafe: 0 }
+ if (typeof process !== "undefined" && process.env && process.env.FM_P) Object.assign(P, JSON.parse(process.env.FM_P))
+ if (typeof process !== "undefined" && process.env && process.env.FM_PFFA) Object.assign(P_FFA, JSON.parse(process.env.FM_PFFA))
+ if (P.preferZap) {
+@@ -471,6 +486,7 @@
+       e.los = this.w ? this.w.los(x, y, z + this.eyeH, e.pos[0], e.pos[1], e.cz) || this.w.los(x, y, z + this.eyeH, e.pos[0], e.pos[1], e.pos[2] + 8.6 * es) : true
+       if (e.los) {
+         e.losT = t
++        this.seenPos = [x, y]
+         if (e.dist < 200) this.lastContactT = Math.max(this.lastContactT, t - 2)
+       }
+       this.vis.push(e)
+@@ -480,7 +496,7 @@
+     const othersDead = (this.cfg.match?.mechs ?? 16) - (o.alive ?? 16) - (this.myKills || 0)
+     if (othersDead >= 2 && !this.ffa) {
+       this.ffa = true
+-      if (!(typeof process !== "undefined" && process.env && process.env.FM_NOSWITCH)) Object.assign(P, P_FFA)
++      if (!(typeof process !== "undefined" && process.env && process.env.FM_NOSWITCH)) Object.assign(P, P_FFA, B_FFA)
+     }
+     this.posHist.push([x, y, z, t])
+     if (this.posHist.length > 14) this.posHist.shift()
+@@ -577,8 +593,12 @@
+   }
+   others(e, radius) {
+     let n = 0
+-    for (const q of this.en.values()) if (q !== e && !q.phantom && this.t - q.t < 3 && q.dist < radius) n++
++    for (const q of this.en.values()) if (q !== e && !q.phantom && this.t - q.t < 3 && q.dist < radius && (!P.hostileOnly || this.hostile(q))) n++
+     return n
++  }
++  /** has it shown any intent against us (hit us, or closed in / aimed at us for a while) */
++  hostile(q) {
++    return this.t - q.hitMeT < P.hostileMem || q.hunt >= P.hostileHunt
+   }
+   theirRank(e) {
+     return e.has("laser") ? 2 : e.has("lightning") ? 1 : 0
+@@ -781,7 +801,9 @@
+     }
+     // --- loot when quiet
+     this.loot = this.pickLoot()
+-    this.mode = this.loot ? "loot" : P.farmHard && t < P.farmUntil && hpS > 0.5 && this.zoneSlack > 25 && t - this.lastMechDmgT > 4 ? "explore" : "hold"
++    let huntedNear = false
++    if (P.exploreSafe > 0) for (const e of this.en.values()) if (t - e.t < 10 && e.dist < P.exploreSafe && this.hostile(e)) huntedNear = true
++    this.mode = this.loot ? "loot" : P.farmHard && t < P.farmUntil && hpS > 0.5 && this.zoneSlack > 25 && t - this.lastMechDmgT > 4 && !huntedNear ? "explore" : "hold"
+   }
+ 
+   setFight(e) {
+@@ -1255,7 +1277,7 @@
+       curD = Math.min(curD, hyp(x - th[0], y - th[1]))
+     }
+     const zc = this.zoneAt(t + 8)
+-    w.search(this.myNode, -1, this.searchOpts({ maxCost: 150, maxExp: 12000, pens: this.pens(pens), zone: [zc[0], zc[1], Math.max(0, zc[2] - 6), 4] }))
++    w.search(this.myNode, -1, this.searchOpts({ maxCost: P.coverCost, maxExp: 12000, pens: this.pens(pens), zone: [zc[0], zc[1], Math.max(0, zc[2] - 6), 4] }))
+     const n = w.nVisited
+     const vis = w.visited
+     const floor = Math.min(curD - 4, 42)
+@@ -1266,7 +1288,7 @@
+       const c = m % w.NC
+       if ((c % w.NX) % 3 || ((c / w.NX) | 0) % 3) continue
+       const g = w.gS[m]
+-      if (g * 0.55 - 112 > bestScore) break
++      if (g * 0.55 - P.coverCap * P.coverW - 150 * P.seenW > bestScore) break
+       if ((k & 127) === 0 && now() > this.deadline) break
+       const mx = w.nodeX(m),
+         my = w.nodeY(m),
+@@ -1278,7 +1300,8 @@
+         if (de < dmin) dmin = de
+       }
+       if (dmin < floor) continue
+-      const score = g * 0.55 - Math.min(dmin, 160) * 0.7
++      let score = g * 0.55 - Math.min(dmin, P.coverCap) * P.coverW
++      if (P.seenW > 0 && this.seenPos) score -= Math.min(hyp(mx - this.seenPos[0], my - this.seenPos[1]), 150) * P.seenW
+       if (score >= bestScore) continue
+       if (!this.hiddenFrom(threats, mx, my, mz)) continue
+       bestScore = score
+@@ -1312,14 +1335,21 @@
+     if (threats.length && this.w && t - this.coverT > 0.45) {
+       this.coverT = t
+       let keep = false
++      // hidden but hunted: everyone recently known plus footsteps close by count as threats to move away from
++      let th2 = threats
++      if (P.relocate) {
++        th2 = threats.slice()
++        for (const e of this.en.values()) if (t - e.t < P.relocMem && !threats.some((q) => q[4] === e) && th2.length < 5) th2.push([e.pos[0], e.pos[1], e.pos[2], 0, e])
++        for (const s of this.sounds) if (t - s.t < 2 && s.D < 40 && (s.kind === "step" || s.kind === "boost") && th2.length < 6) th2.push([s.x, s.y, z, 0, null])
++      }
+       if (this.cover) {
+         // still out of sight, and the pursuer is not about to walk onto it
+         let dmin = 1e9
+-        for (const th of threats) dmin = Math.min(dmin, hyp(this.cover.x - th[0], this.cover.y - th[1]))
+-        keep = dmin > 48 && this.hiddenFrom(threats, this.cover.x, this.cover.y, this.cover.z)
++        for (const th of th2) dmin = Math.min(dmin, hyp(this.cover.x - th[0], this.cover.y - th[1]))
++        keep = dmin > P.coverKeep && this.hiddenFrom(threats, this.cover.x, this.cover.y, this.cover.z)
+       }
+       if (!keep) {
+-        const c = this.findCover(threats)
++        const c = this.findCover(th2)
+         if (c) {
+           this.cover = c
+           this.setPath(c.path, c.node)
+@@ -1475,6 +1505,18 @@
+       zx = (cx / cd) * 0.8
+       zy = (cy / cd) * 0.8
+     }
++    if (P.arcKeep > 0) {
++      // a second hostile far off to the side (or behind): back away from it so both stay in the front arc
++      const bt = Math.atan2(dy, dx)
++      for (const q of this.vis) {
++        if (q === e || !q.los || q.dist > 170 || !this.hostile(q)) continue
++        const off = Math.abs(angNorm(Math.atan2(q.pos[1] - y, q.pos[0] - x) - bt))
++        if (off < 1.15) continue
++        const k = P.arcKeep * Math.min(1, (off - 1.15) / 0.6)
++        zx -= ((q.pos[0] - x) / q.dist) * k
++        zy -= ((q.pos[1] - y) / q.dist) * k
++      }
++    }
+     const mk = (side, rad) => {
+       const mx = -uy * side + ux * rad + zx,
+         my = ux * side + uy * rad + zy
+@@ -1538,6 +1580,7 @@
+     if (!this.duckSpot || t - this.duckT > 0.4) {
+       this.duckT = t
+       const th = [[e.pos[0], e.pos[1], e.pos[2]]]
++      if (P.duckAll) for (const q of this.vis) if (q !== e && q.los && q.dist < 200) th.push([q.pos[0], q.pos[1], q.pos[2]])
+       const reach = Math.max(6, (gun.reload > 0 ? gun.reload : gun.stats.reload ?? 2.4) * this.walk * 0.42)
+       w.search(this.myNode, -1, this.searchOpts({ maxCost: reach, maxExp: 1500, pens: null, zone: null }))
+       let best = -1

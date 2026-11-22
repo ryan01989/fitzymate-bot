@@ -1,0 +1,5 @@
+bot_orig.mjs practice pack={"noise":4,"near":0,"every":150,"react":2}: pts 3.48 ±0.22 (n=96)  kills 3.04  surv 120s  cubes 1.6  wins 0  acc me 0.87 pack 0.32  maxMs 88.7  crashes 0  420s
+  deaths: {"hard":17,"medium":34,"easy":31,"expert":14}  npcK 0.60 crates 0.74 cubePicks 1.54 cubesBy120 1.41 upgrades 0.81
+  diag n=96: atk>=2 82  atk1 14  rear>30% 23  npc 7  died<60s 18 60-150 46 150+ 32
+  mode at death: {"fight":47,"retreat":47,"zone":2}  hp% 20s before death (median): 76
+node sim/eval.mjs --brain sim/agentB/bot_orig.mjs --n 96 --seed 1 --par 2    697.38s user 6.04s system 167% cpu 6:59.58 total

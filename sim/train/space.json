@@ -1,0 +1,323 @@
+{
+ "hideHp": {
+  "values": [
+   0.25,
+   0.4,
+   0.55
+  ]
+ },
+ "resumeHp": {
+  "values": [
+   0.65,
+   0.8,
+   0.92
+  ]
+ },
+ "initHpLow": {
+  "values": [
+   0.55,
+   0.75,
+   0.9
+  ]
+ },
+ "initAdv": {
+  "values": [
+   0.05,
+   0.2,
+   0.35
+  ]
+ },
+ "vetoAdv": {
+  "values": [
+   -0.3,
+   -0.12,
+   0
+  ]
+ },
+ "vetoCubes": {
+  "values": [
+   -8,
+   -5,
+   -3
+  ]
+ },
+ "crowd": {
+  "values": [
+   50,
+   70,
+   90,
+   115,
+   140
+  ]
+ },
+ "openingS": {
+  "values": [
+   0,
+   20,
+   45,
+   70
+  ]
+ },
+ "calmS": {
+  "values": [
+   2,
+   4,
+   7
+  ]
+ },
+ "zoneMarginFrac": {
+  "values": [
+   0.08,
+   0.14,
+   0.22
+  ]
+ },
+ "silentNear": {
+  "values": [
+   0,
+   40,
+   70,
+   110
+  ]
+ },
+ "healBelow": {
+  "values": [
+   0,
+   0.5,
+   0.7
+  ]
+ },
+ "killLoot": {
+  "type": "bool"
+ },
+ "dropHeal": {
+  "type": "bool"
+ },
+ "fightRange": {
+  "values": [
+   80,
+   92,
+   0,
+   125,
+   140
+  ]
+ },
+ "bandRange": {
+  "values": [
+   8,
+   14,
+   22
+  ]
+ },
+ "farmUntil": {
+  "values": [
+   120,
+   160,
+   200,
+   250
+  ]
+ },
+ "finishHp": {
+  "values": [
+   0.25,
+   0.35,
+   0.45,
+   0.55
+  ]
+ },
+ "finishMyHp": {
+  "values": [
+   0.15,
+   0.3,
+   0.45
+  ]
+ },
+ "defAdvOut": {
+  "values": [
+   0.1,
+   0.25,
+   0.4
+  ]
+ },
+ "defAdv": {
+  "values": [
+   -0.2,
+   -0.08,
+   0.05
+  ]
+ },
+ "outgunAdv": {
+  "values": [
+   0,
+   0.2,
+   0.35
+  ]
+ },
+ "busyHp": {
+  "values": [
+   0.7,
+   0.9,
+   1.01
+  ]
+ },
+ "huntHp": {
+  "values": [
+   0.5,
+   0.7,
+   0.85
+  ]
+ },
+ "huntDist": {
+  "values": [
+   120,
+   170,
+   215
+  ]
+ },
+ "nearDist": {
+  "values": [
+   50,
+   78,
+   110,
+   140
+  ]
+ },
+ "nearAdv": {
+  "values": [
+   -0.2,
+   -0.05,
+   0.1
+  ]
+ },
+ "nearHp": {
+  "values": [
+   0.45,
+   0.6,
+   0.75
+  ]
+ },
+ "rearDist": {
+  "values": [
+   110,
+   150,
+   200
+  ]
+ },
+ "rearHp": {
+  "values": [
+   0.6,
+   0.8
+  ]
+ },
+ "raceOut": {
+  "values": [
+   0.9,
+   1.12,
+   1.4,
+   1.8
+  ]
+ },
+ "raceHurt": {
+  "values": [
+   0.6,
+   0.8,
+   1
+  ]
+ },
+ "retAdv": {
+  "values": [
+   -0.35,
+   -0.2,
+   -0.1
+  ]
+ },
+ "retHp": {
+  "values": [
+   0.5,
+   0.7,
+   0.85
+  ]
+ },
+ "chaseHp": {
+  "values": [
+   0.25,
+   0.4,
+   0.55,
+   0.7
+  ]
+ },
+ "chaseMyHp": {
+  "values": [
+   0.4,
+   0.55,
+   0.7
+  ]
+ },
+ "chaseS": {
+  "values": [
+   4,
+   7,
+   11
+  ]
+ },
+ "startDist": {
+  "values": [
+   150,
+   180,
+   215
+  ]
+ },
+ "scoreDist": {
+  "values": [
+   0.05,
+   0.2,
+   0.5
+  ]
+ },
+ "exploreHp": {
+  "values": [
+   0.35,
+   0.5,
+   0.7
+  ]
+ },
+ "huntUntil": {
+  "values": [
+   0,
+   60,
+   100,
+   150
+  ]
+ },
+ "calmAfter": {
+  "values": [
+   0,
+   150,
+   200
+  ]
+ },
+ "laserFirst": {
+  "values": [
+   0,
+   60,
+   90,
+   130,
+   200
+  ]
+ },
+ "laserInit": {
+  "values": [
+   0,
+   110,
+   150,
+   190
+  ]
+ },
+ "laserInitUntil": {
+  "values": [
+   0,
+   90,
+   180
+  ]
+ }
+}

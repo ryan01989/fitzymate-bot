@@ -1,0 +1,265 @@
+[
+ {
+  "name": "guard",
+  "file": "sim/train/cand/all.mjs",
+  "p": {
+   "guard": 3
+  },
+  "note": "keep attackers inside the front arc; when cornered, shoot the mech hitting us"
+ },
+ {
+  "name": "guard-fire",
+  "file": "sim/train/cand/all.mjs",
+  "p": {
+   "guard": 3,
+   "guardFire": 1
+  },
+  "note": "same, never give up a shot at a visible target"
+ },
+ {
+  "name": "squeeze",
+  "file": "sim/train/cand/all.mjs",
+  "p": {
+   "sqzAt": 165,
+   "sqzAway": 25,
+   "sqzHp": 0.75
+  },
+  "note": "prepare for the 180-260 s squeeze: stop farming, far side, healed"
+ },
+ {
+  "name": "squeeze-noheal",
+  "file": "sim/train/cand/all.mjs",
+  "p": {
+   "sqzAt": 165,
+   "sqzAway": 25,
+   "sqzHp": 0
+  },
+  "note": "rotation only"
+ },
+ {
+  "name": "squeeze-150",
+  "file": "sim/train/cand/all.mjs",
+  "p": {
+   "sqzAt": 150,
+   "sqzAway": 25,
+   "sqzHp": 0
+  },
+  "note": "rotation only, earlier"
+ },
+ {
+  "name": "lootfix",
+  "file": "sim/train/cand/all.mjs",
+  "p": {
+   "lootFix": 1
+  },
+  "note": "stop returning to a cleared kill-loot spot"
+ },
+ {
+  "name": "dither",
+  "file": "sim/train/cand/all.mjs",
+  "p": {
+   "lootHold": 3,
+   "lootHoldRe": 3
+  },
+  "note": "stay off loot for 3 s after a visible mech called it off twice"
+ },
+ {
+  "name": "laser-roof",
+  "file": "sim/train/cand/all.mjs",
+  "p": {
+   "laserRoof": 20
+  },
+  "note": "laser run also goes to roof lasers"
+ },
+ {
+  "name": "laser-away",
+  "file": "sim/train/cand/all.mjs",
+  "p": {
+   "laserAway": 3
+  },
+  "note": "a mech moving away from the laser no longer cancels the run"
+ },
+ {
+  "name": "laser-run",
+  "file": "sim/train/cand/all.mjs",
+  "p": {
+   "laserRoof": 20,
+   "laserRun": 180,
+   "laserAway": 3
+  },
+  "note": "roof + resume the run after a fight + laser-away"
+ },
+ {
+  "name": "laser-shot",
+  "file": "sim/train/cand/all.mjs",
+  "p": {
+   "laserInit": 150,
+   "laserInitUntil": 180
+  },
+  "note": "with a laser, take the first shot at a mech without one"
+ },
+ {
+  "name": "hunt100",
+  "file": "sim/train/cand/all.mjs",
+  "p": {
+   "huntUntil": 100
+  },
+  "note": "before 100 s attack any visible mech within 200 m"
+ },
+ {
+  "name": "calm150",
+  "file": "sim/train/cand/all.mjs",
+  "p": {
+   "calmAfter": 150
+  },
+  "note": "after 150 s only start fights with targets under 35% HP"
+ },
+ {
+  "name": "one-front-20",
+  "file": "sim/train/cand/all.mjs",
+  "p": {
+   "oneFront": 20
+  },
+  "note": "CONTROL: scored worse in real matches; the corrected sim should not promote it"
+ },
+ {
+  "name": "weave-45",
+  "file": "sim/train/cand/dodge.mjs",
+  "p": {
+   "weave": 0.45
+  },
+  "note": "weave around the path while retreating under fire"
+ },
+ {
+  "name": "weave-70",
+  "file": "sim/train/cand/dodge.mjs",
+  "p": {
+   "weave": 0.7
+  },
+  "note": "wider weave"
+ },
+ {
+  "name": "weave-all",
+  "file": "sim/train/cand/dodge.mjs",
+  "p": {
+   "weave": 0.45,
+   "weaveAll": 1
+  },
+  "note": "weave in every non-fight mode"
+ },
+ {
+  "name": "no-retreat",
+  "file": "sim/train/cand/all.mjs",
+  "p": {
+   "noRetreat": true
+  },
+  "note": "stand and fight against one or two attackers whatever the HP"
+ },
+ {
+  "name": "drop-heal",
+  "file": "sim/train/cand/all.mjs",
+  "p": {
+   "dropHeal": true
+  },
+  "note": "go for supply drops (full repair + 3 cubes) whenever hurt"
+ },
+ {
+  "name": "no-retreat+drop",
+  "file": "sim/train/cand/all.mjs",
+  "p": {
+   "noRetreat": true,
+   "dropHeal": true
+  },
+  "note": "both"
+ },
+ {
+  "name": "hunt-all",
+  "file": "sim/train/cand/all.mjs",
+  "p": {
+   "huntUntil": 420
+  },
+  "note": "attack any visible mech within 200 m all match while above 60% HP"
+ },
+ {
+  "name": "finish+focus",
+  "file": "sim/train/cand/finish.mjs",
+  "p": {
+   "finish": 0.5,
+   "focus": 0.15
+  },
+  "note": "stay on a target under 50% HP that dies first; out of a fight shoot the mech that dies soonest"
+ },
+ {
+  "name": "finish",
+  "file": "sim/train/cand/finish.mjs",
+  "p": {
+   "finish": 0.5
+  },
+  "note": "stay on a nearly dead target"
+ },
+ {
+  "name": "focus",
+  "file": "sim/train/cand/finish.mjs",
+  "p": {
+   "focus": 0.15
+  },
+  "note": "out of a fight shoot the mech that dies soonest"
+ },
+ {
+  "name": "cube-run",
+  "file": "sim/train/cand/cubes.mjs",
+  "p": {
+   "cubeRun": 130
+  },
+  "note": "committed run to the cubes our kill dropped"
+ },
+ {
+  "name": "cube-run+NR",
+  "file": "sim/train/cand/cubes.mjs",
+  "p": {
+   "cubeRun": 130,
+   "noRetreat": true
+  },
+  "note": "cube run + no retreat"
+ },
+ {
+  "name": "no-retreat",
+  "file": "sim/train/cand/cubes.mjs",
+  "p": {
+   "noRetreat": true
+  },
+  "note": "real best 5.00, for reference"
+ },
+ {
+  "name": "gun140",
+  "file": "sim/train/cand/rush2.mjs",
+  "p": {
+   "gunMax": 140
+  },
+  "note": "no gun fire past 140 m at targets above 25% HP"
+ },
+ {
+  "name": "gun160",
+  "file": "sim/train/cand/rush2.mjs",
+  "p": {
+   "gunMax": 160
+  },
+  "note": "same, 160 m"
+ },
+ {
+  "name": "rush150",
+  "file": "sim/train/cand/rush2.mjs",
+  "p": {
+   "rushUntil": 150
+  },
+  "note": "longer rush"
+ },
+ {
+  "name": "rush-veto",
+  "file": "sim/train/cand/rush2.mjs",
+  "p": {
+   "rushVeto": 1
+  },
+  "note": "during the rush, no fights with far mechs that have not hit us"
+ }
+]

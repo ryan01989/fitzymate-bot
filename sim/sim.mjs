@@ -482,6 +482,7 @@ export class Sim {
     // zone, regen, cubes, drops
     for (const m of this.mechs) {
       if (!m.alive) continue
+      if (this.tick % 20 === 0) (m.hpHist ??= []).push([this.t, m.hp])
       const out = hyp(m.pos[0] - this.zc[0], m.pos[1] - this.zc[1]) > this.zr
       if (out) {
         m.hp -= this.dps * dt
@@ -508,6 +509,8 @@ export class Sim {
       if (best) {
         this.cubes.delete(c.id)
         this._giveCubes(best, 1)
+        best.cubePicks = (best.cubePicks || 0) + 1
+        if (this.t < 120) best.cubes120 = (best.cubes120 || 0) + 1
         best.events.push({ type: "pickup", cubes: best.cubes })
       }
     }
@@ -656,6 +659,7 @@ export class Sim {
           const o = this._muzzle(m, this._dir(m))
           this.projectiles.push({ id: this.nextId.proj++, kind: "gun", by: m.id, pos: o, vel: dir.map((v) => v * wp.stats.speed), left: wp.stats.range, dmg: wp.stats.damage * this._dmgScale(m), r: cfg.projectile.gun_radius })
           wp.ammo--
+          m.gunFires = (m.gunFires || 0) + 1
           wp.cooldown = wp.stats.cooldown
           if (wp.ammo === 0) wp.reload = wp.stats.reload
           this.sound("gun", m.pos[0], m.pos[1], m.id)
@@ -724,6 +728,8 @@ export class Sim {
     if (tg.mech) {
       const m = tg.mech
       if (!m.alive) return
+      // noFF (set by sim/eval.mjs when the opponent pack has "ff": 0): house bots never damage each other
+      if (src && this.noFF && this.noFF.has(src.id) && this.noFF.has(m.id)) return
       let amt = amount
       const bearing = Math.atan2(from[1] - m.pos[1], from[0] - m.pos[0])
       const rear = Math.abs(angNorm(bearing - m.aim[0])) > ((this.cfg.mech.front_arc_deg / 2) * PI) / 180
@@ -740,6 +746,7 @@ export class Sim {
         if (m.hp <= 0 && !m.killedBy) {
           m.killedBy = src.id
           src.kills++
+          ;(src.killTs ??= []).push(t)
           src.events.push({ type: "kill", target: m.id })
         }
       } else if (m.hp <= 0 && !m.killedBy) m.killedBy = "npc"
@@ -752,6 +759,7 @@ export class Sim {
         src.events.push({ type: "hit", target: n.id, amount: r2(amount), weapon })
       }
       if (n.hp <= 0 && this.npcs.has(n.id)) {
+        if (src) src.npcKills = (src.npcKills || 0) + 1
         this.npcs.delete(n.id)
         for (let k = 0; k < this.cfg.npc.cubes; k++) this._cube(n.pos, 3)
       }
@@ -763,6 +771,7 @@ export class Sim {
         src.events.push({ type: "hit", target: c.id, amount: r2(amount), weapon })
       }
       if (c.hp <= 0 && this.crates.has(c.id)) {
+        if (src) src.crateKills = (src.crateKills || 0) + 1
         this.crates.delete(c.id)
         this.sound("crate", c.pos[0], c.pos[1], -1)
         for (let k = 0; k < this.cfg.crates.cubes; k++) this._cube(c.pos, 2)
@@ -849,6 +858,7 @@ export class Sim {
       const f = this.w.ray(p.pos[0], p.pos[1], p.pos[2], p.pos[0] + d[0] * len, p.pos[1] + d[1] * len, p.pos[2] + d[2] * len)
       const hit = this._segHit(p.pos, d, len * f, p.by, p.r)
       if (hit) {
+        if (p.kind === "gun" && p.by < 16) this.mechs[p.by].gunHits = (this.mechs[p.by].gunHits || 0) + 1
         this.damage(hit.tgt, p.dmg, p.kind === "npc" ? "npc" : "gun", p.by, [p.pos[0] - d[0] * 5, p.pos[1] - d[1] * 5, p.pos[2]])
         continue
       }

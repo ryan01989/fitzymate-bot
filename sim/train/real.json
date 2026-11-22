@@ -1,0 +1,235 @@
+[
+ {
+  "name": "starter",
+  "file": "starter",
+  "p": {},
+  "real": 1.15,
+  "calib": true,
+  "note": "kit example bot"
+ },
+ {
+  "name": "v1",
+  "file": "sim/variants/v1.mjs",
+  "p": {},
+  "real": 3.42,
+  "calib": true
+ },
+ {
+  "name": "v2",
+  "file": "sim/variants/v2.mjs",
+  "p": {},
+  "real": 3.75,
+  "calib": true
+ },
+ {
+  "name": "v3-farm",
+  "file": "sim/variants/v3-farm.mjs",
+  "p": {},
+  "real": 4.58,
+  "calib": true,
+  "note": "best so far",
+  "realMean": 4.455
+ },
+ {
+  "name": "v4-merge",
+  "file": "sim/variants/v4-merge.mjs",
+  "p": {},
+  "real": 4.48,
+  "calib": true
+ },
+ {
+  "name": "farm-all",
+  "file": "sim/variants/v3-farm.mjs",
+  "p": {
+   "farmUntil": 420
+  },
+  "real": 4.4,
+  "calib": true
+ },
+ {
+  "name": "v5-peek",
+  "file": "sim/variants/v5-peek.mjs",
+  "p": {},
+  "real": 4.15,
+  "calib": true
+ },
+ {
+  "name": "probe-idle90",
+  "file": "sim/variants/probe-idle90.mjs",
+  "p": {},
+  "real": 1.58,
+  "note": "v3-farm kills by 90 s"
+ },
+ {
+  "name": "probe-idle180",
+  "file": "sim/variants/probe-idle180.mjs",
+  "p": {},
+  "real": 3.58,
+  "note": "v3-farm kills by 180 s"
+ },
+ {
+  "name": "probe-pacifist",
+  "file": "sim/variants/probe-pacifist.mjs",
+  "p": {},
+  "real": 0.17,
+  "note": "never shoots"
+ },
+ {
+  "name": "ctrl",
+  "real": 4.33,
+  "file": "sim/variants/ctrl.mjs",
+  "note": "exact replicate of v3-farm (4.58): real run-to-run difference 0.25",
+  "when": "2026-11-21T23:37:27.856Z"
+ },
+ {
+  "name": "t01-laser-first",
+  "file": "sim/train/cand/opening.mjs",
+  "p": {
+   "laserFirst": 90
+  },
+  "simPred": "+0.58 vs v3-farm (192 held-out matches, both packs positive)",
+  "note": "runs 4.96 and 4.85; best real build",
+  "when": "2026-11-22T00:00:47.353Z",
+  "real": 4.96,
+  "calib": true,
+  "realMean": 4.905
+ },
+ {
+  "name": "exp-hunt100",
+  "file": "sim/variants/exp-hunt100.mjs",
+  "simPred": "-0.13 vs v3-farm (16 seeds, no signal)",
+  "note": "not submitted yet",
+  "when": "2026-11-21T23:52:16.980Z"
+ },
+ {
+  "name": "t01-laser-first (run 2)",
+  "real": 4.85,
+  "file": "sim/train/cand/opening.mjs",
+  "p": {
+   "laserFirst": 90
+  },
+  "note": "rerun of the same build; two-run mean 4.905 vs 4.455 for v3-farm",
+  "when": "2026-11-22T00:16:59.445Z"
+ },
+ {
+  "name": "t02-one-front",
+  "file": "sim/train/cand/early.mjs",
+  "p": {
+   "laserFirst": 90,
+   "oneFront": 20
+  },
+  "simPred": "+0.46 vs t01-laser-first (192 held-out matches, both packs positive)",
+  "note": "sim predicted +0.46 over t01; real is 0.18 below the t01 two-run mean",
+  "when": "2026-11-22T00:59:35.439Z",
+  "real": 4.73,
+  "calib": true
+ },
+ {
+  "name": "t03-combo",
+  "file": "sim/train/cand/combo.mjs",
+  "p": {
+   "laserFirst": 90,
+   "laserRoof": 20,
+   "laserRun": 180,
+   "laserAway": 3,
+   "oneFront": 8
+  },
+  "simPred": "+0.52 vs t01-laser-first (192 held-out matches, both packs positive)",
+  "note": "sim predicted +0.52 over t01; real is 0.20 below the t01 two-run mean",
+  "when": "2026-11-22T00:59:35.442Z",
+  "real": 4.71,
+  "calib": true
+ },
+ {
+  "name": "t04-no-retreat",
+  "file": "sim/train/cand/all.mjs",
+  "p": {
+   "laserFirst": 90,
+   "noRetreat": true
+  },
+  "simPred": "sim -0.32 pts on 192 held-out matches (the +0.44 on 16 seeds did not hold); strategic probe",
+  "when": "2026-11-22T01:37:10.385Z",
+  "real": 5,
+  "note": "NEW BEST. Corrected sim predicted -0.32; real +0.10 vs t01 mean. Sim wrong on direction.",
+  "calib": true
+ },
+ {
+  "name": "t05-drop-heal",
+  "file": "sim/train/cand/all.mjs",
+  "p": {
+   "laserFirst": 90,
+   "dropHeal": true
+  },
+  "simPred": "sim cannot judge: never triggers before the sim bot dies; strategic probe",
+  "when": "2026-11-22T01:37:10.527Z",
+  "real": 4.88,
+  "note": "no effect vs t01 mean 4.905",
+  "calib": true
+ },
+ {
+  "name": "t07-cube-run",
+  "file": "sim/train/cand/cubes.mjs",
+  "simPred": "sim 0.00 on 48 seeds",
+  "when": "2026-11-22T01:45:23.034Z"
+ },
+ {
+  "name": "t08-nr-cubes",
+  "file": "sim/train/cand/cubes.mjs",
+  "simPred": "sim -0.81 on 16 seeds; sim was wrong on noRetreat",
+  "when": "2026-11-22T01:53:35.916Z",
+  "real": 4.98,
+  "p": {
+   "laserFirst": 90,
+   "cubeRun": 130,
+   "noRetreat": true
+  },
+  "note": "same as t04-no-retreat (5.00): cube run adds nothing on top of no-retreat; sim predicted -0.81 vs t01",
+  "calib": true
+ },
+ {
+  "name": "t09-rush",
+  "file": "sim/train/cand/rush.mjs",
+  "p": {
+   "laserFirst": 90,
+   "noRetreat": true,
+   "cubeRun": 130,
+   "rushUntil": 120
+  },
+  "simPred": "sim: 3.63 vs 3.69 base on 16 fresh seeds (flat); +0.6 cubes by 120 s",
+  "when": "2026-11-22T02:09:58.107Z",
+  "real": 5.28,
+  "note": "NEW BEST: +0.28 over t04-no-retreat (5.00). Sim said flat (3.63 vs 3.69).",
+  "calib": true
+ },
+ {
+  "name": "t10-rush150",
+  "file": "sim/train/cand/rush2.mjs",
+  "p": {
+   "laserFirst": 90,
+   "noRetreat": true,
+   "cubeRun": 130,
+   "rushUntil": 150,
+   "ffaN": 3
+  },
+  "simPred": "sim +0.01 vs t09 on 192 held-out matches (rush past 120 s rarely runs in the sim)",
+  "when": "2026-11-22T02:33:35.971Z",
+  "real": 4.98,
+  "note": "-0.30 vs t09 (5.28): rush past 120 s does not help, or t09 was a lucky run"
+ },
+ {
+  "name": "t11-late-pos",
+  "file": "sim/train/cand/late.mjs",
+  "p": {
+   "laserFirst": 90,
+   "noRetreat": true,
+   "cubeRun": 130,
+   "rushUntil": 120,
+   "ffaN": 3,
+   "lateAt": 330,
+   "lateFin": 1.01,
+   "lateCore": 40
+  },
+  "simPred": "sim cannot judge: never activates (bot dead by ~140 s in the sim)",
+  "when": "2026-11-22T02:43:44.608Z"
+ }
+]

@@ -1,0 +1,231 @@
+0.5 explore hp 1400 (0) en 100 mv 0.7,0.8  fire 00 ammo 12 | #12h d183 hp1400 los0 f00 ; #8h d193 hp1400 los0 f00 vis 
+1.0 explore hp 1400 (0) en 100 mv 0.6,0.8  fire 00 ammo 12 | #12h d178 hp1400 los0 f00 ; #8h d193 hp1400 los0 f00 vis 
+1.5 explore hp 1400 (0) en 100 mv -0.7,0.7  fire 00 ammo 12 | #12h d176 hp1400 los0 f00 ; #8h d190 hp1400 los0 f00 vis 
+2.0 explore hp 1400 (0) en 100 mv -0.7,0.7  fire 00 ammo 12 | #12h d180 hp1400 los0 f00 ; #8h d183 hp1400 los0 f00 vis 
+2.5 loot hp 1400 (0) en 100 mv -0.7,-0.7  fire 00 ammo 12 | #8h d177 hp1400 los1 f00 ; #12h d184 hp1400 los0 f00 vis 
+3.0 explore hp 1400 (0) en 100 mv -0.5,0.9  fire 00 ammo 12 | #8h d172 hp1400 los1 f00 ; #12h d188 hp1400 los0 f00 vis 8L
+3.5 explore hp 1400 (0) en 100 mv -0.5,0.9  fire 00 ammo 12 | #8h d168 hp1400 los1 f00 ; #4m d191 hp1400 los1 f00 vis 8L
+4.0 explore hp 1400 (0) en 100 mv -0.4,0.9  fire 00 ammo 12 | #8h d165 hp1400 los1 f00 ; #4m d181 hp1400 los1 f00 vis 8L
+4.5 explore hp 1400 (0) en 100 mv -0.3,1.0  fire 00 ammo 12 | #8h d162 hp1400 los1 f00 ; #4m d171 hp1400 los1 f00 vis 8L,4L
+5.0 explore hp 1400 (0) en 100 mv -0.3,0.9  fire 00 ammo 12 | #8h d159 hp1400 los1 f00 ; #4m d161 hp1400 los1 f00 vis 8L,4L
+5.5 explore hp 1400 (0) en 100 mv -0.3,0.9  fire 00 ammo 12 | #4m d151 hp1400 los1 f00 ; #8h d156 hp1400 los1 f00 vis 8L,4L
+6.0 explore hp 1400 (0) en 100 mv -0.3,0.9  fire 00 ammo 12 | #4m d140 hp1400 los1 f00 ; #8h d154 hp1400 los1 f00 vis 8L,4L
+6.5 explore hp 1400 (0) en 100 mv -0.2,1.0  fire 00 ammo 12 | #4m d128 hp1400 los1 f00 ; #8h d152 hp1400 los1 f00 vis 8L,4L
+7.0 explore hp 1400 (0) en 100 mv -0.3,1.0  fire 00 ammo 12 | #4m d117 hp1400 los1 f00 ; #8h d151 hp1400 los1 f00 vis 8L,4L
+7.5 explore hp 1400 (0) en 100 mv 1.0,-0.1  fire 00 ammo 12 | #4m d109 hp1400 los1 f00 ; #8h d148 hp1400 los1 f00 vis 8L,4L
+8.0 explore hp 1400 (0) en 100 mv 1.0,-0.1  fire 00 ammo 12 | #4m d103 hp1400 los0 f00 ; #8h d145 hp1400 los1 f00 vis 8L,4
+8.5 explore hp 1400 (0) en 100 mv 1.0,-0.1  fire 00 ammo 12 | #4m d98 hp1400 los0 f00 ; #8h d143 hp1400 los1 f00 vis 8L,4
+9.0 explore hp 1400 (0) en 100 mv 1.0,0.1  fire 00 ammo 12 | #4m d93 hp1400 los0 f00 ; #8h d141 hp1400 los1 f00 vis 8L,4
+9.5 explore hp 1400 (0) en 100 mv 1.0,0.2  fire 00 ammo 12 | #4m d88 hp1400 los0 f00 ; #8h d140 hp1400 los1 f00 vis 8L,4
+10.0 explore hp 1400 (0) en 100 mv 1.0,0.3  fire 00 ammo 12 | #4m d83 hp1400 los0 f00 ; #8h d139 hp1400 los1 f00 vis 8L,4
+10.5 explore hp 1400 (0) en 100 mv 1.0,0.3  fire 00 ammo 12 | #4m d79 hp1400 los0 f00 ; #8h d139 hp1400 los1 f00 vis 8L,4
+11.0 explore hp 1400 (0) en 100 mv 0.4,0.9  fire 00 ammo 12 | #4m d73 hp1400 los0 f00 ; #8h d140 hp1400 los1 f00 vis 8L,4
+11.5 explore hp 1400 (0) en 100 mv 0.3,1.0  fire 00 ammo 12 | #4m d66 hp1400 los0 f00 ; #8h d142 hp1400 los1 f00 vis 8L,4
+12.0 explore hp 1400 (0) en 100 mv 0.2,1.0  fire 00 ammo 12 | #4m d58 hp1400 los0 f00 ; #8h d143 hp1400 los0 f00 vis 8,4
+12.5 explore hp 1400 (0) en 100 mv 0.3,1.0  fire 00 ammo 12 | #4m d52 hp1400 los0 f00 ; #8h d144 hp1400 los0 f00 vis 8,4
+13.0 explore hp 1400 (0) en 100 mv 0.3,1.0  fire 00 ammo 12 | #4m d48 hp1400 los0 f00 ; #8h d144 hp1400 los0 f00 vis 8
+13.5 explore hp 1400 (0) en 100 mv 0.4,0.9  fire 00 ammo 12 | #4m d46 hp1400 los0 f00 ; #8h d144 hp1400 los0 f00 vis 8
+14.0 explore hp 1400 (0) en 100 mv 0.3,1.0  fire 00 ammo 12 | #4m d47 hp1400 los0 f00 ; #8h d145 hp1400 los0 f00 vis 8
+14.5 explore hp 1400 (0) en 100 mv 0.4,0.9  fire 00 ammo 12 | #4m d52 hp1400 los0 f00 ; #8h d145 hp1400 los0 f00 vis 8
+15.0 explore hp 1400 (0) en 100 mv 0.5,0.9  fire 00 ammo 12 | #4m d58 hp1400 los0 f00 ; #8h d145 hp1400 los0 f00 vis 8
+15.5 explore hp 1400 (0) en 100 mv 0.7,0.7  fire 00 ammo 12 | #4m d65 hp1400 los0 f00 ; #8h d145 hp1400 los0 f00 vis 8
+16.0 explore hp 1400 (0) en 100 mv 1.0,0.3  fire 00 ammo 12 | #4m d73 hp1400 los0 f00 ; #8h d144 hp1400 los0 f00 vis 8
+16.4 explore hp 1400 (0) en 100 mv 1.0,0.1  fire 00 ammo 12 | #4m d80 hp1400 los0 f00 ; #8h d142 hp1400 los0 f00 vis 8
+16.9 explore hp 1400 (0) en 100 mv 1.0,0.1  fire 00 ammo 12 | #4m d86 hp1400 los0 f00 ; #8h d149 hp1400 los0 f00 vis 
+17.4 explore hp 1400 (0) en 100 mv 1.0,-0.1  fire 00 ammo 12 | #4m d91 hp1400 los0 f00 ; #8h d159 hp1400 los0 f00 vis 
+17.9 explore hp 1400 (0) en 100 mv 1.0,-0.1  fire 00 ammo 12 | #4m d96 hp1400 los0 f00 ; #6m d163 hp1400 los0 f00 vis 
+18.4 explore hp 1400 (0) en 100 mv 1.0,-0.2  fire 00 ammo 12 | #4m d99 hp1400 los0 f00 ; #6m d159 hp1400 los0 f00 vis 
+18.9 loot hp 1400 (0) en 100 mv 0.0,0.0  fire 00 ammo 12 | #4m d101 hp1400 los0 f00 ; #6m d157 hp1400 los0 f00 vis 
+19.5 loot hp 1400 (0) en 100 mv 0.0,0.0  fire 10 ammo 11 | #4m d102 hp1400 los0 f00 ; #6m d158 hp1400 los0 f00 vis 
+20.0 loot hp 1400 (0) en 100 mv 0.0,0.0  fire 10 ammo 9 | #4m d104 hp1400 los0 f00 ; #6m d159 hp1400 los0 f00 vis 
+20.5 loot hp 1400 (0) en 100 mv 0.0,0.0  fire 10 ammo 7 | #4m d107 hp1400 los0 f00 ; #6m d160 hp1400 los0 f00 vis 
+21.0 loot hp 1400 (0) en 100 mv 0.0,0.0  fire 00 ammo 6 | #4m d112 hp1400 los0 f00 ; #6m d162 hp1400 los0 f00 vis 
+21.5 loot hp 1400 (0) en 100 mv 0.0,0.0  fire 00 ammo 6 | #4m d117 hp1400 los0 f00 ; #6m d163 hp1400 los0 f00 vis 
+22.0 loot hp 1400 (0) en 100 mv 0.0,0.0  fire 00 ammo 6 | #4m d122 hp1400 los0 f00 ; #6m d165 hp1400 los0 f00 vis 
+22.5 explore hp 1400 (0) en 100 mv 1.0,-0.3  fire 00 ammo 6 | #4m d127 hp1400 los0 f00 ; #0e d163 hp1400 los0 f00 vis 6L
+23.0 explore hp 1400 (0) en 100 mv 0.9,-0.4  fire 00 ammo 6 | #4m d133 hp1400 los0 f00 ; #0e d155 hp1400 los0 f00 vis 6L
+23.5 explore hp 1400 (0) en 100 mv 0.6,-0.8  fire 00 ammo 12 | #4m d138 hp1400 los0 f00 ; #0e d147 hp1400 los0 f00 vis 6L
+24.0 explore hp 1400 (0) en 100 mv 0.5,-0.8  fire 00 ammo 12 | #4m d140 hp1400 los0 f00 ; #0e d140 hp1400 los0 f00 vis 6L
+24.5 explore hp 1400 (0) en 100 mv 0.4,-0.9  fire 00 ammo 12 | #0e d134 hp1400 los0 f00 ; #4m d142 hp1400 los0 f00 vis 6L
+25.0 explore hp 1400 (0) en 100 mv 0.3,-1.0  fire 00 ammo 12 | #0e d127 hp1400 los0 f00 ; #4m d142 hp1400 los0 f00 vis 6L
+25.5 explore hp 1400 (0) en 100 mv 0.2,-1.0  fire 00 ammo 12 | #0e d120 hp1400 los0 f00 ; #4m d143 hp1400 los0 f00 vis 6L
+26.0 explore hp 1400 (0) en 100 mv 0.2,-1.0  fire 00 ammo 12 | #0e d113 hp1400 los0 f00 ; #13e d137 hp1400 los0 f00 vis 6L
+26.5 explore hp 1400 (0) en 100 mv 0.2,-1.0  fire 00 ammo 12 | #0e d108 hp1400 los0 f00 ; #13e d130 hp1400 los0 f00 vis 6L
+27.0 explore hp 1400 (0) en 100 mv 0.2,-1.0  fire 00 ammo 12 | #0e d102 hp1400 los0 f00 ; #13e d122 hp1400 los0 f00 vis 6L
+27.5 loot hp 1400 (0) en 100 mv 0.0,0.0  fire 00 ammo 12 | #0e d99 hp1400 los0 f00 ; #13e d116 hp1400 los0 f00 vis 6
+28.0 loot hp 1400 (0) en 100 mv 0.5,0.9  fire 00 ammo 11 | #0e d99 hp1400 los0 f00 ; #13e d114 hp1400 los0 f00 vis 6
+28.5 loot hp 1400 (0) en 100 mv 0.4,0.9  fire 00 ammo 11 | #0e d102 hp1400 los0 f00 ; #13e d111 hp1400 los0 f00 vis 6
+29.0 loot hp 1400 (0) en 100 mv 0.4,0.9  fire 00 ammo 11 | #0e d105 hp1400 los0 f00 ; #13e d111 hp1400 los0 f00 vis 6
+29.5 loot hp 1400 (0) en 100 mv 0.4,0.9  fire 00 ammo 11 | #0e d108 hp1400 los0 f00 ; #13e d112 hp1400 los0 f00 vis 6
+30.0 loot hp 1456 (56) en 100 mv 0.4,0.9  fire 00 ammo 11 | #0e d111 hp1400 los0 f00 ; #13e d115 hp1400 los0 f00 vis 6
+30.5 loot hp 1456 (0) en 100 mv -0.7,0.7  fire 00 ammo 11 | #0e d114 hp1400 los0 f00 ; #13e d121 hp1400 los0 f00 vis 6
+31.0 explore hp 1456 (0) en 100 mv -0.1,-1.0  fire 00 ammo 10 | #0e d113 hp1400 los0 f00 ; #13e d125 hp1400 los0 f00 vis 
+31.5 explore hp 1456 (0) en 100 mv -0.2,-1.0  fire 00 ammo 10 | #0e d107 hp1400 los0 f00 ; #13e d124 hp1400 los0 f00 vis 
+32.0 explore hp 1456 (0) en 100 mv -0.2,-1.0  fire 00 ammo 10 | #0e d98 hp1400 los0 f00 ; #13e d124 hp1400 los0 f00 vis 
+32.5 explore hp 1456 (0) en 100 mv -0.2,-1.0  fire 00 ammo 10 | #0e d87 hp1400 los0 f00 ; #13e d123 hp1400 los0 f00 vis 
+33.0 loot hp 1456 (0) en 100 mv -0.5,0.9  fire 00 ammo 10 | #0e d78 hp1400 los1 f00 ; #13e d124 hp1400 los0 f00 vis 
+33.5 explore hp 1456 (0) en 100 mv -0.0,-1.0  fire 00 ammo 10 | #0e d68 hp1400 los1 f00 ; #13e d124 hp1400 los0 f00 vis 
+34.0 fight>0 hp 1456 (0) en 100 mv -0.9,0.3  fire 11 ammo 8 | #0e d62 hp1353 los1 f00 ; #13e d129 hp1400 los0 f00 vis 0L
+34.5 fight>0 hp 1456 (0) en 100 mv 0.6,0.8  fire 10 ammo 6 | #0e d59 hp932 los1 f10 ; #13e d135 hp1400 los0 f00 vis 0L
+35.0 fight>0 hp 1456 (0) en 100 mv -0.9,0.4  fire 10 ammo 4 | #0e d57 hp838 los1 f10 ; #13e d141 hp1400 los0 f00 vis 0L
+35.5 fight>0 hp 1456 (0) en 100 mv 0.6,0.8  fire 10 ammo 2 | #0e d54 hp745 los0 f10 ; #13e d149 hp1400 los0 f00 vis 0L
+36.0 fight>0 hp 1456 (0) en 100 mv -0.2,-1.0  fire 00 ammo 2 | #0e d46 hp745 los0 f00 ; #13e d151 hp1400 los0 f00 vis 0
+36.5 fight>0 hp 1456 (0) en 100 mv -0.9,0.4  fire 01 ammo 0 | #0e d45 hp698 los1 f00 ; #13e d155 hp1400 los0 f00 vis 0L
+37.0 fight>0 hp 1456 (0) en 100 mv 1.0,0.2  fire 00 ammo 0 | #0e d48 hp324 los1 f00 ; #13e d161 hp1400 los0 f00 vis 0L,4L
+37.5 fight>0 hp 1456 (0) en 100 mv 0.8,0.5  fire 00 ammo 0 | #0e d43 hp324 los1 f10 ; #13e d163 hp1400 los0 f00 vis 0L,4L
+38.0 fight>0 hp 1456 (0) en 100 mv -0.2,-1.0  fire 00 ammo 0 | #0e d46 hp324 los0 f00 ; #13e d165 hp1400 los0 f00 vis 0,4L
+38.5 fight>0 hp 1456 (0) en 100 mv 0.7,0.7  fire 01 ammo 0 | #0e d40 hp324 los0 f00 ; #13e d165 hp1400 los0 f00 vis 0L,4L
+39.0 fight>0 hp 1456 (0) en 100 mv 0.7,0.7  fire 10 ammo 11 | #0e d36 hp324 los1 f00 ; #13e d166 hp1400 los0 f00 vis 0L,4L
+39.5 fight>0 hp 1456 (0) en 100 mv -0.9,0.5  fire 10 ammo 9 | #0e d41 hp230 los1 f00 ; #13e d170 hp1400 los1 f00 vis 0L,4L
+40.0 fight>0 hp 1456 (0) en 100 mv -0.9,0.4  fire 10 ammo 7 | #0e d48 hp136 los1 f00 ; #13e d176 hp1400 los1 f00 vis 0L,4L,13L
+40.5 fight>0 hp 1411 (-45) en 100 mv 0.6,0.8  fire 11 ammo 5 | #0e d45 hp43 los1 f10 ; #13e d182 hp1400 los1 f00 vis 0L,4L,13L
+41.0 fight>13 hp 1411 (0) en 100 mv 0.9,-0.5  fire 10 ammo 3 | #13e d184 hp909 los1 f00 ; #4m d235 hp1400 los1 f00 vis 4L,13L
+41.5 fight>13 hp 1411 (0) en 100 mv -0.7,-0.7  fire 10 ammo 1 | #13e d184 hp909 los1 f00 ; #4m d227 hp1400 los1 f00 vis 4L,13L
+42.0 fight>13 hp 1411 (0) en 100 mv 1.0,0.1  fire 00 ammo 0 | #13e d186 hp768 los1 f00 ; #4m d220 hp1400 los1 f00 vis 13L
+42.5 fight>13 hp 1411 (0) en 100 mv -0.7,-0.7  fire 01 ammo 0 | #13e d191 hp768 los1 f00 ; #4m d214 hp1400 los0 f00 vis 13L
+43.0 fight>13 hp 1411 (0) en 100 mv -0.7,-0.7  fire 01 ammo 0 | #13e d195 hp768 los1 f00 ; #4m d206 hp1400 los0 f00 vis 13L
+43.5 fight>13 hp 1411 (0) en 100 mv -0.7,-0.7  fire 00 ammo 0 | #13e d197 hp277 los1 f00 ; #4m d197 hp1400 los0 f00 vis 13L
+44.0 fight>13 hp 1411 (0) en 100 mv 0.9,-0.4  fire 00 ammo 0 | #4m d188 hp1400 los0 f00 ; #13e d199 hp277 los1 f00 vis 13L
+44.5 fight>13 hp 1411 (0) en 100 mv -0.7,-0.7  fire 10 ammo 10 | #4m d179 hp1400 los0 f00 ; #9h d196 hp1400 los1 f00 vis 13L,9L
+45.0 fight>13 hp 1411 (0) en 100 mv 0.9,-0.5  fire 11 ammo 8 | #4m d171 hp1400 los0 f00 ; #9h d189 hp1400 los1 f00 vis 13L,9L
+45.5 loot hp 1411 (0) en 100 mv 0.4,-0.9  fire 00 ammo 7 | #4m d165 hp1400 los0 f00 ; #9h d181 hp1400 los1 f00 vis 9L
+46.0 loot hp 1411 (0) en 100 mv 0.4,-0.9  fire 00 ammo 7 | #4m d160 hp1400 los0 f00 ; #9h d170 hp1400 los1 f00 vis 9L
+46.5 explore hp 1411 (0) en 100 mv 0.6,-0.8  fire 00 ammo 7 | #4m d156 hp1400 los0 f00 ; #9h d159 hp1400 los1 f00 vis 9L
+47.0 explore hp 1523 (112) en 100 mv 0.5,-0.9  fire 00 ammo 7 | #9h d148 hp1400 los1 f00 ; #4m d153 hp1400 los0 f00 vis 9L
+47.5 fight>9 hp 1523 (0) en 100 mv -0.7,-0.7  fire 01 ammo 7 | #9h d139 hp1400 los1 f00 ; #4m d151 hp1400 los0 f00 vis 9L
+48.0 fight>9 hp 1523 (0) en 100 mv 0.9,-0.5  fire 10 ammo 5 | #9h d133 hp997 los1 f00 ; #4m d152 hp1400 los0 f00 vis 9L
+48.5 fight>9 hp 1523 (0) en 100 mv -0.7,-0.7  fire 10 ammo 3 | #9h d126 hp946 los1 f10 ; #4m d152 hp1400 los0 f00 vis 9L,1L
+49.0 fight>9 hp 1478 (-45) en 100 mv -0.8,-0.6  fire 10 ammo 1 | #9h d119 hp846 los1 f10 ; #4m d152 hp1400 los0 f00 vis 9L,1L
+49.5 fight>9 hp 1478 (0) en 100 mv 1.0,0.1  fire 00 ammo 0 | #9h d114 hp745 los1 f10 ; #4m d153 hp1400 los0 f00 vis 9L,1L
+50.0 fight>9 hp 1433 (-45) en 100 mv -1.0,-0.1  fire 01 ammo 0 | #9h d109 hp745 los1 f10 ; #4m d156 hp1400 los0 f00 vis 9L,1L
+50.5 fight>9 hp 1433 (0) en 100 mv -0.9,-0.5  fire 00 ammo 0 | #9h d104 hp392 los1 f10 ; #2e d155 hp1400 los0 f00 vis 9L,1L
+51.0 fight>9 hp 1388 (-45) en 100 mv -0.9,-0.5  fire 00 ammo 0 | #9h d98 hp257 los1 f10 ; #2e d148 hp1400 los0 f00 vis 9L,1L
+51.5 fight>9 hp 1343 (-45) en 100 mv -0.8,-0.5  fire 00 ammo 12 | #9h d92 hp257 los1 f10 ; #2e d138 hp1400 los0 f00 vis 9L,1L
+52.0 fight>9 hp 1343 (0) en 100 mv 1.0,-0.1  fire 11 ammo 10 | #9h d86 hp207 los1 f10 ; #2e d129 hp1400 los0 f00 vis 9L,1L
+52.5 hold hp 1343 (0) en 100 mv -0.0,1.0  fire 00 ammo 8 | #2e d124 hp1400 los0 f00 ; #5m d136 hp1400 los0 f00 vis 1L
+53.0 hold hp 1343 (0) en 100 mv -0.2,1.0  fire 00 ammo 8 | #2e d123 hp1400 los0 f00 ; #5m d136 hp1400 los0 f00 vis 1L
+53.5 hold hp 1343 (0) en 100 mv -0.2,1.0  fire 00 ammo 8 | #2e d123 hp1400 los0 f00 ; #1e d137 hp1400 los1 f10 vis 1L
+54.0 hold hp 1343 (0) en 100 mv -0.3,1.0  fire 00 ammo 8 | #2e d123 hp1400 los0 f00 ; #1e d137 hp1400 los1 f00 vis 1L
+54.5 hold hp 1343 (0) en 100 mv -0.3,0.9  fire 00 ammo 8 | #2e d123 hp1400 los0 f00 ; #1e d137 hp1400 los1 f10 vis 1L
+55.0 hold hp 1343 (0) en 100 mv -0.3,1.0  fire 00 ammo 8 | #2e d123 hp1400 los1 f00 ; #1e d137 hp1400 los1 f10 vis 1L,2L
+55.5 explore hp 1343 (0) en 100 mv 0.6,-0.8  fire 00 ammo 8 | #2e d121 hp1400 los1 f00 ; #1e d134 hp1400 los1 f10 vis 1L,2L
+56.0 explore hp 1298 (-45) en 100 mv 0.5,-0.9  fire 00 ammo 8 | #2e d116 hp1400 los1 f00 ; #1e d123 hp1400 los1 f00 vis 1L,2L
+56.5 retreat hp 1298 (0) en 92 mv -0.5,0.9 B fire 11 ammo 6 | #2e d117 hp1400 los1 f00 ; #1e d119 hp1350 los1 f00 vis 1L,2L
+57.0 retreat hp 1253 (-45) en 83 mv -0.4,0.9 B fire 10 ammo 4 | #1e d120 hp896 los1 f10 ; #2e d124 hp1400 los1 f00 vis 1L,2L
+57.5 retreat hp 1253 (0) en 75 mv -0.2,1.0 B fire 10 ammo 2 | #1e d124 hp795 los1 f10 ; #2e d133 hp1400 los1 f00 vis 1L,2L
+58.0 retreat hp 1253 (0) en 66 mv 0.2,1.0 B fire 00 ammo 0 | #1e d127 hp694 los1 f00 ; #2e d143 hp1400 los1 f10 vis 1L,2L
+58.5 retreat hp 1253 (0) en 58 mv 0.2,1.0 B fire 01 ammo 0 | #1e d130 hp644 los0 f00 ; #2e d151 hp1400 los1 f00 vis 1L,2L
+59.0 retreat hp 1253 (0) en 51 mv 0.1,0.4  fire 00 ammo 0 | #1e d128 hp644 los0 f00 ; #2e d156 hp1400 los0 f00 vis 1,2
+59.5 retreat hp 1253 (0) en 52 mv 0.0,0.0  fire 00 ammo 0 | #1e d123 hp644 los0 f00 ; #2e d155 hp1400 los0 f00 vis 1,2
+60.0 retreat hp 1253 (0) en 61 mv 0.0,0.0  fire 00 ammo 0 | #1e d117 hp644 los0 f00 ; #2e d149 hp1400 los0 f00 vis 1,2
+60.5 retreat hp 1253 (0) en 70 mv 0.0,0.0  fire 00 ammo 12 | #1e d111 hp644 los0 f00 ; #2e d143 hp1400 los0 f00 vis 1,2
+61.0 retreat hp 1253 (0) en 79 mv 0.0,0.0  fire 00 ammo 12 | #1e d105 hp644 los0 f00 ; #2e d138 hp1400 los0 f00 vis 1,2
+61.5 retreat hp 1253 (0) en 88 mv 0.0,0.0  fire 00 ammo 12 | #1e d99 hp644 los0 f00 ; #2e d132 hp1400 los0 f00 vis 1,2
+62.0 retreat hp 1253 (0) en 97 mv 0.0,0.0  fire 00 ammo 12 | #1e d94 hp644 los0 f00 ; #2e d126 hp1400 los0 f00 vis 1,2
+62.5 retreat hp 1253 (0) en 100 mv 0.0,0.0  fire 00 ammo 12 | #1e d88 hp644 los0 f00 ; #2e d120 hp1400 los0 f00 vis 1,2
+63.0 retreat hp 1253 (0) en 100 mv 0.0,0.0  fire 00 ammo 12 | #1e d82 hp644 los0 f00 ; #2e d114 hp1400 los0 f00 vis 1,2
+63.5 explore hp 1271 (18) en 100 mv -0.3,-1.0  fire 00 ammo 12 | #1e d74 hp662 los0 f00 ; #2e d106 hp1400 los0 f00 vis 1,2
+64.0 explore hp 1294 (23) en 100 mv -0.2,-1.0  fire 00 ammo 12 | #1e d63 hp685 los1 f00 ; #2e d95 hp1400 los1 f00 vis 
+64.5 explore hp 1316 (23) en 100 mv -0.1,-1.0  fire 00 ammo 12 | #1e d52 hp707 los1 f00 ; #2e d84 hp1333 los1 f00 vis 
+65.0 explore hp 1339 (23) en 100 mv -0.0,-1.0  fire 00 ammo 12 | #1e d44 hp730 los1 f00 ; #2e d75 hp1198 los1 f00 vis 
+65.5 fight>1 hp 1288 (-51) en 92 mv -0.6,0.8 B fire 10 ammo 11 | #1e d48 hp549 los1 f10 ; #2e d71 hp1063 los1 f10 vis 1L,2L,4L
+66.0 fight>1 hp 1243 (-45) en 88 mv 0.6,0.8  fire 10 ammo 9 | #1e d53 hp448 los1 f10 ; #2e d72 hp928 los1 f10 vis 1L,2L,4L
+66.5 retreat hp 1198 (-45) en 81 mv -0.0,1.0 B fire 10 ammo 7 | #1e d53 hp347 los1 f10 ; #2e d73 hp860 los1 f10 vis 1L,2L,4L
+67.0 retreat hp 1198 (0) en 73 mv -0.4,0.9 B fire 10 ammo 5 | #1e d57 hp246 los1 f10 ; #2e d77 hp793 los1 f10 vis 1L,2L,4L
+67.5 fight>1 hp 1198 (0) en 73 mv -0.3,-0.9  fire 11 ammo 3 | #1e d54 hp145 los1 f10 ; #2e d73 hp725 los1 f10 vis 1L,2L,4L
+68.0 retreat hp 1108 (-90) en 66 mv -0.4,0.9 B fire 10 ammo 1 | #2e d70 hp725 los1 f10 ; #4m d110 hp1400 los1 f10 vis 1L,2L,4L
+68.5 retreat hp 1108 (0) en 58 mv -0.4,0.9 B fire 00 ammo 0 | #2e d73 hp675 los1 f10 ; #4m d114 hp1400 los1 f10 vis 2L,4L
+69.0 retreat hp 1108 (0) en 49 mv -0.9,0.5 B fire 00 ammo 0 | #2e d76 hp675 los1 f10 ; #4m d117 hp1400 los1 f10 vis 2L,4L
+69.5 retreat hp 1108 (0) en 41 mv -0.9,0.5 B fire 00 ammo 0 | #2e d77 hp675 los1 f10 ; #4m d119 hp1400 los1 f10 vis 2L,4L
+70.0 retreat hp 1108 (0) en 35 mv 0.0,0.0  fire 00 ammo 0 | #2e d75 hp675 los0 f00 ; #4m d117 hp1400 los0 f00 vis 2,4
+70.5 fight>2 hp 1108 (0) en 38 mv 0.9,0.3  fire 00 ammo 0 | #2e d67 hp675 los1 f00 ; #4m d109 hp1400 los1 f00 vis 2L,4
+71.0 fight>2 hp 1108 (0) en 47 mv 1.0,0.2  fire 10 ammo 10 | #2e d61 hp624 los1 f00 ; #4m d104 hp1400 los1 f00 vis 2L,4L,3L
+71.5 fight>2 hp 1108 (0) en 56 mv -1.0,-0.3  fire 11 ammo 8 | #2e d55 hp456 los1 f00 ; #4m d99 hp1400 los1 f10 vis 2L,4L,3L
+72.0 fight>2 hp 1108 (0) en 65 mv -0.9,-0.3  fire 11 ammo 6 | #2e d54 hp288 los1 f10 ; #4m d94 hp1400 los1 f10 vis 2L,4L,3L
+72.5 explore hp 1108 (0) en 74 mv 0.9,-0.5  fire 00 ammo 6 | #4m d86 hp1400 los1 f10 ; #3e d172 hp1400 los1 f00 vis 4L,3L
+73.0 explore hp 1108 (0) en 83 mv 0.9,-0.5  fire 00 ammo 6 | #4m d77 hp1400 los1 f10 ; #3e d162 hp1400 los1 f00 vis 4L,3L
+73.5 explore hp 1040 (-68) en 92 mv 0.8,-0.7  fire 00 ammo 6 | #4m d67 hp1400 los1 f10 ; #3e d152 hp1400 los1 f00 vis 4L,3L
+74.0 retreat hp 950 (-90) en 84 mv -0.8,0.6 B fire 11 ammo 5 | #4m d64 hp1400 los1 f10 ; #3e d147 hp1400 los1 f00 vis 4L,3L
+74.5 retreat hp 950 (0) en 75 mv -0.8,0.5 B fire 10 ammo 3 | #4m d65 hp946 los1 f10 ; #3e d146 hp1400 los1 f00 vis 4L,3L
+75.0 retreat hp 950 (0) en 67 mv -0.9,0.4 B fire 10 ammo 1 | #4m d68 hp846 los0 f10 ; #3e d146 hp1400 los0 f00 vis 4L,3
+75.5 retreat hp 950 (0) en 60 mv 0.0,0.0  fire 00 ammo 1 | #4m d69 hp795 los0 f00 ; #3e d146 hp1400 los0 f00 vis 4,3
+76.0 retreat hp 950 (0) en 60 mv 0.4,-0.2  fire 00 ammo 1 | #4m d64 hp795 los0 f00 ; #3e d140 hp1400 los0 f00 vis 4,3
+76.5 fight>4 hp 950 (0) en 69 mv 0.9,-0.4  fire 00 ammo 1 | #4m d60 hp795 los0 f00 ; #3e d131 hp1400 los0 f00 vis 4,3
+77.0 fight>4 hp 950 (0) en 78 mv -0.9,-0.4  fire 01 ammo 1 | #4m d54 hp795 los1 f00 ; #3e d122 hp1400 los0 f00 vis 4L,3
+77.5 fight>4 hp 950 (0) en 87 mv 1.0,-0.3  fire 00 ammo 1 | #4m d55 hp795 los0 f00 ; #3e d115 hp1400 los0 f00 vis 4,3
+78.0 fight>4 hp 950 (0) en 96 mv 0.9,0.4  fire 10 ammo 10 | #4m d54 hp745 los1 f00 ; #3e d109 hp1400 los1 f00 vis 4L,3L
+78.5 fight>4 hp 905 (-45) en 100 mv -0.9,-0.4  fire 10 ammo 8 | #4m d55 hp644 los1 f10 ; #3e d103 hp1400 los1 f00 vis 4L,3L
+79.0 fight>4 hp 815 (-90) en 100 mv 0.9,0.4  fire 11 ammo 6 | #4m d55 hp543 los1 f10 ; #3e d97 hp1400 los1 f00 vis 4L,3L
+79.5 fight>4 hp 770 (-45) en 100 mv 1.0,0.2  fire 11 ammo 4 | #4m d55 hp487 los1 f10 ; #3e d91 hp1400 los1 f00 vis 4L,3L
+80.0 retreat hp 721 (-49) en 98 mv -1.0,0.3 B fire 00 ammo 3 | #3e d84 hp1400 los1 f10 ; #5m d113 hp1400 los0 f00 vis 3L
+80.5 retreat hp 721 (0) en 90 mv -1.0,0.3 B fire 10 ammo 1 | #3e d81 hp1299 los1 f10 ; #5m d106 hp1400 los0 f00 vis 3L
+81.0 retreat hp 721 (0) en 81 mv -1.0,0.3 B fire 00 ammo 0 | #3e d80 hp1249 los0 f00 ; #5m d99 hp1400 los0 f00 vis 3
+81.5 retreat hp 721 (0) en 81 mv 0.5,-0.2  fire 00 ammo 0 | #3e d75 hp1249 los0 f00 ; #5m d93 hp1400 los0 f00 vis 3
+82.0 retreat hp 721 (0) en 89 mv 0.0,0.0  fire 00 ammo 0 | #3e d69 hp1249 los0 f00 ; #5m d87 hp1400 los0 f00 vis 3
+82.5 retreat hp 721 (0) en 98 mv 0.0,0.0  fire 00 ammo 0 | #3e d63 hp1417 los0 f00 ; #5m d82 hp1400 los0 f00 vis 3
+83.0 retreat hp 721 (0) en 100 mv 0.0,0.0  fire 00 ammo 12 | #3e d58 hp1417 los0 f00 ; #5m d78 hp1400 los0 f00 vis 3
+83.5 retreat hp 721 (0) en 100 mv 0.0,0.0  fire 00 ammo 12 | #3e d59 hp1417 los0 f00 ; #5m d73 hp1400 los0 f00 vis 3
+84.0 retreat hp 721 (0) en 100 mv 0.0,0.0  fire 00 ammo 12 | #3e d58 hp1417 los0 f00 ; #5m d70 hp1400 los0 f00 vis 3
+84.5 retreat hp 721 (0) en 100 mv 0.0,0.0  fire 00 ammo 12 | #3e d59 hp1417 los0 f00 ; #5m d72 hp1400 los0 f00 vis 3
+85.0 retreat hp 721 (0) en 100 mv 0.0,0.0  fire 00 ammo 12 | #3e d59 hp1417 los0 f00 ; #5m d70 hp1400 los0 f00 vis 3
+85.5 retreat hp 721 (0) en 100 mv 0.0,0.0  fire 00 ammo 12 | #3e d58 hp1417 los0 f00 ; #5m d73 hp1400 los0 f00 vis 3
+86.0 retreat hp 735 (14) en 100 mv 0.0,0.0  fire 00 ammo 12 | #3e d60 hp1430 los0 f00 ; #5m d70 hp1400 los0 f00 vis 
+86.5 retreat hp 757 (23) en 100 mv 0.0,0.0  fire 00 ammo 12 | #3e d58 hp1453 los0 f00 ; #5m d73 hp1400 los0 f00 vis 
+87.0 retreat hp 780 (23) en 100 mv 0.0,0.0  fire 00 ammo 12 | #3e d59 hp1475 los0 f00 ; #5m d70 hp1400 los0 f00 vis 
+87.5 retreat hp 802 (23) en 100 mv 0.0,0.0  fire 00 ammo 12 | #3e d60 hp1498 los0 f00 ; #5m d73 hp1400 los0 f00 vis 
+88.0 retreat hp 825 (23) en 100 mv 0.0,0.0  fire 00 ammo 12 | #3e d58 hp1520 los0 f00 ; #5m d72 hp1400 los0 f00 vis 
+88.5 retreat hp 847 (23) en 100 mv 0.0,0.0  fire 00 ammo 12 | #3e d60 hp1543 los0 f00 ; #5m d73 hp1400 los0 f00 vis 
+89.0 retreat hp 870 (23) en 100 mv 0.0,0.0  fire 00 ammo 12 | #3e d60 hp1565 los0 f00 ; #5m d73 hp1400 los0 f00 vis 
+89.5 retreat hp 892 (23) en 100 mv 0.0,0.0  fire 00 ammo 12 | #3e d58 hp1568 los0 f00 ; #5m d72 hp1400 los0 f00 vis 
+90.0 retreat hp 915 (23) en 100 mv 0.0,0.0  fire 00 ammo 12 | #3e d60 hp1568 los0 f00 ; #5m d74 hp1400 los0 f00 vis 
+90.5 retreat hp 937 (23) en 100 mv 0.0,0.0  fire 00 ammo 12 | #3e d59 hp1568 los0 f00 ; #5m d72 hp1400 los0 f00 vis 
+91.0 retreat hp 960 (23) en 100 mv 0.0,0.0  fire 00 ammo 12 | #3e d59 hp1568 los0 f00 ; #5m d73 hp1400 los0 f00 vis 
+91.5 retreat hp 982 (23) en 100 mv 0.0,0.0  fire 00 ammo 12 | #3e d60 hp1568 los0 f00 ; #5m d74 hp1400 los0 f00 vis 
+92.0 retreat hp 1005 (23) en 100 mv 0.0,0.0  fire 00 ammo 12 | #3e d58 hp1568 los0 f00 ; #5m d72 hp1400 los0 f00 vis 
+92.5 retreat hp 1027 (22) en 100 mv 0.0,0.0  fire 00 ammo 12 | #3e d60 hp1568 los0 f00 ; #5m d73 hp1400 los0 f00 vis 
+93.0 retreat hp 1050 (23) en 100 mv 0.0,0.0  fire 00 ammo 12 | #3e d60 hp1568 los0 f00 ; #5m d73 hp1400 los0 f00 vis 
+93.5 retreat hp 1072 (23) en 100 mv 0.0,0.0  fire 00 ammo 12 | #3e d58 hp1568 los0 f00 ; #5m d72 hp1400 los0 f00 vis 
+94.0 retreat hp 1095 (23) en 100 mv 0.0,0.0  fire 00 ammo 12 | #3e d60 hp1568 los0 f00 ; #5m d74 hp1400 los0 f00 vis 
+94.5 explore hp 1117 (23) en 100 mv 0.9,-0.5  fire 00 ammo 12 | #3e d56 hp1568 los1 f00 ; #5m d72 hp1400 los0 f00 vis 3L
+95.0 explore hp 1140 (23) en 100 mv 0.9,-0.5  fire 00 ammo 12 | #3e d51 hp1568 los1 f00 ; #5m d74 hp1400 los0 f00 vis 3L,12L,6L,8L,11L
+95.5 explore hp 1162 (23) en 100 mv 0.9,-0.5  fire 00 ammo 12 | #3e d48 hp1503 los1 f00 ; #5m d76 hp1400 los0 f00 vis 3L,12L,6L,8L,11L
+96.0 retreat hp 960 (-202) en 97 mv -0.8,0.7 B fire 01 ammo 12 | #3e d42 hp1503 los1 f11 ; #5m d75 hp1400 los0 f00 vis 3L,12L,6L,8L,11L
+96.5 retreat hp 863 (-97) en 88 mv -0.9,0.5 B fire 10 ammo 10 | #3e d49 hp1392 los1 f10 ; #5m d75 hp1400 los0 f00 vis 3L,12L,6L,8L,11L
+97.0 retreat hp 762 (-101) en 80 mv -0.9,0.5 B fire 10 ammo 8 | #3e d56 hp1111 los0 f10 ; #5m d73 hp1400 los0 f00 vis 3L,12L,6,8,11L
+97.5 retreat hp 762 (0) en 78 mv 0.5,-0.3  fire 00 ammo 8 | #3e d58 hp1105 los0 f00 ; #5m d72 hp1400 los0 f00 vis 3,12,6,8,11
+98.0 retreat hp 762 (0) en 83 mv 0.0,0.0  fire 00 ammo 8 | #3e d60 hp1105 los0 f00 ; #5m d74 hp1400 los0 f00 vis 3,12,6,8,11
+98.5 retreat hp 762 (0) en 92 mv 0.0,0.0  fire 00 ammo 8 | #3e d58 hp1105 los0 f00 ; #5m d72 hp1400 los0 f00 vis 3,12,6,8,11
+99.0 retreat hp 762 (0) en 100 mv 0.0,0.0  fire 00 ammo 8 | #3e d59 hp1105 los0 f00 ; #5m d73 hp1400 los0 f00 vis 3,12,6,8,11
+99.5 retreat hp 762 (0) en 100 mv 0.0,0.0  fire 00 ammo 8 | #3e d59 hp1105 los0 f00 ; #5m d74 hp1400 los0 f00 vis 3,12,6,8,11
+100.0 loot hp 762 (0) en 100 mv 0.9,-0.5  fire 00 ammo 8 | #3e d57 hp1105 los0 f00 ; #8h d69 hp916 los0 f00 vis 3,12,6,8,11
+100.5 hold hp 762 (0) en 100 mv 1.0,-0.0  fire 00 ammo 8 | #3e d54 hp1105 los1 f00 ; #8h d62 hp916 los1 f00 vis 3L,12L,6L,8L,11L
+101.0 hold hp 715 (-47) en 100 mv -1.0,-0.0  fire 00 ammo 8 | #3e d55 hp1105 los1 f00 ; #8h d62 hp781 los0 f10 vis 3L,12L,6L,8L,11L
+101.5 zone hp 715 (0) en 97 mv 0.9,-0.4  fire 00 ammo 8 | #3e d58 hp1043 los0 f00 ; #8h d63 hp781 los0 f00 vis 3,12,6,8,11
+102.0 retreat hp 715 (0) en 93 mv -0.2,-1.0 B fire 00 ammo 8 | #3e d54 hp1043 los0 f00 ; #8h d58 hp781 los0 f00 vis 3,12,6,8,11
+102.5 retreat hp 715 (0) en 90 mv 0.2,0.4  fire 00 ammo 8 | #3e d50 hp1043 los0 f00 ; #8h d51 hp781 los0 f00 vis 3,12,6,8,11
+103.0 retreat hp 715 (0) en 93 mv 0.0,0.0  fire 00 ammo 8 | #8h d49 hp781 los0 f00 ; #3e d50 hp1043 los0 f00 vis 3,12,6,8,11
+103.5 retreat hp 715 (0) en 100 mv 0.0,0.0  fire 00 ammo 8 | #3e d48 hp1043 los0 f00 ; #8h d52 hp781 los0 f00 vis 3,12,6,8,11
+104.0 retreat hp 715 (0) en 100 mv 0.0,0.0  fire 00 ammo 8 | #3e d48 hp1043 los0 f00 ; #8h d51 hp781 los0 f00 vis 3,12,6,8,11
+104.5 retreat hp 715 (0) en 100 mv 0.0,0.0  fire 00 ammo 8 | #3e d47 hp1043 los0 f00 ; #8h d51 hp781 los0 f00 vis 3,12,6,8,11
+105.0 retreat hp 715 (0) en 100 mv 0.0,0.0  fire 00 ammo 8 | #3e d47 hp1043 los0 f00 ; #8h d52 hp781 los0 f00 vis 3,12,6,8,11
+105.5 retreat hp 715 (0) en 100 mv 0.0,0.0  fire 00 ammo 8 | #3e d49 hp1043 los0 f00 ; #8h d51 hp781 los0 f00 vis 3,12,6,8,11
+106.0 retreat hp 720 (5) en 100 mv 0.0,0.0  fire 00 ammo 8 | #3e d48 hp1043 los0 f00 ; #8h d51 hp783 los0 f00 vis 3,12,6,8,11
+106.5 retreat hp 742 (23) en 100 mv 0.0,0.0  fire 00 ammo 8 | #3e d48 hp1063 los0 f00 ; #8h d51 hp806 los0 f00 vis 
+107.0 retreat hp 765 (23) en 100 mv 0.0,0.0  fire 00 ammo 8 | #3e d48 hp1085 los0 f00 ; #8h d51 hp828 los0 f00 vis 
+107.5 retreat hp 787 (23) en 100 mv 0.0,0.0  fire 00 ammo 12 | #3e d48 hp1108 los0 f00 ; #8h d50 hp851 los0 f00 vis 
+108.0 retreat hp 810 (23) en 100 mv 0.0,0.0  fire 00 ammo 12 | #3e d49 hp1130 los0 f00 ; #8h d50 hp873 los0 f00 vis 
+108.5 retreat hp 832 (23) en 100 mv 0.0,0.0  fire 00 ammo 12 | #3e d49 hp1153 los0 f00 ; #8h d50 hp896 los0 f00 vis 
+109.0 retreat hp 855 (23) en 100 mv 0.0,0.0  fire 00 ammo 12 | #3e d48 hp1175 los0 f00 ; #8h d50 hp918 los0 f00 vis 
+109.5 retreat hp 877 (23) en 100 mv 0.0,0.0  fire 00 ammo 12 | #3e d49 hp1198 los0 f00 ; #8h d49 hp941 los0 f00 vis 
+110.0 retreat hp 900 (23) en 100 mv 0.0,0.0  fire 00 ammo 12 | #3e d48 hp1220 los0 f00 ; #8h d51 hp963 los0 f00 vis 
+110.5 retreat hp 922 (23) en 100 mv 0.0,0.0  fire 00 ammo 12 | #3e d47 hp1243 los0 f00 ; #8h d48 hp986 los0 f00 vis 
+111.0 retreat hp 945 (23) en 100 mv 0.0,0.0  fire 00 ammo 12 | #3e d43 hp1265 los0 f00 ; #8h d46 hp1008 los0 f00 vis 
+111.5 retreat hp 967 (23) en 100 mv 0.0,0.0  fire 00 ammo 12 | #3e d38 hp1288 los0 f00 ; #8h d41 hp1031 los0 f00 vis 
+112.0 retreat hp 990 (23) en 100 mv 0.0,0.0  fire 00 ammo 12 | #3e d33 hp1310 los0 f00 ; #8h d37 hp1053 los0 f00 vis 
+112.5 retreat hp 1012 (23) en 100 mv 0.0,0.0  fire 00 ammo 12 | #3e d29 hp1333 los0 f00 ; #8h d34 hp1076 los0 f00 vis 
+113.0 retreat hp 1024 (11) en 97 mv -1.0,0.3 B fire 10 ammo 10 | #3e d28 hp1298 los1 f00 ; #8h d32 hp1098 los0 f00 vis 3L,6L
+113.5 retreat hp 1024 (0) en 88 mv -1.0,0.1 B fire 10 ammo 8 | #5m d33 hp1400 los1 f00 ; #8h d35 hp1121 los0 f00 vis 3L,6
+114.0 fight>3 hp 954 (-70) en 81 mv -0.8,-0.7  fire 10 ammo 6 | #5m d26 hp1400 los1 f00 ; #7m d28 hp1400 los1 f00 vis 3L,6,5L,7L
+114.5 fight>3 hp 797 (-158) en 80 mv -1.0,-0.3 B fire 10 ammo 4 | #5m d27 hp1400 los1 f11 ; #7m d28 hp1400 los1 f00 vis 3L,6,8L,5L,7L
+115.0 retreat hp 367 (-429) en 71 mv -1.0,-0.2 B fire 10 ammo 2 | #7m d24 hp1400 los1 f10 ; #5m d24 hp1400 los1 f11 vis 3L,6,8L,11L,5L,7L
+end 115.5 alive false killedBy 8 dmg 9109

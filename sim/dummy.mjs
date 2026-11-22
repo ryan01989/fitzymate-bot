@@ -9,6 +9,11 @@ const angNorm = (a) => {
   else if (a < -PI) a += TAU
   return a
 }
+// Pack knobs for calibration: aim noise scale, reaction scale, boosting while chasing, strafe scale.
+export let PACK = { noise: 1, react: 1, boost: 0, strafe: 1, range: 1 }
+export function setPack(p) {
+  PACK = { ...PACK, ...(p || {}) }
+}
 export const SKILLS = {
   easy: { noise: 0.05, strafe: 0, range: 45, react: 0.6, lead: 0.5 },
   medium: { noise: 0.025, strafe: 0.6, range: 55, react: 0.3, lead: 0.9 },
@@ -20,7 +25,8 @@ export class Dummy {
   constructor(hello, world, skill, squad) {
     this.w = world
     this.cfg = hello.config
-    this.sk = SKILLS[skill]
+    const b = SKILLS[skill]
+    this.sk = { ...b, noise: b.noise * PACK.noise, react: b.react * PACK.react, strafe: Math.min(1, b.strafe * PACK.strafe), range: b.range * PACK.range }
     this.skill = skill
     this.squad = squad
     this.id = hello.slot
@@ -91,8 +97,8 @@ export class Dummy {
       const prey = mechs.find((m) => m.id === this.squad.prey)
       if (prey) this.squad.shared = { pos: prey.pos, t }
       const active = this.squad.active(this.id, t)
-      if (prey && (active || t - (this.hitBy.get(prey.id) ?? -99) < 6 || hyp(prey.pos[0] - x, prey.pos[1] - y) < (this.squad.near ?? 30))) tgt = prey
-      this.huntGoal = active && this.squad.shared && t - this.squad.shared.t < 20 ? this.squad.shared.pos : null
+      if (prey && (active || t - (this.hitBy.get(prey.id) ?? -99) < (PACK.retaliate ?? 6) || hyp(prey.pos[0] - x, prey.pos[1] - y) < (this.squad.near ?? 30))) tgt = prey
+      this.huntGoal = active && this.squad.shared && t - this.squad.shared.t < (PACK.share ?? 20) ? this.squad.shared.pos : null
     } else {
       let bd = 190
       for (const m of mechs) {
@@ -186,7 +192,7 @@ export class Dummy {
       }
     }
     this.goto(A, me, goal[0], goal[1], t)
-    A.boost = me.in_zone === false
+    A.boost = me.in_zone === false || (PACK.boost > 0 && (tgt || this.huntGoal) && me.energy > 100 * (1 - PACK.boost))
     const mvYaw = Math.atan2(A.move[1], A.move[0])
     A.aim = [mvYaw + Math.sin(t * 1.3) * 0.9, 0]
     if (me.weapons[0] && me.weapons[0].kind === "gun" && me.weapons[0].ammo < 6 && !me.weapons[0].reload) A.reload = true
