@@ -87,6 +87,13 @@ export const P = {
   laserFirst: 0, // until this match time, without a laser: a known laser we reach before any mech is the first objective, ahead of farming and of starting a fight (0 = off)
   laserInit: 0, // holding a laser against a mech in sight that has none: take the first shot inside this range in m (0 = off)
   laserInitUntil: 0, // ...only until this match time (0 = the whole match)
+  // --- late game (all off by default)
+  lateHunt: 0, // after farmUntil: keep exploring toward known mechs and attack any mech in sight above this HP share (0 = off)
+  lateHuntDist: 230, // ...within this range
+  crowdLos: false, // the crowd veto / crowd retreat counts only mechs that can see us
+  exposeMove: false, // in a fight with other mechs around: step to the nearby spot that can hit the target and is seen by the fewest others
+  laserRange: 0, // preferred fight range with a laser in m (0 = fightRange rule)
+  retreatCost: 150, // how far (path cost) to look for cover when retreating
 }
 // Free-for-all profile (qualifying and the final): the survival-first settings of the first two submissions.
 // Applied once, the moment the bot sees mechs dying that it did not kill (see ingest()).
@@ -94,6 +101,7 @@ export const P_FFA = {
   hideHp: 0.4, resumeHp: 0.8, initHpLow: 0.75, initAdv: 0.2, vetoAdv: -0.12, vetoCubes: -5, crowd: 90, openingS: 45, calmS: 4,
   healBelow: 0, killLoot: false, dropHeal: false, fightRange: 0, bandRange: 14, noRetreat: false, berserk: false, zapRange: 0,
   farmHard: false, huntUntil: 0, calmAfter: 0, laserFirst: 0, laserInit: 0, laserInitUntil: 0,
+  lateHunt: 0, crowdLos: false, exposeMove: false, laserRange: 0, retreatCost: 150,
 }
 Object.assign(P, {"laserFirst":90}) // baked by sim/train/train.mjs from sim/train/cand/opening.mjs
 if (typeof process !== "undefined" && process.env && process.env.FM_P) Object.assign(P, JSON.parse(process.env.FM_P))
@@ -608,8 +616,11 @@ export class Brain {
   }
   others(e, radius) {
     let n = 0
-    for (const q of this.en.values()) if (q !== e && !q.phantom && this.t - q.t < 3 && q.dist < radius) n++
+    for (const q of this.en.values()) if (q !== e && !q.phantom && this.t - q.t < 3 && q.dist < radius && (!P.crowdLos || q.los || this.t - q.hitMeT < 2)) n++
     return n
+  }
+  get lateHunting() {
+    return P.lateHunt > 0 && !this.ffa && this.t >= P.farmUntil
   }
   theirRank(e) {
     return e.has("laser") ? 2 : e.has("lightning") ? 1 : 0
@@ -631,6 +642,7 @@ export class Brain {
     const lg = this.lasGoal
     if (!defending && lg && this.t - lg.t < 0.3 && lg.d < 70 && e.dist > lg.d + 40) return false
     if (!defending && this.t < P.huntUntil && hpS > 0.6 && e.dist < 200 && e.los) return true
+    if (!defending && this.lateHunting && hpS >= P.lateHunt && e.dist < P.lateHuntDist && e.los && this.others(e, P.crowd) <= 1) return true
     if (!defending && P.calmAfter > 0 && this.t > P.calmAfter && e.hpS >= 0.35) return false
     if (this.others(e, P.crowd) >= 1) return false
     if (cubeDiff <= P.vetoCubes) return false
@@ -795,7 +807,7 @@ export class Brain {
     let best = null,
       bestScore = -1e9
     for (const e of losE) {
-      if (e.dist > P.startDist) continue
+      if (e.dist > (this.lateHunting ? Math.max(P.startDist, P.lateHuntDist) : P.startDist)) continue
       if (!this.wantFight(e, false)) continue
       const s = (1 - e.hpS) * 100 - e.dist * P.scoreDist + (this.rearOf(e) ? 15 : 0)
       if (s > bestScore) {
@@ -819,7 +831,7 @@ export class Brain {
     }
     // --- loot when quiet
     this.loot = this.pickLoot()
-    this.mode = this.loot ? "loot" : P.farmHard && t < P.farmUntil && hpS > P.exploreHp && this.zoneSlack > 25 && t - this.lastMechDmgT > 4 ? "explore" : "hold"
+    this.mode = this.loot ? "loot" : P.farmHard && t < P.farmUntil && hpS > P.exploreHp && this.zoneSlack > 25 && t - this.lastMechDmgT > 4 ? "explore" : this.lateHunting && hpS >= P.lateHunt && this.zoneSlack > 12 && t - this.lastMechDmgT > 4 && !this.finalPhase ? "explore" : "hold"
   }
 
   setFight(e) {
@@ -1293,7 +1305,7 @@ export class Brain {
       curD = Math.min(curD, hyp(x - th[0], y - th[1]))
     }
     const zc = this.zoneAt(t + 8)
-    w.search(this.myNode, -1, this.searchOpts({ maxCost: 150, maxExp: 12000, pens: this.pens(pens), zone: [zc[0], zc[1], Math.max(0, zc[2] - 6), 4] }))
+    w.search(this.myNode, -1, this.searchOpts({ maxCost: P.retreatCost, maxExp: 12000, pens: this.pens(pens), zone: [zc[0], zc[1], Math.max(0, zc[2] - 6), 4] }))
     const n = w.nVisited
     const vis = w.visited
     const floor = Math.min(curD - 4, 42)
@@ -1434,8 +1446,9 @@ export class Brain {
     const C = 60
     const vis = (this.visitedCells ??= new Map())
     vis.set(`${Math.round(x / C)},${Math.round(y / C)}`, t)
+    if (this.lateHunting) for (const [k, v] of vis) if (t - v > 40) vis.delete(k)
     const zc = this.o.zone
-    const need = !this.exploreGoal || hyp(this.exploreGoal[0] - x, this.exploreGoal[1] - y) < 12 || t - this.exploreT > 25 || vis.has(this.exploreGoal[2])
+    const need = !this.exploreGoal || hyp(this.exploreGoal[0] - x, this.exploreGoal[1] - y) < 12 || t - this.exploreT > (this.lateHunting ? 6 : 25) || vis.has(this.exploreGoal[2])
     if (need) {
       let best = null,
         bs = 1e18
@@ -1449,7 +1462,9 @@ export class Brain {
           if (hyp(px - this.nc[0], py - this.nc[1]) > r || hyp(px - zc.center[0], py - zc.center[1]) > zc.radius - 15) continue
           if (this.w && this.w.nearestNode(px, py, this.w.ground(px, py), this.reqR, this.Hh + 0.3, 8) < 0) continue
           let d = hyp(px - x, py - y)
-          for (const e of this.en.values()) if (t - e.t < 15 && hyp(px - e.pos[0], py - e.pos[1]) < 120) d += 200
+          const hunt = this.lateHunting
+          for (const e of this.en.values()) if (t - e.t < 15 && hyp(px - e.pos[0], py - e.pos[1]) < 120) d += hunt ? -150 : 200
+          if (hunt) for (const q of this.sounds) if (t - q.t < 6 && q.kind !== "explosion" && hyp(px - q.x, py - q.y) < 90) d -= 40
           if (d < bs) {
             bs = d
             best = [px, py, k]
@@ -1492,6 +1507,7 @@ export class Brain {
     this.path = null
     // preferred range by loadout: far enough that bullets can be side-stepped
     let pr = P.fightRange > 0 ? P.fightRange + (this.laser ? 8 : 0) : this.laser ? 112 : 104
+    if (this.laser && P.laserRange > 0) pr = P.laserRange
     if (this.lightning && !this.laser && (this.hpS - e.hpS > 0.1 || e.hpS < 0.45) && !e.has("lightning")) pr = 34
     if (P.zapRange > 0 && this.lightning && this.me.energy > 22 && !(e.has("lightning") && this.hpS < e.hpS)) pr = P.zapRange
     if (this.finalPhase) pr = Math.min(pr, 45)
@@ -1530,6 +1546,10 @@ export class Brain {
     const s0 = this.strafeSide
     // candidates, planned one first; the dodge picks whichever clears the bullets in the air
     const cands = [mk(s0, radial * 0.75), mk(-s0, radial * 0.75), mk(s0, -1), mk(-s0, -1), mk(s0, 1), mk(-s0, 1), [0, 0]]
+    if (P.exposeMove) {
+      const em = this.exposeStep(e, pr)
+      if (em) cands[0] = em
+    }
     let best = null,
       bestScore = -1e9
     const need = this.R + 1.3
@@ -1555,6 +1575,81 @@ export class Brain {
       A.move = mk(s0 * 0.35, -1)
       if (free(A.move)) A.boost = true
     }
+  }
+
+  /**
+   * Fight positioning with other mechs around: score spots up to 26 m away for a clear
+   * shot at the target, exposure to every other live mech (laser, close lightning, charging and
+   * healthy ones count more), range to the target and zone. Returns a unit move, or null to keep
+   * the usual strafe (nobody else around, or here is already best).
+   */
+  exposeStep(e, pr) {
+    const w = this.w
+    if (!w) return null
+    const t = this.t
+    const [x, y, z] = this.me.pos
+    const live = []
+    for (const q of this.en.values()) if (!q.phantom && t - q.t < 4 && q.dist < 200) live.push(q)
+    if (live.length < 2) return null
+    if ((this.expT ?? -99) > t - 0.3 && this.expGoal !== undefined) {
+      const g = this.expGoal
+      if (!g) return null
+      const d = hyp(g[0] - x, g[1] - y)
+      return d > 1.5 ? [(g[0] - x) / d, (g[1] - y) / d] : null
+    }
+    this.expT = t
+    const ready = (this.gun && this.gun.ammo > 0 && !(this.gun.reload > 0)) || (this.laser && (this.laser.cooldown || 0) < 0.35)
+    const eS = 1 + 0.05 * (this.me.cubes || 0)
+    const score = (cx, cy, cz) => {
+      let expo = 0
+      for (const q of live) {
+        const de = hyp(q.pos[0] - cx, q.pos[1] - cy)
+        let wg = 1
+        if (q.has("laser")) wg += 0.8
+        if (q.has("lightning") && de < 50) wg += 1.2
+        if (q.charging) wg += 1.5
+        wg *= 0.4 + 0.6 * q.hpS
+        const qe = q.pos[2] + 8 * (1 + 0.05 * q.cubes)
+        if (w.los(q.pos[0], q.pos[1], qe, cx, cy, cz + 4.5 * eS) || w.los(q.pos[0], q.pos[1], qe, cx, cy, cz + 8.3 * eS)) expo += q === e ? 0 : wg
+      }
+      const hit = w.los(cx, cy, cz + this.muzH, e.pos[0], e.pos[1], e.cz)
+      const dT = hyp(e.pos[0] - cx, e.pos[1] - cy)
+      let s = -hyp(cx - x, cy - y) * 0.12
+      const zc = this.zoneAt(t + 6)
+      const zm = zc[2] - hyp(cx - zc[0], cy - zc[1])
+      if (zm < 4) s -= 40 + (4 - zm) * 2
+      if (ready) {
+        if (hit) s += 14
+        s -= expo * 5
+        s -= Math.abs(dT - pr) * 0.07
+      } else {
+        s -= expo * 12
+        if (hit && expo === 0) s += 2
+      }
+      for (const q of live) if (q !== e && hyp(q.pos[0] - cx, q.pos[1] - cy) < 40) s -= (40 - hyp(q.pos[0] - cx, q.pos[1] - cy)) * 0.2
+      return s
+    }
+    let best = null,
+      bs = score(x, y, z) + 1.5
+    for (const r of [5, 10, 17, 26])
+      for (let k = 0; k < 12; k++) {
+        if (now() > this.deadline - 3) break
+        const a = (k / 12) * TAU + (r === 10 || r === 26 ? PI / 12 : 0)
+        const cx = x + Math.cos(a) * r,
+          cy = y + Math.sin(a) * r
+        if (!w.walkLine(x, y, z, cx, cy, this.reqR - 0.3, this.Hh)) continue
+        const cz = w.standZ(cx, cy, z + 1.5)
+        if (!(cz === cz) || Math.abs(cz - z) > 3) continue
+        const s = score(cx, cy, cz)
+        if (s > bs) {
+          bs = s
+          best = [cx, cy]
+        }
+      }
+    this.expGoal = best
+    if (!best) return null
+    const d = hyp(best[0] - x, best[1] - y)
+    return [(best[0] - x) / d, (best[1] - y) / d]
   }
 
   /**
