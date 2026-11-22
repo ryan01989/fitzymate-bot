@@ -122,6 +122,11 @@ export const P = {
   rushNear: 70, // ...a mech in sight this close still calls the rush off / may be fought
   rushHit: 4, // ...and so does being hit by a mech in the last this many s
   rushVeto: 0, // ...1 = also start no fight with a mech beyond rushNear that has not hit us for rushHit s (unless nearly dead), and end such a fight gone quiet (0 = fights as usual)
+  // --- sim/train/cand/late.mjs: outlast the squad when the zone closes
+  lateAt: 0, // from this match time, once the next circle is 70 m or less: start no fight (and drop a fight with a mech not shooting us) unless the target is under lateFin; in the final circle answer only mechs shooting us or under lateFin instead of fighting everything in sight (0 = off)
+  lateFin: 0.35, // ...HP share under which a mech is still worth attacking late
+  lateHeal: 0, // ...and out of a fight with nobody shooting us, below this HP share break line of sight and regenerate up to it; supply drops are taken whenever hurt (0 = off)
+  lateCore: 0, // ...and hold spots are pulled toward the centre of the next circle by this many score points at its edge (no outer-ring preference) (0 = off)
 }
 // Free-for-all profile (qualifying and the final): the survival-first settings of the first two submissions.
 // Applied once, the moment the bot sees mechs dying that it did not kill (see ingest()).
@@ -130,9 +135,9 @@ export const P_FFA = {
   healBelow: 0, killLoot: false, dropHeal: false, fightRange: 0, bandRange: 14, noRetreat: false, berserk: false, zapRange: 0,
   farmHard: false, huntUntil: 0, calmAfter: 0, laserFirst: 0, laserInit: 0, laserInitUntil: 0, lootFix: 0, laserRoof: 0, laserRun: 0, laserAway: 0, oneFront: 0,
   guard: 0, guardArc: 0.25, guardFire: 0.25, sqzAt: 0, sqzAway: 0, sqzHp: 0, lootHold: 0, lootHoldRe: 0, weave: 0, weaveAll: 0, cubeRun: 0,
-  rushUntil: 0, gunMax: 0,
+  rushUntil: 0, gunMax: 0, lateAt: 0, lateFin: 0.35, lateHeal: 0, lateCore: 0,
 }
-Object.assign(P, {"laserFirst":90,"noRetreat":true,"cubeRun":130,"rushUntil":150,"ffaN":3}) // baked by sim/train/train.mjs from sim/train/cand/rush2.mjs
+Object.assign(P, {"laserFirst":90,"noRetreat":true,"cubeRun":130,"rushUntil":120,"ffaN":3,"lateAt":330,"lateFin":1.01,"lateCore":40}) // baked by sim/train/train.mjs from sim/train/cand/late.mjs
 if (typeof process !== "undefined" && process.env && process.env.FM_P) Object.assign(P, JSON.parse(process.env.FM_P))
 if (typeof process !== "undefined" && process.env && process.env.FM_PFFA) Object.assign(P_FFA, JSON.parse(process.env.FM_PFFA))
 if (P.preferZap) {
@@ -642,6 +647,8 @@ export class Brain {
     this.finalPhase = nr <= 0.5 && z.radius < 40
     // squeeze prep (P.sqzAt): active while the next circle is the 240 m or the 140 m one
     this.sqz = P.sqzAt > 0 && t >= P.sqzAt && nr >= 100
+    // late plan (P.lateAt): from lateAt once the next circle is 70 m or less
+    this.lateOn = P.lateAt > 0 && t >= P.lateAt && nr <= 70
     if (P.sqzAt > 0 && P.sqzAway > 0) {
       // where each mech was last seen, kept longer than the 14 s enemy table
       const seen = (this.sqzSeen ??= new Map())
@@ -679,6 +686,8 @@ export class Brain {
     const hpS = this.hpS
     const adv = hpS - e.hpS
     const cubeDiff = (me.cubes || 0) - (e.cubes || 0)
+    // late plan: start nothing new unless it finishes a mech (answering a mech that shoots us is decided by the caller)
+    if (this.lateOn && !defending && !(e.hpS < P.lateFin)) return false
     if (this.finalPhase) return true
     if (e.hpS < P.finishHp && hpS > P.finishMyHp) return true
     // opening: a laser is a few seconds away and this mech is not on top of us yet -> pick it up first (see pickLoot)
@@ -818,11 +827,14 @@ export class Brain {
     this.calm = t - this.lastContactT > P.calmS && t - this.lastMechDmgT > P.calmS
 
     // final circle: nowhere left to hide, everything is a fight
+    // (late plan: only mechs shooting us or nearly dead; the zone kills the rest before us if we keep our HP)
     if (this.finalPhase && losE.length) {
       let best = null
-      for (const e of losE) if (!best || e.hp < best.hp) best = e
-      this.setFight(best)
-      return
+      for (const e of losE) if ((!this.lateOn || t - e.hitMeT < 3 || e.hpS < P.lateFin) && (!best || e.hp < best.hp)) best = e
+      if (best) {
+        this.setFight(best)
+        return
+      }
     }
     if (this.zoneUrgent && !(this.mode === "fight" && this.inZone && this.zoneSlack > 2)) {
       this.mode = "zone"
@@ -913,11 +925,17 @@ export class Brain {
       this.mode = "hold"
       this.spotT = -99
     }
+    // --- late plan: a fight with a mech that is not shooting us and is not nearly dead is over
+    if (this.lateOn && this.mode === "fight" && target && t - target.hitMeT >= 3 && !(target.hpS < P.lateFin)) {
+      this.mode = "hold"
+      this.targetId = -1
+    }
     // --- heal before the next fight (hunters arrive one after another)
-    const healBelow = this.sqz ? Math.max(P.healBelow, P.sqzHp) : P.healBelow
+    const lateHeal = this.lateOn ? P.lateHeal : 0
+    const healBelow = Math.max(this.sqz ? Math.max(P.healBelow, P.sqzHp) : P.healBelow, lateHeal)
     if (healBelow > 0 && this.mode !== "fight" && atk.length === 0) {
-      const weakInSight = losE.some((e) => e.hpS < 0.3 && e.dist < 200)
-      if (!weakInSight && (hpS < healBelow || (this.mode === "recover" && hpS < P.healTo))) {
+      const weakInSight = losE.some((e) => e.hpS < (lateHeal > 0 ? P.lateFin : 0.3) && e.dist < 200)
+      if (!weakInSight && (hpS < healBelow || (this.mode === "recover" && hpS < Math.max(P.healTo, lateHeal)))) {
         if (this.sqz && this.dNext > 0) {
           // squeeze prep, not yet inside the next circle: regenerate on the way to the hold spot, not behind the nearest cover
           this.mode = "hold"
@@ -1356,7 +1374,8 @@ export class Brain {
       }
     }
     const top = []
-    const ringLo = this.nr > 60 ? 0.45 : 0
+    const late = this.lateOn && P.lateCore > 0
+    const ringLo = this.nr > 60 && !late ? 0.45 : 0
     for (let k = 0; k < S.count; k++) {
       const sx = S.x[k],
         sy = S.y[k]
@@ -1372,6 +1391,7 @@ export class Brain {
         const rr = dc / this.nr
         if (rr < ringLo) s -= 30 * (ringLo - rr)
       }
+      if (late) s -= (P.lateCore * dc) / Math.max(this.nr, 1)
       if (ax || ay) s -= (P.sqzAway * ((sx - nc[0]) * ax + (sy - nc[1]) * ay)) / Math.max(dc, 0.5 * this.nr)
       for (const th of threats) {
         const de = hyp(sx - th[0], sy - th[1])
@@ -1916,7 +1936,7 @@ export class Brain {
   pickLoot() {
     const t = this.t
     const me = this.me
-    if (P.dropHeal && this.hpS < 0.85 && this.zoneSlack > 10) {
+    if ((P.dropHeal || (this.lateOn && P.lateHeal > 0)) && this.hpS < 0.85 && this.zoneSlack > 10) {
       const [x, y] = me.pos
       let best = null
       for (const dr of this.o.drops || []) {
