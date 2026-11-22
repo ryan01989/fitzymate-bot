@@ -161,6 +161,7 @@ export const P = {
   fightHide: 0, // in a fight with other mechs around (seen in the last 3 s, within 170 m): score points taken off a move for each of them that could see us where it leads, and 1.5x that for losing the shot at the target; eight compass moves join the candidates (0 = off). A full bullet dodge is worth about 38 points
   cautR: 0, // practice: once the next circle is this many m or smaller, switch to the cautious free-for-all profile for the rest of the match (0 = off). 140 m is announced at about 195 s
   dieAt: 0, // probe: stand idle from this match time, so the score is our kills before it (0 = off)
+  endRush: 0, // from this match time: never retreat from mechs in sight and switch to a mech in sight 25 points lower in HP share. Real probe: we earn nothing after 240 s, so the last seconds are better spent on damage than on running (0 = off)
   noExplore: 0, // 1 = with nothing to loot, hold a covered spot inside the next circle instead of exploring for more; hunters come to us (0 = off)
   noChase: 0, // 1 = a target out of sight ends the fight after 0.6 s instead of being chased around cover (0 = off)
   focusLow: 0, // in a fight, switch to a mech in sight this much lower in HP share (0 = off)
@@ -181,7 +182,7 @@ export const P_FFA = {
   guard: 0, guardArc: 0.25, guardFire: 0.25, sqzAt: 0, sqzAway: 0, sqzHp: 0, lootHold: 0, lootHoldRe: 0, weave: 0, weaveAll: 0, cubeRun: 0,
   rushUntil: 0, gunMax: 0, lateAt: 0, lateFin: 0.35, lateHeal: 0, lateCore: 0,
   fBoost: 0, noRetAll: 0, cubeGoal: 0, seekUntil: 0, rearBonus: 15, dropAll: 0, focusLow: 0, lasLock: 0, lasBoost: 0,
-  upSet: 0, chaseHp: 0.4, chaseMyHp: 0.55, chaseS: 7, farmBoost: 0, lethalRelease: 0, fightCube: 0, finishRange: 0, noChase: 0, fightHide: 0, noExplore: 0, cautR: 0,
+  upSet: 0, chaseHp: 0.4, chaseMyHp: 0.55, chaseS: 7, farmBoost: 0, lethalRelease: 0, fightCube: 0, finishRange: 0, noChase: 0, fightHide: 0, noExplore: 0, cautR: 0, endRush: 0,
   firstShot: 0, shortRetreat: 0, retarget: 0, // gd-policy lessons: practice only
 }
 Object.assign(P, {"laserFirst":90,"noRetreat":true,"cubeRun":130,"rushUntil":120,"ffaN":3,"lateAt":330,"lateFin":1.01,"lateCore":40}) // baked by sim/train/train.mjs from sim/train/cand/late.mjs
@@ -1024,8 +1025,9 @@ export class Brain {
         return
       }
     } else if (hpS < P.hideHp && losE.length && !(this.mode === "fight" && target && target.hpS < 0.25)) retreat = true
-    if (retreat && P.noRetreat && (atk.length <= 2 || P.noRetAll) && (target || atk.length || (P.noRetAll && losE.length))) {
-      let e = target && target.los ? target : atk.find((q) => q.los) || (P.noRetAll ? losE.reduce((b, q) => (!b || q.hp < b.hp ? q : b), null) : null)
+    const allIn = P.noRetAll || (P.endRush > 0 && t >= P.endRush)
+    if (retreat && P.noRetreat && (atk.length <= 2 || allIn) && (target || atk.length || (allIn && losE.length))) {
+      let e = target && target.los ? target : atk.find((q) => q.los) || (allIn ? losE.reduce((b, q) => (!b || q.hp < b.hp ? q : b), null) : null)
       if (P.retarget > 0 && e && e === target && this.mode === "fight") e = this.rtAlt(target, losE) || e // --- retarget (lesson C): also when two attackers keep us fighting
       if (e) {
         this.setFight(e)
@@ -1090,9 +1092,10 @@ export class Brain {
       if (this.mode === "recover") this.mode = "hold"
     }
     // --- continue a fight
-    if (P.focusLow > 0 && this.mode === "fight" && target) {
+    const fLow = P.focusLow > 0 ? P.focusLow : P.endRush > 0 && t >= P.endRush ? 0.25 : 0
+    if (fLow > 0 && this.mode === "fight" && target) {
       let lo = null
-      for (const e of losE) if (e !== target && e.dist < 200 && e.hpS < target.hpS - P.focusLow && (!lo || e.hpS < lo.hpS)) lo = e
+      for (const e of losE) if (e !== target && e.dist < 200 && e.hpS < target.hpS - fLow && (!lo || e.hpS < lo.hpS)) lo = e
       if (lo) {
         this.setFight(lo)
         return
