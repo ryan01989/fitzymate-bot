@@ -185,7 +185,7 @@ export const P_FFA = {
   firstShot: 0, shortRetreat: 0, retarget: 0, // gd-policy lessons: practice only
 }
 Object.assign(P, {"laserFirst":90,"noRetreat":true,"cubeRun":130,"rushUntil":120,"ffaN":3,"lateAt":330,"lateFin":1.01,"lateCore":40}) // baked by sim/train/train.mjs from sim/train/cand/late.mjs
-Object.assign(P, {"huntFrom":90,"huntUntil":420,"seekUntil":190,"sqzAt":190,"sqzAway":25}) // t28-squeeze: t13, and from 190 s (140 m circle announced): stop seeking, hold inside the next circle on the side away from the mechs seen (sim/variants/rad8.mjs)
+Object.assign(P, {"huntFrom":45,"huntUntil":420,"seekUntil":190,"sqzAt":190,"sqzAway":25}) // t29-early-squeeze: t28 + hunting and seeking from 45 s instead of 90 s (the laser run still comes first) (sim/variants/rad8.mjs)
 if (typeof process !== "undefined" && process.env && process.env.FM_P) Object.assign(P, JSON.parse(process.env.FM_P))
 if (typeof process !== "undefined" && process.env && process.env.FM_PFFA) Object.assign(P_FFA, JSON.parse(process.env.FM_PFFA))
 if (P.preferZap) {
