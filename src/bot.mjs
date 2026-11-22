@@ -237,9 +237,10 @@ Object.assign(P, {"lasHop":14,"laserRoof":30}) // l01-hop: t36 + laser scout hop
 Object.assign(P, {"upSet":7}) // l07-stack: l06 + upgrade order with gun_mag second (l03 on l01 scored 5.69)
 Object.assign(P, {"upSet":8}) // w03-upgd: l07 + upgrade order 8 (gun_damage before nanites, servos down; sim/agentW2)
 Object.assign(P, {"dropAll":1}) // gb11-dropall: w03 + go for every supply drop (3 cubes + full repair + full energy) within 230 m that we can reach by landing + 8 s and that no known mech is within 70 m of; ahead of other loot
+// sq12bp-stack: + parkfix (sim/agentTalk/build_parkfix.py): the dead fixLootReach block made live after the loot walk
 Object.assign(P, {"sqMove":1,"sqAim":1}) // sq2-move: gb11 + fight movement by position sampling (new-idea 5.1-5.5), our ranges kept (sqRange 0); aim drops to 85% height when the centre is blocked
 Object.assign(P, {"squad":1})
-Object.assign(P, {"sqMove":0,"sqAim":0,"sqMoveAt":30,"sqFrom":30}) // sq12b-stack: sq12 with the squad layer and the fight-movement rework both held off until 30 s, so a free-for-all (detected at about 23-25 s on the real server) plays like gb11 // sq1-squad: gb11 + the reference practice decision layer as one mode (engage filter, per-tick target score, 1.5 s retreat pulses, no chase, cube detour 70/40 m, finish close-in 20 m, lethal release 0.7, laser seek 240 m)
+Object.assign(P, {"sqMove":1,"sqAim":1,"sqMoveAt":0,"sqFrom":30}) // sq12m-stack (sq12bp with the fight-movement rework on from the start, as the 6.05 build most likely ran after main.mjs warm-up tripped its 30 s gate): sq12 with the squad layer and the fight-movement rework both held off until 30 s, so a free-for-all (detected at about 23-25 s on the real server) plays like gb11 // sq1-squad: gb11 + the reference practice decision layer as one mode (engage filter, per-tick target score, 1.5 s retreat pulses, no chase, cube detour 70/40 m, finish close-in 20 m, lethal release 0.7, laser seek 240 m)
 if (typeof process !== "undefined" && process.env && process.env.FM_P) Object.assign(P, JSON.parse(process.env.FM_P))
 if (typeof process !== "undefined" && process.env && process.env.FM_PFFA) Object.assign(P_FFA, JSON.parse(process.env.FM_PFFA))
 if (P.preferZap) {
@@ -3251,6 +3252,33 @@ export class Brain {
     } else this.lootStuck = 0
     const arrived = this.moveToPoint(A, L.pos[0], L.pos[1], L.pos[2], 1, (P.lasBoost > 0 && L.kind === "laser" && !this.laser && this.me.energy > P.lasBoost) || this.fbGo())
     if (!arrived && this.pathPartial && this.path && this.path.length < 5) fail()
+    if (P.fixLootReach > 0 && this.loot && d >= 1.2 && !this.jet && (arrived || hyp(A.move[0], A.move[1]) < 0.05)) {
+      // parkfix: the walk is over and the item is not ours (the fixLootReach block above is nested under d < 1.2 and never runs)
+      if (L.id === -7) {
+        // a spot, not an item: as near as the walk graph goes; the cubes lying there are ordinary cube targets for pickLoot()
+        this.killLoot = null
+        this.loot = null
+      } else {
+        if (this.pkReachId !== L.id || t - (this.pkReachSeenT ?? -99) > 1) {
+          this.pkReachId = L.id
+          this.pkReachT = t
+          this.pkReachD = d
+        }
+        this.pkReachSeenT = t
+        if (d < this.pkReachD - 0.3) {
+          this.pkReachD = d
+          this.pkReachT = t
+        }
+        if (t - this.pkReachT > P.fixLootReach) {
+          fail()
+          if (L.id <= -100) this.kcRun = null
+          this.pkReachId = null
+        } else if (Math.abs(L.pos[2] - z) < 2.5) {
+          const k = Math.min(1, Math.max(0.35, d / 3))
+          A.move = [((L.pos[0] - x) / d) * k, ((L.pos[1] - y) / d) * k]
+        }
+      }
+    }
     if (P.rushUntil > 0 && this.rushOn() && this.w && !this.vis.some((e) => e.los && e.dist < 170)) {
       // rush: shoot the nearest crate in view on the way (not with a mech in sight: we would turn our back to it) (it does not move; the cubes wait for us)
       let bc = null,

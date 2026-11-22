@@ -529,5 +529,11 @@
   "file": "sim/variants/gb14-range85.mjs",
   "real": 5.57,
   "note": "builders-4 (built by session buildersmech-24). gb11-dropall (5.84) + rangeGun 85 (gun-only fight range 85 m instead of 104; the reference bot's number). -0.27: a closer gun range loses again, as every fight-closer change has."
+ },
+ {
+  "name": "sq12b-stack",
+  "file": "sim/variants/sq12b-stack.mjs",
+  "real": 6.05,
+  "note": "builders-4 (built by session buildersmech-24). NEW BEST (+0.20 over w03 5.85). gb11-dropall + sq1 squad decision layer (reference engage filter, per-tick target score, 1.5 s retreat pulses, no chasing, fight cubes 70 m, laser seek all match, lethal release) from 30 s + sq2 position-sampling fight movement (sqMove/sqAim). sqMove is gated at 30 s, but main.mjs's warm-up Brain runs fake observations to t=40 s and can trip the gate, so in real matches the movement rework may run from 0 s. Keep stacking on this exact file."
  }
 ]
