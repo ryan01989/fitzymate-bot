@@ -107,6 +107,8 @@ export const P = {
   lasHop: 0, // laser scout hop (sim/agentL): before P.laserFirst, without a laser and with no laser goal, calm and grounded with energy >= lasHopE, jump and jet this many m up while spinning the torso a full turn, so lasers on roofs and behind trees/buildings come into view (in real showdowns 22% of floor lasers lie on roofs and 57 of 58 were never taken). At most once per lasHopEvery s (0 = off)
   lasHopE: 75,
   lasHopEvery: 10,
+  spaceR: 0, // m: loot spacing. Every loot candidate (cube, crate, drone, drop, weapon) loses spaceK points per m that a mech seen in the last 15 s stands inside this radius of it, weighted by how recently it was seen. In 21 real showdowns top-3 finishers kept 135-140 m to the nearest mech vs 103-110 m for places 9-16 (sim/agentW2). Soft: it ranks loot away from mechs, the hard 110 m veto stays as it was (0 = off)
+  spaceK: 0.3,
   laserRoof: 0, // laserFirst also runs to a laser on a roof (off the walk graph) when it lies at most this many m above our feet and a jet route to it exists (0 = off: roof lasers are skipped)
   // --- sim/train/cand/laser3.mjs
   laserRun: 0, // laserFirst: a laser goal within this many m (a) keeps us from starting a fight with a mech more than 60 m away, (b) ends a fight gone quiet (not hit for 4 s, no hit of ours for 2 s, target beyond 60 m) and (c) ends a retreat once not hit for 4 s at 60%+ HP with no mech in sight inside 120 m (0 = off)
@@ -195,7 +197,7 @@ export const P = {
 export const P_FFA = {
   hideHp: 0.4, resumeHp: 0.8, initHpLow: 0.75, initAdv: 0.2, vetoAdv: -0.12, vetoCubes: -5, crowd: 90, openingS: 45, calmS: 4,
   healBelow: 0, killLoot: false, dropHeal: false, fightRange: 0, bandRange: 14, noRetreat: false, berserk: false, zapRange: 0,
-  farmHard: false, huntUntil: 0, calmAfter: 0, laserFirst: 0, laserInit: 0, laserInitUntil: 0, lootFix: 0, laserRoof: 0, lasHop: 0, laserRun: 0, laserAway: 0, oneFront: 0,
+  farmHard: false, huntUntil: 0, calmAfter: 0, laserFirst: 0, laserInit: 0, laserInitUntil: 0, lootFix: 0, laserRoof: 0, lasHop: 0, spaceR: 0, laserRun: 0, laserAway: 0, oneFront: 0,
   guard: 0, guardArc: 0.25, guardFire: 0.25, sqzAt: 0, sqzAway: 0, sqzHp: 0, lootHold: 0, lootHoldRe: 0, weave: 0, weaveAll: 0, cubeRun: 0,
   rushUntil: 0, gunMax: 0, lateAt: 0, lateFin: 0.35, lateHeal: 0, lateCore: 0,
   fBoost: 0, noRetAll: 0, cubeGoal: 0, seekUntil: 0, rearBonus: 15, dropAll: 0, focusLow: 0, lasLock: 0, lasBoost: 0,
@@ -209,7 +211,7 @@ Object.assign(P, {"fixLootReach":2.5,"fixTreeSoft":4}) // a01-reach-soft: t36-fi
 Object.assign(P, {"lasHop":14,"laserRoof":30}) // l01-hop: t36 + laser scout hop (look over roofs and trees for a laser before 90 s) + run to roof lasers up to 30 m up (sim/agentL)
 // l06-fixes: l01-hop + the two a01 fixes (fixLootReach 2.5, fixTreeSoft 4; a01 on t36 scored 5.65)
 Object.assign(P, {"upSet":7}) // l07-stack: l06 + upgrade order with gun_mag second (l03 on l01 scored 5.69)
-Object.assign(P, {"lasHop":20}) // l08-stack20: l07 with the 20 m scout hop (l04 on l01 scored 5.68; sim laser held at 90 s 80->88%)
+Object.assign(P, {"spaceR":140,"spaceK":0.3}) // sp01-spacing: l07 + rank loot away from mechs (winners keep 135-140 m to the nearest mech; sim/agentW2)
 if (typeof process !== "undefined" && process.env && process.env.FM_P) Object.assign(P, JSON.parse(process.env.FM_P))
 if (typeof process !== "undefined" && process.env && process.env.FM_PFFA) Object.assign(P_FFA, JSON.parse(process.env.FM_PFFA))
 if (P.preferZap) {
@@ -2433,6 +2435,13 @@ export class Brain {
       if (d > maxD || !okPlace(it.pos, d) || nearEnemy(it.pos)) return
       if (this.badLoot && this.badLoot.get(it.id) > t) return
       let v = value - d * 0.35
+      if (P.spaceR > 0)
+        for (const e of this.en.values()) {
+          const age = t - e.t
+          if (age > 15 || e.phantom) continue
+          const de = hyp(it.pos[0] - e.pos[0], it.pos[1] - e.pos[1])
+          if (de < P.spaceR) v -= P.spaceK * (P.spaceR - de) * (1 - age / 20)
+        }
       if (this.loot && this.loot.id === it.id) v += 12
       if (v > bestV) {
         bestV = v

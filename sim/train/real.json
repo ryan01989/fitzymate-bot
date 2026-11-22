@@ -457,5 +457,23 @@
   "file": "sim/variants/l05-scout150.mjs",
   "real": 5.66,
   "note": "builders-4. l01 + lasHopUntil 150 (hop + known/roof lasers within 200 m, calm only, until 150 s) + stale lasGoal fix. Sim could not exercise it (bot dies ~100 s)."
+ },
+ {
+  "name": "l06-fixes",
+  "file": "sim/variants/l06-fixes.mjs",
+  "real": 5.41,
+  "note": "builders-4. l01 + fixLootReach 2.5 + fixTreeSoft 4."
+ },
+ {
+  "name": "l07-stack",
+  "file": "sim/variants/l07-stack.mjs",
+  "real": 5.83,
+  "note": "builders-4. l06 + upSet 7 (plating, gun_mag, armor, nanites...). NEW BEST (t36 5.81)."
+ },
+ {
+  "name": "l08-stack20",
+  "file": "sim/variants/l08-stack20.mjs",
+  "real": 5.67,
+  "note": "builders-4. l07 + lasHop 20."
  }
 ]
