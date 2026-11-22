@@ -33,6 +33,8 @@ const UPSETS = [null,
   ["armor", "plating", "nanites", "laser_charge", "laser_damage", "gun_damage", "gun_rate", "capacitor", "servos", "gun_velocity", "sensors", "gyros", "reactor", "gun_mag", "jets", "lightning_range", "lightning_chain", "laser_pierce", "lightning_efficiency", "mortar_reload", "mortar_velocity", "mortar_splash"],
   ["gun_damage", "gun_rate", "gun_mag", "plating", "armor", "laser_charge", "laser_damage", "gun_velocity", "nanites", "capacitor", "servos", "sensors", "gyros", "reactor", "jets", "lightning_range", "lightning_chain", "laser_pierce", "lightning_efficiency", "mortar_reload", "mortar_velocity", "mortar_splash"],
   ["sensors", "gyros", "plating", "armor", "laser_charge", "laser_damage", "nanites", "gun_damage", "gun_rate", "capacitor", "servos", "gun_velocity", "reactor", "gun_mag", "jets", "lightning_range", "lightning_chain", "laser_pierce", "lightning_efficiency", "mortar_reload", "mortar_velocity", "mortar_splash"],
+  // 5: the organiser's probe-astra bots (replays): gun_mag, plating, gun_damage, armor first. Two gun_mag = 28 rounds and a 1.5 s reload: +49% sustained gun damage
+  ["gun_mag", "plating", "gun_damage", "armor", "laser_damage", "laser_charge", "gun_rate", "nanites", "servos", "capacitor", "gun_velocity", "sensors", "gyros", "reactor", "jets", "laser_pierce", "lightning_range", "lightning_chain", "lightning_efficiency", "mortar_reload", "mortar_velocity", "mortar_splash"],
 ]
 const WEAPON_RANK = { laser: 3, lightning: 2, gun: 1, mortar: 0 }
 
@@ -134,7 +136,7 @@ export const P = {
   lateHeal: 0, // ...and out of a fight with nobody shooting us, below this HP share break line of sight and regenerate up to it; supply drops are taken whenever hurt (0 = off)
   lateCore: 0, // ...and hold spots are pulled toward the centre of the next circle by this many score points at its edge (no outer-ring preference) (0 = off)
   // --- sim/variants/rad.mjs: radical switches (all off by default)
-  upSet: 0, // upgrade order: 0 current, 1 offense (laser/gun dmg first), 2 tank (armor/plating/nanites), 3 gun, 4 sensors+gyros first
+  upSet: 0, // upgrade order: 0 current, 1 offense (laser/gun dmg first), 2 tank (armor/plating/nanites), 3 gun, 4 sensors+gyros first, 5 probe-astra (gun_mag, plating, gun_damage, armor)
   fBoost: 0, // in a fight, boost-strafe while energy is above this (0 = off)
   noRetAll: 0, // 1 = never retreat from mechs in sight, whatever their number
   cubeGoal: 0, // the rush ends early once we hold this many cubes (0 = off)
@@ -150,6 +152,8 @@ export const P = {
   lasLock: 0, // laserFirst: with a laser goal inside this many m, the run comes before every fight and retreat (0 = off)
   lasLockHit: 70, // ...but once a mech hit us in the last 2 s, only while the laser is inside this many m
   lasBoost: 0, // ...and boost to the laser while energy is above this (0 = off)
+  farmBoost: 0, // walking to loot or exploring with no mech in sight within 150 m: boost while energy is above this, down to 15 (0 = off)
+  farmBoostUntil: 420, // ...until this match time
   focusLow: 0, // in a fight, switch to a mech in sight this much lower in HP share (0 = off)
 }
 // Free-for-all profile (qualifying and the final): the survival-first settings of the first two submissions.
@@ -161,10 +165,10 @@ export const P_FFA = {
   guard: 0, guardArc: 0.25, guardFire: 0.25, sqzAt: 0, sqzAway: 0, sqzHp: 0, lootHold: 0, lootHoldRe: 0, weave: 0, weaveAll: 0, cubeRun: 0,
   rushUntil: 0, gunMax: 0, lateAt: 0, lateFin: 0.35, lateHeal: 0, lateCore: 0,
   fBoost: 0, noRetAll: 0, cubeGoal: 0, seekUntil: 0, rearBonus: 15, dropAll: 0, focusLow: 0, lasLock: 0, lasBoost: 0,
-  upSet: 0, chaseHp: 0.4, chaseMyHp: 0.55, chaseS: 7,
+  upSet: 0, chaseHp: 0.4, chaseMyHp: 0.55, chaseS: 7, farmBoost: 0,
 }
 Object.assign(P, {"laserFirst":90,"noRetreat":true,"cubeRun":130,"rushUntil":120,"ffaN":3,"lateAt":330,"lateFin":1.01,"lateCore":40}) // baked by sim/train/train.mjs from sim/train/cand/late.mjs
-Object.assign(P, {"huntFrom":90,"huntUntil":420,"seekUntil":420,"noRetreat":false}) // t18a-retreat: t13 + retreat rules back on for 1-2 attackers too (out-traded, or hit by two: break off and regenerate) (sim/variants/rad4.mjs)
+Object.assign(P, {"huntFrom":90,"huntUntil":420,"seekUntil":420,"farmBoost":30,"rushVeto":1}) // t20b: t20a + during the rush (to 120 s; hunting starts at 90 s) start no fight with a mech beyond 70 m that has not hit us (sim/variants/rad5.mjs)
 if (typeof process !== "undefined" && process.env && process.env.FM_P) Object.assign(P, JSON.parse(process.env.FM_P))
 if (typeof process !== "undefined" && process.env && process.env.FM_PFFA) Object.assign(P_FFA, JSON.parse(process.env.FM_PFFA))
 if (P.preferZap) {
@@ -768,6 +772,14 @@ export class Brain {
   huntOk() {
     if (!(P.huntFrom > 0 || P.huntCubes > 0)) return true
     return (P.huntFrom > 0 && this.t >= P.huntFrom) || (P.huntCubes > 0 && (this.me.cubes || 0) >= P.huntCubes)
+  }
+  /** farmBoost: boost on the way to loot / while exploring (hysteresis on energy; never with a mech in sight within 150 m) */
+  fbGo() {
+    if (!(P.farmBoost > 0) || this.t >= P.farmBoostUntil || this.charging) return false
+    if (this.vis.some((e) => e.los && e.dist < 150)) return (this.fbFarm = false)
+    if (this.me.energy > P.farmBoost) this.fbFarm = true
+    else if (this.me.energy < 15) this.fbFarm = false
+    return !!this.fbFarm
   }
   /** rush: is the early cube rush on this tick (P.rushUntil)? */
   rushOn() {
@@ -1733,7 +1745,7 @@ export class Brain {
       this.doHold(A)
       return
     }
-    if (this.moveToPoint(A, this.exploreGoal[0], this.exploreGoal[1], undefined, 1, false)) vis.set(this.exploreGoal[2], t)
+    if (this.moveToPoint(A, this.exploreGoal[0], this.exploreGoal[1], undefined, 1, this.fbGo())) vis.set(this.exploreGoal[2], t)
     this.scan(A, null)
   }
 
@@ -2174,7 +2186,7 @@ export class Brain {
       const los = !this.w || this.w.ray(x, y, z + this.muzH, tgt.pos[0], tgt.pos[1], tz, 2) >= 1
       const want = L.type === "crate" ? (P.rushUntil > 0 && this.rushOn() ? 90 : 38) : 72
       if (!los || d > want + 8) {
-        if (!this.moveToPoint(A, tgt.pos[0], tgt.pos[1], tgt.pos[2], 1, false) && this.pathPartial && this.path && this.path.length < 5) fail()
+        if (!this.moveToPoint(A, tgt.pos[0], tgt.pos[1], tgt.pos[2], 1, this.fbGo()) && this.pathPartial && this.path && this.path.length < 5) fail()
       } else if (L.type === "npc") {
         // keep the drone at arm's length and sidestep its slow bullets
         const ux = (tgt.pos[0] - x) / (d || 1),
@@ -2217,7 +2229,7 @@ export class Brain {
         if (L.type === "cube") this.cubes.delete(L.id)
       }
     } else this.lootStuck = 0
-    const arrived = this.moveToPoint(A, L.pos[0], L.pos[1], L.pos[2], 1, P.lasBoost > 0 && L.kind === "laser" && !this.laser && this.me.energy > P.lasBoost)
+    const arrived = this.moveToPoint(A, L.pos[0], L.pos[1], L.pos[2], 1, (P.lasBoost > 0 && L.kind === "laser" && !this.laser && this.me.energy > P.lasBoost) || this.fbGo())
     if (!arrived && this.pathPartial && this.path && this.path.length < 5) fail()
     if (P.rushUntil > 0 && this.rushOn() && this.w && !this.vis.some((e) => e.los && e.dist < 170)) {
       // rush: shoot the nearest crate in view on the way (not with a mech in sight: we would turn our back to it) (it does not move; the cubes wait for us)

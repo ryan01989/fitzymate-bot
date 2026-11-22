@@ -267,5 +267,12 @@
   "real": 4.98,
   "pred": "none (sim cannot rank); my estimate -0.1 to +0.3",
   "note": "t13 + noRetAll 1. -0.4 vs t13 (5.40): retreating from 3+ attackers keeps the bot alive for later kills. Dead."
+ },
+ {
+  "name": "t18a-retreat",
+  "file": "sim/variants/t18a-retreat.mjs",
+  "real": 5.27,
+  "pred": "my estimate -0.2 to +0.4",
+  "note": "t13 + noRetreat false. Tie with t13 (5.40): retreating from 1-2 attackers is neutral."
  }
 ]
