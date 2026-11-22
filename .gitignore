@@ -4,3 +4,4 @@ node_modules
 sim/agent*/**/*.json
 sim/agent*/**/*.jsonl
 sim/agent*/**/*.json.gz
+sim/train/cache.jsonl
