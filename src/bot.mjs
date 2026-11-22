@@ -161,6 +161,9 @@ export const P = {
   lasLock: 0, // laserFirst: with a laser goal inside this many m, the run comes before every fight and retreat (0 = off)
   lasLockHit: 70, // ...but once a mech hit us in the last 2 s, only while the laser is inside this many m
   lasBoost: 0, // ...and boost to the laser while energy is above this (0 = off)
+  lasAll: 0, // gb2-laserall: from P.laserFirst on, without a laser: a known reachable ground laser within this many m is loot worth lasAllV (still under the calm / HP / 110 m-from-a-mech loot gates) and becomes the laser goal (0 = off)
+  lasAllV: 200, // ...its loot value (ordinary laser loot is 140 within 300 m)
+  lasAllRun: 0, // ...and with that laser goal inside this many m, start no new fight (hunt) with a mech beyond 60 m that is not shooting us; answering a mech that hits us is unchanged (0 = off)
   farmBoost: 0, // walking to loot or exploring with no mech in sight within 150 m: boost while energy is above this, down to 15 (0 = off)
   farmBoostUntil: 420, // ...until this match time
   // --- lessons from a stronger bot's play style (new-idea.md), built in our own terms
@@ -200,7 +203,7 @@ export const P_FFA = {
   farmHard: false, huntUntil: 0, calmAfter: 0, laserFirst: 0, laserInit: 0, laserInitUntil: 0, lootFix: 0, laserRoof: 0, lasHop: 0, laserRun: 0, laserAway: 0, oneFront: 0,
   guard: 0, guardArc: 0.25, guardFire: 0.25, sqzAt: 0, sqzAway: 0, sqzHp: 0, lootHold: 0, lootHoldRe: 0, weave: 0, weaveAll: 0, cubeRun: 0,
   rushUntil: 0, gunMax: 0, lateAt: 0, lateFin: 0.35, lateHeal: 0, lateCore: 0,
-  fBoost: 0, noRetAll: 0, cubeGoal: 0, seekUntil: 0, rearBonus: 15, dropAll: 0, focusLow: 0, lasLock: 0, lasBoost: 0,
+  fBoost: 0, noRetAll: 0, cubeGoal: 0, seekUntil: 0, rearBonus: 15, dropAll: 0, focusLow: 0, lasLock: 0, lasBoost: 0, lasAll: 0, lasAllRun: 0,
   upSet: 0, chaseHp: 0.4, chaseMyHp: 0.55, chaseS: 7, farmBoost: 0, lethalRelease: 0, fightCube: 0, finishRange: 0, noChase: 0, fightHide: 0, noExplore: 0, cautR: 0, endRush: 0, fightPick: 0, fightCubeCap: 0,
   firstShot: 0, shortRetreat: 0, retarget: 0, // gd-policy lessons: practice only
 }
@@ -212,7 +215,7 @@ Object.assign(P, {"lasHop":14,"laserRoof":30}) // l01-hop: t36 + laser scout hop
 // l06-fixes: l01-hop + the two a01 fixes (fixLootReach 2.5, fixTreeSoft 4; a01 on t36 scored 5.65)
 Object.assign(P, {"upSet":7}) // l07-stack: l06 + upgrade order with gun_mag second (l03 on l01 scored 5.69)
 Object.assign(P, {"upSet":8}) // w03-upgd: l07 + upgrade order 8 (gun_damage before nanites, servos down; sim/agentW2)
-Object.assign(P, {"seekUntil":0}) // gb5-noseek: w03 + no walking toward the last seen mech when idle (huntFrom 90 hunting of mechs in sight kept); ref never chases out of sight in squad mode
+Object.assign(P, {"lasAll":150,"lasAllV":200,"lasAllRun":100}) // gb6-laser150: gb2-laserall tightened after review: after 90 s a known laser within 150 m (not 240) is a top loot goal and, inside 100 m, holds off new hunts of far mechs not shooting us; the opening laser-goal hunt veto no longer fires on these after-90 s goals
 if (typeof process !== "undefined" && process.env && process.env.FM_P) Object.assign(P, JSON.parse(process.env.FM_P))
 if (typeof process !== "undefined" && process.env && process.env.FM_PFFA) Object.assign(P_FFA, JSON.parse(process.env.FM_PFFA))
 if (P.preferZap) {
@@ -908,7 +911,8 @@ export class Brain {
     if (e.hpS < P.finishHp && hpS > P.finishMyHp) return true
     // opening: a laser is a few seconds away and this mech is not on top of us yet -> pick it up first (see pickLoot)
     const lg = this.lasGoal
-    if (!defending && lg && this.t - lg.t < 0.3 && ((lg.d < 70 && e.dist > lg.d + 40) || (lg.d < P.laserRun && e.dist > 60))) return false
+    if (!defending && lg && !lg.all && this.t - lg.t < 0.3 && ((lg.d < 70 && e.dist > lg.d + 40) || (lg.d < P.laserRun && e.dist > 60))) return false
+    if (!defending && P.lasAllRun > 0 && lg && lg.all && this.t - lg.t < 0.3 && lg.d < P.lasAllRun && e.dist > 60 && this.t - this.lastMechDmgT > 2 && !(e.hpS < P.finishHp)) return false // lasAll
     // --- firstShot (lesson A): a mech coming for us has already started this fight; declining only hands it the first shot
     if (!defending && P.firstShot > 0 && this.firstShotOk(e)) return true
     // --- end firstShot
@@ -2455,7 +2459,7 @@ export class Brain {
       if (P.preferZap) {
         if (p.kind === "lightning" && !this.lightning) consider("pick", p, 140, 300)
         else if (p.kind === "laser" && !slot1) consider("pick", p, 60, 130)
-      } else if (p.kind === "laser" && !this.laser) consider("pick", p, 140, 300)
+      } else if (p.kind === "laser" && !this.laser) consider("pick", p, P.lasAll > 0 && t >= P.laserFirst && hyp(p.pos[0] - x, p.pos[1] - y) < P.lasAll ? P.lasAllV : 140, 300)
       else if (p.kind === "lightning" && !slot1) consider("pick", p, 60, 130)
       else if (p.kind === "gun" && !this.gun) consider("pick", p, 120, 250)
     }
@@ -2476,6 +2480,7 @@ export class Brain {
           for (const n of this.npcs.values()) if (t - n.t < (farming ? 6 : 2)) consider("npc", n, farming ? 80 : 44, 120 * reach)
       }
     }
+    if (P.lasAll > 0 && t >= P.laserFirst && !this.laser) this.lasGoal = best && best.type === "pick" && best.kind === "laser" && hyp(best.pos[0] - x, best.pos[1] - y) < P.lasAll ? { d: hyp(best.pos[0] - x, best.pos[1] - y), t, all: 1 } : null
     return best
   }
 
