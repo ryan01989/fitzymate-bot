@@ -117,6 +117,16 @@ export const P = {
   cubeRunS: 20, // ...and for at most this many s after the kill
   // --- sim/train/cand/rush.mjs: early cube rush
   rushUntil: 0, // until this match time crates / drones / cubes come first: a mech in view no longer calls farming off, fights start only with a mech that hit us in the last rushHit s, is inside rushNear m or is nearly dead, a fight gone quiet ends, crates are shot from range (gun + laser), also while walking to cubes (0 = off)
+  // --- rollout fight movement: project candidate moves 0.8 s ahead and score where they leave us
+  mpc: 0, // 1 = on (replaces the fight step picker)
+  mpcExpo: 0.06, // cost per point of threat damage-per-second we would stand in the sight line of (mid and end of the rollout)
+  mpcRange: 1.0, // reward per m the rollout brings us toward the preferred range band
+  mpcLos: 10, // bonus for ending in sight of our target with a weapon ready
+  mpcLead: 6, // cost per m inside the hit radius of where a shooter leading on our current velocity would aim
+  mpcJuke: 4, // bonus for moving across the line of a gun aimed at us (side flips every 0.35-0.95 s)
+  // --- calm sweep: turn the torso through a full circle now and then to spot mechs and loot outside the view wedge
+  sweepS: 0, // seconds between sweeps while calm (0 = off)
+  sweepNoLaser: 0, // ...this often instead while we hold no laser (0 = same as sweepS)
   rushNear: 70, // ...a mech in sight this close still calls the rush off / may be fought
   rushHit: 4, // ...and so does being hit by a mech in the last this many s
   rushVeto: 0, // ...1 = also start no fight with a mech beyond rushNear that has not hit us for rushHit s (unless nearly dead), and end such a fight gone quiet (0 = fights as usual)
@@ -128,7 +138,7 @@ export const P_FFA = {
   healBelow: 0, killLoot: false, dropHeal: false, fightRange: 0, bandRange: 14, noRetreat: false, berserk: false, zapRange: 0,
   farmHard: false, huntUntil: 0, calmAfter: 0, laserFirst: 0, laserInit: 0, laserInitUntil: 0, lootFix: 0, laserRoof: 0, laserRun: 0, laserAway: 0, oneFront: 0,
   guard: 0, guardArc: 0.25, guardFire: 0.25, sqzAt: 0, sqzAway: 0, sqzHp: 0, lootHold: 0, lootHoldRe: 0, weave: 0, weaveAll: 0, cubeRun: 0,
-  rushUntil: 0,
+  rushUntil: 0, mpc: 0, sweepS: 0,
 }
 Object.assign(P, {"laserFirst":90,"noRetreat":true,"cubeRun":130,"rushUntil":120}) // baked by sim/train/train.mjs from sim/train/cand/rush.mjs
 if (typeof process !== "undefined" && process.env && process.env.FM_P) Object.assign(P, JSON.parse(process.env.FM_P))
@@ -343,6 +353,7 @@ export class Brain {
     this.dodgeShells(A)
     this.unstick(A)
     this.doAimFire(A)
+    this.sweep(A)
     this.doTake(A)
     this.prof.modeMs = +(T3 - T2).toFixed(1)
     this.prof.tail = +(now() - T3).toFixed(1)
@@ -1683,6 +1694,10 @@ export class Brain {
     if (this.finalPhase) pr = Math.min(pr, 45)
     const maxR = (this.gun?.stats?.range || 230) - 30
     pr = Math.min(pr, maxR)
+    if (P.mpc > 0) {
+      this.mpcMove(A, e, pr)
+      return
+    }
     let radial = clamp((d - pr) / P.bandRange, -1, 1)
     if (e.hpS < 0.3 && this.hpS > 0.4 && d > 60) radial = Math.max(radial, 0.5)
     if (t > this.strafeFlipT) {
@@ -1779,6 +1794,177 @@ export class Brain {
     if (this.pathGoal !== this.duckSpot.node || !this.path) this.setPath(this.duckSpot.path, this.duckSpot.node)
     if (this.follow(A, 1, false)) A.move = [0, 0]
     return true
+  }
+
+  /** where an accel-limited move toward velocity (dir * sp) leaves us after T s (x, y only) */
+  rollPos(dir, sp, T) {
+    const me = this.me
+    const acc = me.stats?.ground_accel || 58.5
+    const tvx = dir[0] * sp,
+      tvy = dir[1] * sp
+    const dvx = tvx - me.vel[0],
+      dvy = tvy - me.vel[1]
+    const dv = hyp(dvx, dvy)
+    const t1 = dv / acc
+    const [x, y] = me.pos
+    if (T <= t1 && dv > 1e-6) return [x + me.vel[0] * T + ((0.5 * dvx) / dv) * acc * T * T, y + me.vel[1] * T + ((0.5 * dvy) / dv) * acc * T * T]
+    return [x + me.vel[0] * t1 + 0.5 * dvx * t1 + tvx * (T - t1), y + me.vel[1] * t1 + 0.5 * dvy * t1 + tvy * (T - t1)]
+  }
+  /** rough damage per second a mech can put on us from distance d */
+  threatDps(q, d) {
+    let dps = 0
+    if (d < 230) dps += (45 / 0.24) * clamp(70 / Math.max(d, 1), 0.15, 1) // gun, accuracy falling with range
+    if (q.has("laser") && d < 280) dps += 315 / 2.4
+    if (q.has("lightning") && d < 47) dps += 60 / 0.25
+    return dps * (1 + 0.04 * Math.min(q.cubes || 0, 10))
+  }
+  /**
+   * P.mpc: rollout fight movement. Candidates: stand, 16 walk headings, 8 boost headings (with energy). Each is projected 0.4 and
+   * 0.8 s ahead (accel-limited) and scored on: progress into the range band, bullets in the air, standing where a shooter leading
+   * on our present velocity aims, sight lines from every threat (weighted by its damage and how well it is aimed at us; the target
+   * counts less while we can shoot back, and seeing it at the end is a plus), a charging laser on us, the zone, a juke across an
+   * aimed gun, smoothness, and boost energy.
+   */
+  mpcMove(A, e, pr) {
+    const t = this.t
+    const me = this.me
+    const w = this.w
+    const [x, y, z] = me.pos
+    const H = 0.8
+    const walkSp = this.walk * (this.charging ? 0.5 : 1)
+    const boostSp = (me.stats?.boost_speed || 19.5) * (this.charging ? 0.5 : 1)
+    const canBoost = me.grounded && me.energy > 25 && !this.charging
+    const band = P.bandRange * 0.5
+    const R = this.R
+    const ex = e.pos[0],
+      ey = e.pos[1]
+    const err = (px, py) => Math.max(0, Math.abs(hyp(ex - px, ey - py) - pr) - band)
+    const e0 = err(x, y)
+    // threats: mechs seen lately within 240 m
+    const threats = []
+    for (const q of this.en.values()) {
+      if (q.phantom || t - q.t > 2.5 || q.dist > 240) continue
+      const bear = Math.atan2(y - q.pos[1], x - q.pos[0])
+      const aimErr = Math.abs(angNorm(q.aim[0] - bear))
+      threats.push({ q, eye: [q.pos[0], q.pos[1], q.pos[2] + 8], al: clamp(1 - aimErr, 0, 1), aimed: aimErr < 0.35, isT: q === e })
+    }
+    const armed = (this.gun && this.gun.ammo > 0 && !(this.gun.reload > 0)) || (this.laser && ((this.laser.cooldown || 0) < 0.5 || this.charging))
+    // juke axis: across the nearest gun aimed at us from beyond 30 m
+    let juke = null
+    for (const th of threats)
+      if (th.aimed && th.q.dist > 30 && th.q.los) {
+        const ux = (x - th.q.pos[0]) / (th.q.dist || 1),
+          uy = (y - th.q.pos[1]) / (th.q.dist || 1)
+        juke = [-uy, ux]
+        break
+      }
+    if (t > (this.jukeT ?? -1)) {
+      this.jukeSide = -(this.jukeSide || 1)
+      this.jukeT = t + 0.35 + this.rand() * 0.6
+    }
+    const need = R + 1.3
+    const last = this.mpcLast || [0, 0]
+    const cands = [[0, 0, 0, false]]
+    const a0 = Math.atan2(ey - y, ex - x)
+    for (let k = 0; k < 16; k++) {
+      const a = a0 + (k / 16) * TAU
+      cands.push([Math.cos(a), Math.sin(a), walkSp, false])
+    }
+    if (canBoost)
+      for (let k = 0; k < 8; k++) {
+        const a = a0 + ((k + 0.5) / 8) * TAU
+        cands.push([Math.cos(a), Math.sin(a), boostSp, true])
+      }
+    const zc = this.o.zone
+    const scored = []
+    for (const c of cands) {
+      const dir = [c[0], c[1]],
+        sp = c[2]
+      const mid = sp ? this.rollPos(dir, sp, H / 2) : [x + me.vel[0] * 0.1, y + me.vel[1] * 0.1]
+      const end = sp ? this.rollPos(dir, sp, H) : [x + me.vel[0] * 0.12, y + me.vel[1] * 0.12]
+      if (sp && w && !w.walkLine(x, y, z, end[0], end[1], this.reqR - 0.3, this.Hh)) continue
+      let s = P.mpcRange * (e0 - err(end[0], end[1]))
+      s += 3 * (c[0] * last[0] + c[1] * last[1])
+      const miss = Math.min(this.missDist(dir, sp || 0.01), need)
+      s -= 12 * (need - miss)
+      if (c[3]) s -= 2
+      if (hyp(end[0] - zc.center[0], end[1] - zc.center[1]) > zc.radius - 4) s -= 100
+      if (juke && sp) s += P.mpcJuke * this.jukeSide * (c[0] * juke[0] + c[1] * juke[1]) * Math.min(1.3, sp / this.walk)
+      if (!sp && t - this.lastMechDmgT < 1.5) s -= P.mpcJuke
+      // anti-lead: a shooter leading on our present velocity aims at pos + vel * tof
+      for (const th of threats) {
+        if (!th.aimed || !th.q.los) continue
+        const tof = th.q.dist / 252 + 0.1
+        if (tof > 1.6) continue
+        const ax = x + me.vel[0] * tof,
+          ay = y + me.vel[1] * tof
+        const at = sp ? this.rollPos(dir, sp, tof) : [x, y]
+        const sep = hyp(at[0] - ax, at[1] - ay)
+        if (sep < R + 1.5) s -= P.mpcLead * (R + 1.5 - sep)
+      }
+      scored.push({ c, mid, end, s })
+    }
+    if (!scored.length) return
+    // exposure pass on the most promising candidates first, while time allows
+    scored.sort((a, b) => b.s - a.s)
+    const cz = z + this.Hh * 0.5
+    for (let i = 0; i < scored.length; i++) {
+      const sc = scored[i]
+      if (i > 8 && now() > this.deadline - 6) break
+      for (const th of threats) {
+        let ex2 = 0,
+          losEnd = false
+        for (let j = 0; j < 2; j++) {
+          const pt = j ? sc.end : sc.mid
+          const los = w ? w.los(th.eye[0], th.eye[1], th.eye[2], pt[0], pt[1], cz) : th.q.los
+          if (j) losEnd = los
+          if (los) ex2 += 0.5 * this.threatDps(th.q, hyp(pt[0] - th.eye[0], pt[1] - th.eye[1])) * (0.4 + 0.6 * th.al)
+        }
+        sc.s -= P.mpcExpo * (th.isT && armed ? 0.35 : 1) * ex2 * H
+        if (th.isT && armed && losEnd) sc.s += P.mpcLos
+        if (th.q.charging && th.aimed && losEnd) sc.s -= 40
+      }
+      sc.done = true
+    }
+    let best = null
+    for (const sc of scored) if (sc.done && (!best || sc.s > best.s)) best = sc
+    if (!best) best = scored[0]
+    A.move = [best.c[0], best.c[1]]
+    if (best.c[3]) A.boost = true
+    this.mpcLast = A.move
+  }
+
+  /** P.sweepS: while calm, turn the torso through a full circle every so often (the view is a 120 deg wedge) */
+  sweep(A) {
+    if (!(P.sweepS > 0)) return
+    const t = this.t
+    const me = this.me
+    const calm = t - this.lastMechDmgT > 3 && !this.vis.some((q) => q.los && q.dist < 200) && (this.mode === "hold" || this.mode === "loot" || this.mode === "explore" || this.mode === "zone")
+    const busy = A.fire[0] || A.fire[1] || this.charging
+    const sw = this.sweepSt || (this.sweepSt = { on: false, acc: 0, yaw: 0, last: -99 })
+    if (sw.on) {
+      if (!calm || busy) {
+        sw.on = false
+        return
+      }
+      sw.acc += Math.abs(angNorm(me.aim[0] - sw.yaw))
+      sw.yaw = me.aim[0]
+      if (sw.acc >= TAU - 0.4) {
+        sw.on = false
+        sw.last = t
+        return
+      }
+      A.aim = [me.aim[0] + 1.5, 0]
+      return
+    }
+    const every = !this.laser && P.sweepNoLaser > 0 ? P.sweepNoLaser : P.sweepS
+    if (calm && !busy && t - sw.last > every) {
+      sw.on = true
+      sw.acc = 0
+      sw.yaw = me.aim[0]
+      sw.last = t
+      A.aim = [me.aim[0] + 1.5, 0]
+    }
   }
 
   /** smallest miss distance of visible incoming bullets if we steer along mv (accel-limited) */

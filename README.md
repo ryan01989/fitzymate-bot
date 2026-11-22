@@ -49,7 +49,7 @@ The rules come from the team's showdown analysis (placement only; most deaths ar
 
 ## Tuning
 
-`P` in `src/bot.mjs`: `hideHp`, `resumeHp`, `initHpLow`, `initAdv`, `vetoAdv`, `vetoCubes`, `crowd`, `openingS`, `farm`, `calmS`, `zoneMarginFrac`, `silentNear`. Set `farm: false` for a purely passive bot.
+`P` in `src/bot.mjs`: `hideHp`, `resumeHp`, `initHpLow`, `initAdv`, `vetoAdv`, `vetoCubes`, `crowd`, `openingS`, `farm`, `calmS`, `zoneMarginFrac`, `silentNear`, `mpc` (rollout fight movement: 16 walk and 8 boost headings projected 0.8 s ahead, scored on range, bullets in the air, standing where a leading shooter aims, sight lines from every threat, a charging laser on us, the zone, and a juke across an aimed gun), `sweepS` / `sweepNoLaser` (while calm, turn the torso through a full circle every so many seconds to spot mechs and loot outside the view wedge). Set `farm: false` for a purely passive bot.
 
 ## Local simulator
 
