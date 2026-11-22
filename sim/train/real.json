@@ -336,5 +336,12 @@
   "file": "sim/variants/t30-endrush.mjs",
   "real": 5.05,
   "note": "new scoring. t13 + endRush 225 (never retreat, weakest target from 225 s). -0.23: retreating still earns points in 225-240 s."
+ },
+ {
+  "name": "t31-stack",
+  "file": "sim/variants/t31-stack.mjs",
+  "real": 5.5,
+  "pred": "my odds: 45% to beat 5.42",
+  "note": "new scoring. t22b-fightcube + weave 0.6 / weaveAll 1 + cubeHit 1 + upSet 6 (nanites third). NEW BEST: +0.08 on t22b (5.42), +0.22 on t13 (5.28)."
  }
 ]
