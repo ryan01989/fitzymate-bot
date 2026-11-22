@@ -87,15 +87,21 @@ export const P = {
   laserFirst: 0, // until this match time, without a laser: a known laser we reach before any mech is the first objective, ahead of farming and of starting a fight (0 = off)
   laserInit: 0, // holding a laser against a mech in sight that has none: take the first shot inside this range in m (0 = off)
   laserInitUntil: 0, // ...only until this match time (0 = the whole match)
+  // --- sim/train/cand/lootfix.mjs
+  lootFix: 0, // 1 = drop the kill-loot spot once the path to it has ended, it proved unreachable, or we stood still for 2 s on the way (0 = off: keep returning to it for 30 s)
+  // --- sim/train/cand/laser2.mjs
+  laserRoof: 0, // laserFirst also runs to a laser on a roof (off the walk graph) when it lies at most this many m above our feet and a jet route to it exists (0 = off: roof lasers are skipped)
+  // --- sim/train/cand/early.mjs
+  oneFront: 0, // never open a second front: a mech that has not hit us for this many s (and is not our fight target, and not under finishHp) is not shot at while retreating / recovering, is not picked as the cornered target, and makes us hold fire while it stands in our line of fire (0 = off)
 }
 // Free-for-all profile (qualifying and the final): the survival-first settings of the first two submissions.
 // Applied once, the moment the bot sees mechs dying that it did not kill (see ingest()).
 export const P_FFA = {
   hideHp: 0.4, resumeHp: 0.8, initHpLow: 0.75, initAdv: 0.2, vetoAdv: -0.12, vetoCubes: -5, crowd: 90, openingS: 45, calmS: 4,
   healBelow: 0, killLoot: false, dropHeal: false, fightRange: 0, bandRange: 14, noRetreat: false, berserk: false, zapRange: 0,
-  farmHard: false, huntUntil: 0, calmAfter: 0, laserFirst: 0, laserInit: 0, laserInitUntil: 0,
+  farmHard: false, huntUntil: 0, calmAfter: 0, laserFirst: 0, laserInit: 0, laserInitUntil: 0, lootFix: 0, laserRoof: 0, oneFront: 0,
 }
-Object.assign(P, {"laserFirst":90}) // baked by sim/train/train.mjs from sim/train/cand/opening.mjs
+Object.assign(P, {"laserFirst":90,"oneFront":20}) // baked by sim/train/train.mjs from sim/train/cand/early.mjs
 if (typeof process !== "undefined" && process.env && process.env.FM_P) Object.assign(P, JSON.parse(process.env.FM_P))
 if (typeof process !== "undefined" && process.env && process.env.FM_PFFA) Object.assign(P_FFA, JSON.parse(process.env.FM_PFFA))
 if (P.preferZap) {
@@ -620,6 +626,10 @@ export class Brain {
     const b = Math.atan2(y - e.pos[1], x - e.pos[0])
     return Math.abs(angNorm(e.aim[0] - b)) > PI / 2
   }
+  /** oneFront: e is leaving us alone - it has not hit us for P.oneFront s, is not the mech we are fighting and is not nearly dead */
+  neutral(e) {
+    return this.t - e.hitMeT >= P.oneFront && !(this.mode === "fight" && e.id === this.targetId) && e.hpS >= P.finishHp
+  }
   wantFight(e, defending) {
     const me = this.me
     const hpS = this.hpS
@@ -701,7 +711,8 @@ export class Brain {
     }
     if (t < (this.corneredUntil ?? -99) && atk.length <= 2) {
       let best = target && target.los ? target : null
-      if (!best) for (const e of losE) if (e.dist < 220 && (!best || e.hp < best.hp)) best = e
+      // oneFront: turn on a mech that is shooting us, never on a bystander
+      if (!best) for (const e of losE) if (e.dist < 220 && (!best || e.hp < best.hp) && !(P.oneFront > 0 && this.neutral(e))) best = e
       if (best) {
         this.setFight(best)
         return
@@ -1712,7 +1723,8 @@ export class Brain {
       for (const p of this.picks.values()) {
         if (p.kind !== "laser") continue
         const d = hyp(p.pos[0] - x, p.pos[1] - y)
-        if (d >= gd || !okPlace(p.pos, d) || !reachableZ(p.pos) || (this.badLoot && this.badLoot.get(p.id) > t)) continue
+        const roof = !reachableZ(p.pos) // laserRoof: not on the walk graph; taken only when roofRoute() finds a jet route (asked last: it can cost a search)
+        if (d >= gd || !okPlace(p.pos, d) || (roof && !(P.laserRoof > 0)) || (this.badLoot && this.badLoot.get(p.id) > t)) continue
         let lost = false
         for (const e of this.en.values()) {
           if (t - e.t > 12) continue
@@ -1720,6 +1732,7 @@ export class Brain {
           if (de < 40 || (de < 110 && de < d)) lost = true
         }
         if (lost) continue
+        if (roof && !this.roofRoute(p)) continue
         gd = d
         goal = p
       }
@@ -1774,6 +1787,27 @@ export class Brain {
       }
     }
     return best
+  }
+
+  /**
+   * laserRoof: can we get to this roof laser? Yes when it lies at most P.laserRoof m above our feet, a mesh node sits under it, and one
+   * path search with jets allowed finds a complete route from where we stand. The answer is kept per laser (yes for 6 s, no for 8 s),
+   * and at most one search runs per tick; in the air, or with a search already spent this tick, the last answer stands.
+   */
+  roofRoute(p) {
+    const w = this.w,
+      t = this.t
+    if (!w || p.pos[2] - this.me.pos[2] > P.laserRoof) return false
+    const c = (this.roofOk ??= new Map()).get(p.id)
+    if (c && t < c.until) return c.ok
+    if (this.myNode < 0 || !this.me.grounded || this.roofT === t) return c ? c.ok : false
+    this.roofT = t
+    const g = w.nearestNode(p.pos[0], p.pos[1], p.pos[2], this.reqR, this.Hh + 0.3, 16) // the node doLoot() will walk to
+    let ok = false
+    if (g >= 0 && Math.abs(w.surf[g] - p.pos[2]) < 2 && hyp(w.nodeX(g) - p.pos[0], w.nodeY(g) - p.pos[1]) < 2.5)
+      ok = !!w.search(this.myNode, g, this.searchOpts({ allowJet: true, noPartial: true, maxExp: 30000 }))
+    this.roofOk.set(p.id, { ok, until: t + (ok ? 6 : 8) })
+    return ok
   }
 
   doLoot(A) {
@@ -1853,6 +1887,22 @@ export class Brain {
     } else this.lootStuck = 0
     const arrived = this.moveToPoint(A, L.pos[0], L.pos[1], L.pos[2], 1, false)
     if (!arrived && this.pathPartial && this.path && this.path.length < 5) fail()
+    if (P.lootFix && L.id === -7 && this.killLoot) {
+      // The kill spot is a guess, not a cube: the nearest mesh node can be more than 1.2 m from it, so the d < 1.2 test above may never pass
+      // and decide() would send us back here every tick for 30 s. Done once the path has ended, the spot was given up as unreachable, or
+      // we have not moved for 2 s. Cubes still lying there are ordinary cube targets for pickLoot().
+      const K = this.killLoot
+      if (K.at === undefined || t - K.seenT > 0.5 || hyp(x - K.at[0], y - K.at[1]) > 1.5) {
+        K.at = [x, y]
+        K.atT = t
+      }
+      K.seenT = t
+      if (arrived || !this.loot || t - K.atT > 2) {
+        this.killLoot = null
+        this.loot = null
+        if (this.badLoot) this.badLoot.delete(-7)
+      }
+    }
     this.scan(A, null)
   }
 
@@ -2073,6 +2123,26 @@ export class Brain {
         const gs = this.slotOf.gun
         const inRange = gunSol.dist < (gun.stats.range ?? 230) - 4
         if (gun.ammo > 0 && !(gun.reload > 0) && inRange && this.onTarget(gunSol, tolR, tolV) && this.clearShot(gunSol, e.R + 1.5)) fire[gs] = true
+      }
+      if (P.oneFront > 0 && !this.charging && (fire[0] || fire[1])) {
+        // do not open a second front: no shots at a bystander on the run, and none through a bystander standing in the line of fire
+        let hold = this.mode !== "fight" && this.neutral(e)
+        if (!hold) {
+          const s0 = gunSol || lasSol
+          const dx = (s0 ? s0.px : e.pos[0]) - me.pos[0],
+            dy = (s0 ? s0.py : e.pos[1]) - me.pos[1],
+            d = hyp(dx, dy) || 1
+          for (const q of this.vis) {
+            if (q === e || !q.los || q.dist >= e.dist || !this.neutral(q)) continue
+            const qx = q.pos[0] - me.pos[0],
+              qy = q.pos[1] - me.pos[1]
+            if (qx * dx + qy * dy > 0 && Math.abs(qx * dy - qy * dx) / d < q.R + 2.5) {
+              hold = true
+              break
+            }
+          }
+        }
+        if (hold) fire[0] = fire[1] = false
       }
       if (sol) A.aim = [sol.yaw, sol.pitch]
     } else if (!this.farmTarget && gun && t - this.lastNpcDmgT < 2.5 && this.pestNpc()) {
