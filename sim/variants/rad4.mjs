@@ -161,6 +161,7 @@ export const P_FFA = {
   guard: 0, guardArc: 0.25, guardFire: 0.25, sqzAt: 0, sqzAway: 0, sqzHp: 0, lootHold: 0, lootHoldRe: 0, weave: 0, weaveAll: 0, cubeRun: 0,
   rushUntil: 0, gunMax: 0, lateAt: 0, lateFin: 0.35, lateHeal: 0, lateCore: 0,
   fBoost: 0, noRetAll: 0, cubeGoal: 0, seekUntil: 0, rearBonus: 15, dropAll: 0, focusLow: 0, lasLock: 0, lasBoost: 0,
+  upSet: 0, chaseHp: 0.4, chaseMyHp: 0.55, chaseS: 7,
 }
 Object.assign(P, {"laserFirst":90,"noRetreat":true,"cubeRun":130,"rushUntil":120,"ffaN":3,"lateAt":330,"lateFin":1.01,"lateCore":40}) // baked by sim/train/train.mjs from sim/train/cand/late.mjs
 if (typeof process !== "undefined" && process.env && process.env.FM_P) Object.assign(P, JSON.parse(process.env.FM_P))

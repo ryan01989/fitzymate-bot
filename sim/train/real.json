@@ -247,5 +247,18 @@
   "real": 5.4,
   "pred": "+0.19 +-0.08 over t11 (sim bot mostly dead before 90 s)",
   "note": "t11 + huntFrom 90, huntUntil 420, seekUntil 420. Best so far by a hair (prev 5.38); within noise of t11, does not hurt."
+ },
+ {
+  "name": "t15-laslock",
+  "file": "sim/variants/t15-laslock.mjs",
+  "real": 4.85,
+  "pred": "+0.51 +-0.15 over t11",
+  "note": "t11 + lasLock 300, lasLockHit 110, lasBoost 30. Sim said +0.51, real is -0.4 to -0.5 vs t11 (5.23/5.38). Running past mechs to the laser costs more than the laser gains: real bystanders evidently shoot. Do not use t16 (contains this)."
+ },
+ {
+  "name": "t12-kite200 (run 2)",
+  "file": "sim/variants/t12-kite200.mjs",
+  "real": 5.38,
+  "note": "rerun; two-run mean 5.295 = same level as t11 (5.23, 5.38) and t13 (5.40). Kiting is neutral."
  }
 ]

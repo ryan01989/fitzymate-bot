@@ -143,6 +143,13 @@ export const P = {
   rearBonus: 15, // target score bonus for a mech facing away from us
   dropAll: 0, // 1 = go for every supply drop (3 cubes + full repair) when nobody is within dropCrowd m of it
   dropCrowd: 70,
+  huntFrom: 0, // huntUntil / seekUntil apply only from this time...
+  huntCubes: 0, // ...or once we hold this many cubes, whichever comes first (0 = no gate)
+  rangeLas: 0, // fight range while holding a laser (0 = fightRange rule)
+  rangeGun: 0, // fight range without a laser (0 = fightRange rule)
+  lasLock: 0, // laserFirst: with a laser goal inside this many m, the run comes before every fight and retreat (0 = off)
+  lasLockHit: 70, // ...but once a mech hit us in the last 2 s, only while the laser is inside this many m
+  lasBoost: 0, // ...and boost to the laser while energy is above this (0 = off)
   focusLow: 0, // in a fight, switch to a mech in sight this much lower in HP share (0 = off)
 }
 // Free-for-all profile (qualifying and the final): the survival-first settings of the first two submissions.
@@ -153,10 +160,11 @@ export const P_FFA = {
   farmHard: false, huntUntil: 0, calmAfter: 0, laserFirst: 0, laserInit: 0, laserInitUntil: 0, lootFix: 0, laserRoof: 0, laserRun: 0, laserAway: 0, oneFront: 0,
   guard: 0, guardArc: 0.25, guardFire: 0.25, sqzAt: 0, sqzAway: 0, sqzHp: 0, lootHold: 0, lootHoldRe: 0, weave: 0, weaveAll: 0, cubeRun: 0,
   rushUntil: 0, gunMax: 0, lateAt: 0, lateFin: 0.35, lateHeal: 0, lateCore: 0,
-  fBoost: 0, noRetAll: 0, cubeGoal: 0, seekUntil: 0, rearBonus: 15, dropAll: 0, focusLow: 0,
+  fBoost: 0, noRetAll: 0, cubeGoal: 0, seekUntil: 0, rearBonus: 15, dropAll: 0, focusLow: 0, lasLock: 0, lasBoost: 0,
+  upSet: 0, chaseHp: 0.4, chaseMyHp: 0.55, chaseS: 7,
 }
 Object.assign(P, {"laserFirst":90,"noRetreat":true,"cubeRun":130,"rushUntil":120,"ffaN":3,"lateAt":330,"lateFin":1.01,"lateCore":40}) // baked by sim/train/train.mjs from sim/train/cand/late.mjs
-Object.assign(P, {"fightRange":200,"fBoost":40}) // t12-kite200: hold the gun's full reach and boost-strafe in fights (sim/variants/rad.mjs)
+Object.assign(P, {"huntFrom":90,"huntUntil":420,"seekUntil":420,"noRetAll":1}) // t17a-laststand: t13 + never retreat from mechs in sight, whatever their number (no dying with our back turned) (sim/variants/rad4.mjs)
 if (typeof process !== "undefined" && process.env && process.env.FM_P) Object.assign(P, JSON.parse(process.env.FM_P))
 if (typeof process !== "undefined" && process.env && process.env.FM_PFFA) Object.assign(P_FFA, JSON.parse(process.env.FM_PFFA))
 if (P.preferZap) {
@@ -717,7 +725,7 @@ export class Brain {
     // opening: a laser is a few seconds away and this mech is not on top of us yet -> pick it up first (see pickLoot)
     const lg = this.lasGoal
     if (!defending && lg && this.t - lg.t < 0.3 && ((lg.d < 70 && e.dist > lg.d + 40) || (lg.d < P.laserRun && e.dist > 60))) return false
-    if (!defending && this.t < P.huntUntil && hpS > 0.6 && e.dist < 200 && e.los) return true
+    if (!defending && this.t < P.huntUntil && this.huntOk() && hpS > 0.6 && e.dist < 200 && e.los) return true
     if (!defending && P.calmAfter > 0 && this.t > P.calmAfter && e.hpS >= 0.35) return false
     if (this.others(e, P.crowd) >= 1) return false
     if (cubeDiff <= P.vetoCubes) return false
@@ -757,6 +765,10 @@ export class Brain {
     return !!(L && L.kind === "laser" && this.lasGoal && this.lasGoal.d < P.laserRun)
   }
 
+  huntOk() {
+    if (!(P.huntFrom > 0 || P.huntCubes > 0)) return true
+    return (P.huntFrom > 0 && this.t >= P.huntFrom) || (P.huntCubes > 0 && (this.me.cubes || 0) >= P.huntCubes)
+  }
   /** rush: is the early cube rush on this tick (P.rushUntil)? */
   rushOn() {
     return P.rushUntil > 0 && this.t < P.rushUntil && !this.finalPhase && !this.sqz && !(P.cubeGoal > 0 && (this.me.cubes || 0) >= P.cubeGoal)
@@ -863,6 +875,16 @@ export class Brain {
     if (this.zoneUrgent && !(this.mode === "fight" && this.inZone && this.zoneSlack > 2)) {
       this.mode = "zone"
       return
+    }
+    // --- lasLock: the opening laser run comes before every fight
+    if (P.lasLock > 0 && t < P.laserFirst && !this.laser && hpS >= 0.45) {
+      const L = this.pickLoot()
+      if (L && L.type === "pick" && L.kind === "laser" && this.lasGoal && this.lasGoal.d < (t - this.lastMechDmgT < 2 ? P.lasLockHit : P.lasLock)) {
+        this.loot = L
+        this.mode = "loot"
+        this.targetId = -1
+        return
+      }
     }
     // --- cubeRun: walk to the cubes our kill dropped, ahead of fights and retreats (see cubeRunNow())
     if (P.cubeRun > 0 && this.kcRun && this.cubeRunNow(target)) {
@@ -1029,7 +1051,7 @@ export class Brain {
       if (held || P.lootHoldRe <= 0 || t - (this.lootOffT ?? -99) <= P.lootHoldRe) this.lootBlockT = t
       if (wasLoot) this.lootOffT = t
     }
-    if (!this.loot && P.seekUntil > 0 && t < P.seekUntil && hpS > P.seekHp && this.zoneSlack > 20) {
+    if (!this.loot && P.seekUntil > 0 && t < P.seekUntil && this.huntOk() && hpS > P.seekHp && this.zoneSlack > 20) {
       let g = null
       for (const e of this.en.values()) if (!e.phantom && t - e.t < 20 && (!g || e.t > g.t)) g = e
       if (g) {
@@ -1741,6 +1763,8 @@ export class Brain {
     this.path = null
     // preferred range by loadout: far enough that bullets can be side-stepped
     let pr = P.fightRange > 0 ? P.fightRange + (this.laser ? 8 : 0) : this.laser ? 112 : 104
+    if (this.laser && P.rangeLas > 0) pr = P.rangeLas
+    if (!this.laser && P.rangeGun > 0) pr = P.rangeGun
     if (this.lightning && !this.laser && (this.hpS - e.hpS > 0.1 || e.hpS < 0.45) && !e.has("lightning")) pr = 34
     if (P.zapRange > 0 && this.lightning && this.me.energy > 22 && !(e.has("lightning") && this.hpS < e.hpS)) pr = P.zapRange
     if (this.finalPhase) pr = Math.min(pr, 45)
@@ -2193,7 +2217,7 @@ export class Brain {
         if (L.type === "cube") this.cubes.delete(L.id)
       }
     } else this.lootStuck = 0
-    const arrived = this.moveToPoint(A, L.pos[0], L.pos[1], L.pos[2], 1, false)
+    const arrived = this.moveToPoint(A, L.pos[0], L.pos[1], L.pos[2], 1, P.lasBoost > 0 && L.kind === "laser" && !this.laser && this.me.energy > P.lasBoost)
     if (!arrived && this.pathPartial && this.path && this.path.length < 5) fail()
     if (P.rushUntil > 0 && this.rushOn() && this.w && !this.vis.some((e) => e.los && e.dist < 170)) {
       // rush: shoot the nearest crate in view on the way (not with a mech in sight: we would turn our back to it) (it does not move; the cubes wait for us)
