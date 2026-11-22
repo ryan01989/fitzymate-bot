@@ -1,0 +1,29 @@
+agentX (explorer), Sun Nov 22 05:05-05:45 ET. Base: sim/variants/t36-fixes.mjs (real 5.81, family ~5.60).
+
+Real-data scripts (python3 <script> ../../mechrec-export-2026-11-21T1927.json, run from repo root paths):
+  shot_origin.py     a real gun bullet leaves from the shooter's position AT THE FIRE TICK (median perp offset 0.006 m;
+                     0.51 m one tick earlier, 1.0 m two ticks earlier). The bot decides on obs tick N and fires on N+1 / N+2.
+  bullet_inherit.py  bullets do not inherit shooter velocity (slope 0.026, n=3,403).
+  shooter_motion.py  hit rate by shooter's own lateral speed (confounded; moving shooters hit more - not usable as evidence).
+  ../agentW/replay_hits.out (earlier agent): gun hit rate on targets by target lateral speed:
+                     100-150 m still 0.43 slow 0.47 walk 0.40 BOOST 0.29 (n=239); 60-100 m 0.73/0.77/0.68/0.60 (n=342);
+                     airborne targets are hit MORE (0.755 vs 0.634) -> hopping is bad.
+  npc_life.py        showdown drones: 74% die before 30 s (median 9.7 s); 4.6 of 12 alive at 60 s, 3.5 at 240 s.
+  cube_scatter.py    death cubes land within 4.7 m of the body 90% of the time (kcRun's 4.5 m cluster is fine).
+  cube_src.py        showdown cubes to 90 s: kills 43%, crates 29%, drones 28%; mean 3.8 cubes at 90 s.
+  upg.py             plating heals the added max HP (122/122).
+Sim instrumentation: instr.mjs (XB=<variant> XOUT=<jsonl> node sim/eval.mjs --brain sim/agentX/instr.mjs ...), isum.py.
+  t36 pack B: 88% of damage taken in fight mode, rear share 12% overall (29% in retreat); findCover null 32%;
+  energy in fights is unused (mean 99 of 100); our lateral speed when firing at a mech: mean 6.4 m/s, 43% of shots > 8 m/s.
+
+Builds (all pass check.py, crash-free pack B n=96 and long pack n=12, worst decision 13-18 ms at --par 2):
+  x01-ownlead.mjs    t36 + fixOwnLead 1: lead() aims from our muzzle position latency s ahead (own vel x 0.075 s).
+                     Bug fix (not reset in P_FFA). Mean bias removed ~0.5 m (0.9 m strafing, 1.5 m boosting). Small.
+  x02-fightboost.mjs x01 + fightBoost 45 / fightBoostMin 20: boost every fight move (also while charging) with energy
+                     hysteresis; missDist scored at boosted speed; not with lightning inside 50 m. Reset in P_FFA.
+                     Fires 45% of fight time; mean fight energy 60.
+  x03-dronemem.mjs   x01 + fixNpcMem 90 / fixNpcMemD 150: drones remembered 90 s at last position, walked to (not shot)
+                     until listed, forgotten when within 36 m with building LOS and unlisted, or when our hits exceed HP.
+                     Sim has no trees, so it barely fires there (0.36 s/match); npcK unchanged in sim.
+Sim paired vs t36 (pack B, frozen clock, n=96, seed 1000): x01 -0.17 +-0.23, x02 +0.61 +-0.28. (Sim overrated kiting.)
+Second seed set (seed 5000, n=96): x01 +0.29 +-0.25, x02 +0.58 +-0.31. Pooled n=192: x01 ~+0.06 (noise), x02 ~+0.60.
