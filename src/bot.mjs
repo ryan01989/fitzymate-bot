@@ -159,6 +159,9 @@ export const P = {
   fightCube: 0, // in a fight, a remembered cube within this many m takes over the legs while we keep shooting; half that below 50% HP (0 = off). 55 m is under 5 s of walking
   finishRange: 0, // in a fight, close to this range on a target under finishHp while we are above finishMyHp and at most 2 mechs are shooting us (0 = off). 55 m: our gun hits 88% inside 60 m and lightning reaches 45 m
   fightHide: 0, // in a fight with other mechs around (seen in the last 3 s, within 170 m): score points taken off a move for each of them that could see us where it leads, and 1.5x that for losing the shot at the target; eight compass moves join the candidates (0 = off). A full bullet dodge is worth about 38 points
+  cautR: 0, // practice: once the next circle is this many m or smaller, switch to the cautious free-for-all profile for the rest of the match (0 = off). 140 m is announced at about 195 s
+  dieAt: 0, // probe: stand idle from this match time, so the score is our kills before it (0 = off)
+  noExplore: 0, // 1 = with nothing to loot, hold a covered spot inside the next circle instead of exploring for more; hunters come to us (0 = off)
   noChase: 0, // 1 = a target out of sight ends the fight after 0.6 s instead of being chased around cover (0 = off)
   focusLow: 0, // in a fight, switch to a mech in sight this much lower in HP share (0 = off)
   // --- sim/variants/gd-policy.mjs: three lessons, rebuilt on our own signals (all off by default; see sim/agentG/NOTES.txt)
@@ -178,11 +181,11 @@ export const P_FFA = {
   guard: 0, guardArc: 0.25, guardFire: 0.25, sqzAt: 0, sqzAway: 0, sqzHp: 0, lootHold: 0, lootHoldRe: 0, weave: 0, weaveAll: 0, cubeRun: 0,
   rushUntil: 0, gunMax: 0, lateAt: 0, lateFin: 0.35, lateHeal: 0, lateCore: 0,
   fBoost: 0, noRetAll: 0, cubeGoal: 0, seekUntil: 0, rearBonus: 15, dropAll: 0, focusLow: 0, lasLock: 0, lasBoost: 0,
-  upSet: 0, chaseHp: 0.4, chaseMyHp: 0.55, chaseS: 7, farmBoost: 0, lethalRelease: 0, fightCube: 0, finishRange: 0, noChase: 0, fightHide: 0,
+  upSet: 0, chaseHp: 0.4, chaseMyHp: 0.55, chaseS: 7, farmBoost: 0, lethalRelease: 0, fightCube: 0, finishRange: 0, noChase: 0, fightHide: 0, noExplore: 0, cautR: 0,
   firstShot: 0, shortRetreat: 0, retarget: 0, // gd-policy lessons: practice only
 }
 Object.assign(P, {"laserFirst":90,"noRetreat":true,"cubeRun":130,"rushUntil":120,"ffaN":3,"lateAt":330,"lateFin":1.01,"lateCore":40}) // baked by sim/train/train.mjs from sim/train/cand/late.mjs
-Object.assign(P, {"huntFrom":90,"huntUntil":420,"seekUntil":420,"lethalRelease":0.75,"fightHide":30,"noChase":1}) // t25-efficiency: t24-combo without the two commitment lessons (firstShot, shortRetreat): lethal partial laser release, fight positions out of sight of the others, no chasing out of sight (sim/variants/rad8.mjs)
+Object.assign(P, {"huntFrom":90,"huntUntil":420,"seekUntil":420,"dieAt":240}) // probe-idle240: t13, standing idle from 240 s: the score is t13's kills before 240 s
 if (typeof process !== "undefined" && process.env && process.env.FM_P) Object.assign(P, JSON.parse(process.env.FM_P))
 if (typeof process !== "undefined" && process.env && process.env.FM_PFFA) Object.assign(P_FFA, JSON.parse(process.env.FM_PFFA))
 if (P.preferZap) {
@@ -363,6 +366,7 @@ export class Brain {
     this.ingest(o)
     const T1 = now()
     const A = { move: [0, 0], boost: false, jump: false, aim: [this.lastAim[0], this.lastAim[1]], fire: [false, false] }
+    if (P.dieAt > 0 && this.t >= P.dieAt) return A
     this.handleOffer(o, A)
     this.zoneInfo()
     this.decide()
@@ -609,6 +613,10 @@ export class Brain {
     // free-for-all or a house squad? In a squad the others never kill each other, so every death
     // other than ours is a kill of ours. Two or more deaths we did not cause means free-for-all.
     const othersDead = (this.cfg.match?.mechs ?? 16) - (o.alive ?? 16) - (this.myKills || 0)
+    if (P.cautR > 0 && !this.ffa && o.zone && o.zone.next_radius <= P.cautR) {
+      this.ffa = true
+      Object.assign(P, P_FFA)
+    }
     if (othersDead >= (P.ffaN || 2) && !this.ffa) {
       this.ffa = true
       if (!(typeof process !== "undefined" && process.env && process.env.FM_NOSWITCH)) Object.assign(P, P_FFA)
@@ -1159,7 +1167,7 @@ export class Brain {
         return
       }
     }
-    this.mode = this.loot ? "loot" : P.farmHard && t < P.farmUntil && !this.sqz && hpS > P.exploreHp && this.zoneSlack > 25 && t - this.lastMechDmgT > 4 ? "explore" : "hold"
+    this.mode = this.loot ? "loot" : !P.noExplore && P.farmHard && t < P.farmUntil && !this.sqz && hpS > P.exploreHp && this.zoneSlack > 25 && t - this.lastMechDmgT > 4 ? "explore" : "hold"
   }
 
   setFight(e) {

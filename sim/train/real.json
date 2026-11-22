@@ -289,16 +289,22 @@
   "note": "organisers rescored with more games: 5.40 -> 5.28. Use 5.28 as the t13 base from here."
  },
  {
-  "name": "t18a-retreat (rescored)",
-  "file": "sim/variants/t18a-retreat.mjs",
-  "real": 5.25,
-  "note": "rescored: 5.27 -> 5.25. Tie with t13 (5.28)."
- },
- {
   "name": "t24-combo",
   "file": "sim/variants/t24-combo.mjs",
   "real": 5.1,
   "pred": "sim: same as t13 within error",
   "note": "t13 + lethalRelease + firstShot + fightHide + shortRetreat(hp 0.6) + noChase. -0.18 vs t13 rescored (5.28): the five lessons together do not help."
+ },
+ {
+  "name": "t22a-lethal",
+  "file": "sim/variants/t22a-lethal.mjs",
+  "real": 5.25,
+  "note": "new scoring. t13 + lethalRelease 0.75. Tie with t13 rescored (5.28). Only three builds have new-scoring results: t13 5.28, t22a 5.25, t24-combo 5.10."
+ },
+ {
+  "name": "t25-efficiency",
+  "file": "sim/variants/t25-efficiency.mjs",
+  "real": 5.2,
+  "note": "new scoring. t13 + lethalRelease + fightHide + noChase. Tie with t13 (5.28)."
  }
 ]
