@@ -8,7 +8,8 @@ A `mechfight/1` bot for the Builders Buildathon Mech Royale track. Plain JavaScr
 | --- | --- |
 | `main.mjs` | Protocol runner: JSON lines on stdin/stdout, newest-observation rule, JIT warm-up before `ready`, fallback if the brain throws. |
 | `src/world.mjs` | Map model built from `/arena`: 1 m collision raster, ray casts (line of sight, shot clearance), two-layer 2 m nav graph (ground + roofs/bridge decks) with jet and drop links, weighted A* and bounded Dijkstra. |
-| `src/bot.mjs` | The brain: memory of mechs/items/sounds, zone planning, fight / retreat / loot / hold decisions, aiming, dodging. Tunables are in `P` at the top. |
+| `src/vanguard.mjs` | The brain `main.mjs` runs: Vanguard, a fight-first brain (below). Settings are in `P` at the top. |
+| `src/bot.mjs` | The earlier brain (memory of mechs/items/sounds, zone planning, fight / retreat / loot / hold decisions, aiming, dodging), kept for the simulator and as the source of the fallback `SimpleBrain`. |
 | `Dockerfile` | Submission image (`node:22.17.1-bookworm-slim`, pinned). |
 | `check/`, `mechfight.schema.json`, `arena/` | Copied from the official kit: conformance check, schema, map. |
 | `sim/` | Local test tools (not in the image): an approximate game simulator, stand-in opponents, match runner. |
@@ -34,7 +35,17 @@ On macOS, Docker Desktop may refuse to mount a folder under `~/Desktop`. Either 
 2. Push, then submit the repository URL on the Mech Royale track page.
 3. Limits: 20 MB at the submitted commit (this folder is about 2 MB), 10-minute build, 4 submissions an hour.
 
-## How it plays
+## How Vanguard plays
+
+- **Who to fight.** Any mech within 60 m, one that hit us in the last 6 s, one closing in within 180 m, one under 40% HP within 160 m, or one aiming at us within 190 m. Among those, prefer the near, the weak, the one already being fought, and the one hurting us.
+- **Where to stand.** Every tick, scores 16 spots 6 m around it (and standing still): distance from the preferred range (110 m with a laser, 90 m with the gun), a sight line to the target only when a weapon is ready (and none while the target charges a laser at us), a penalty for each other mech that could see the spot, and the zone. Closes to about 20 m on a target under 38% HP.
+- **Bullets.** Sidesteps any bullet that will pass within reach in the next 0.7 s, boosting when it has the energy.
+- **Breaking off.** Only while plainly losing (two mechs near and under 55% HP, three and under 80%, or under 35% against a healthier target), and only for a short pulse; otherwise it stays in the fight.
+- **Weapons.** Laser first: walks up to 240 m to a known laser when calm. Takes a better second weapon within 110 m even mid-fight, and never leaves the second slot empty. Laser: charges to full and releases on target, releases early when the partial shot kills, keeps a charge through a brief loss of sight, and never starts one while running.
+- **Cubes and drops.** Picks up cubes mid-fight within 40 m and up to 120 m when calm, stops at the 10-cube stat cap. Takes supply drops nobody else is near.
+- **Practice or free-for-all.** Mechs dying that it did not kill mean a free-for-all: it then fights only attackers, very close mechs and nearly dead ones.
+
+## How the earlier brain (`src/bot.mjs`) plays
 
 The rules come from the team's showdown analysis (placement only; most deaths are early, to first shots, crossfires and fights started level).
 
@@ -52,6 +63,8 @@ The rules come from the team's showdown analysis (placement only; most deaths ar
 `P` in `src/bot.mjs`: `hideHp`, `resumeHp`, `initHpLow`, `initAdv`, `vetoAdv`, `vetoCubes`, `crowd`, `openingS`, `farm`, `calmS`, `zoneMarginFrac`, `silentNear`. Set `farm: false` for a purely passive bot.
 
 ## Local simulator
+
+Add `--vanguard` to run Vanguard in our seat (practice mode).
 
 ```sh
 node sim/run.mjs --mode practice --n 20 --seed 3   # one of ours vs a 15-bot hunting pack

@@ -2,7 +2,8 @@
 import path from "node:path"
 import { fileURLToPath } from "node:url"
 import { World } from "./src/world.mjs"
-import { Brain, SimpleBrain } from "./src/bot.mjs"
+import { SimpleBrain } from "./src/bot.mjs"
+import { Brain } from "./src/vanguard.mjs"
 
 const HERE = path.dirname(fileURLToPath(import.meta.url))
 const log = (...a) => console.error(...a)
