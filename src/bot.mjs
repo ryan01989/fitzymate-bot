@@ -32,6 +32,8 @@ const WEAPON_RANK = { laser: 3, lightning: 2, gun: 1, mortar: 0 }
 
 // Tunables (see README "Tuning").
 export const P = {
+  ffaN: 2, // free-for-all detection: switch to P_FFA once this many mechs died that we did not kill (practice squads never kill each other)
+  gunMax: 0, // do not fire the gun beyond this many m at a target above 25% HP (0 = off; sim hit rate falls to about 26% past 140 m)
   hideHp: 0.4, // below this HP share: stop trading, go regenerate
   resumeHp: 0.8, // leave cover when back above this
   initHpLow: 0.75, // a target under this HP share is fair game
@@ -128,9 +130,9 @@ export const P_FFA = {
   healBelow: 0, killLoot: false, dropHeal: false, fightRange: 0, bandRange: 14, noRetreat: false, berserk: false, zapRange: 0,
   farmHard: false, huntUntil: 0, calmAfter: 0, laserFirst: 0, laserInit: 0, laserInitUntil: 0, lootFix: 0, laserRoof: 0, laserRun: 0, laserAway: 0, oneFront: 0,
   guard: 0, guardArc: 0.25, guardFire: 0.25, sqzAt: 0, sqzAway: 0, sqzHp: 0, lootHold: 0, lootHoldRe: 0, weave: 0, weaveAll: 0, cubeRun: 0,
-  rushUntil: 0,
+  rushUntil: 0, gunMax: 0,
 }
-Object.assign(P, {"laserFirst":90,"noRetreat":true,"cubeRun":130,"rushUntil":120}) // baked by sim/train/train.mjs from sim/train/cand/rush.mjs
+Object.assign(P, {"laserFirst":90,"noRetreat":true,"cubeRun":130,"rushUntil":150,"ffaN":3}) // baked by sim/train/train.mjs from sim/train/cand/rush2.mjs
 if (typeof process !== "undefined" && process.env && process.env.FM_P) Object.assign(P, JSON.parse(process.env.FM_P))
 if (typeof process !== "undefined" && process.env && process.env.FM_PFFA) Object.assign(P_FFA, JSON.parse(process.env.FM_PFFA))
 if (P.preferZap) {
@@ -550,7 +552,7 @@ export class Brain {
     // free-for-all or a house squad? In a squad the others never kill each other, so every death
     // other than ours is a kill of ours. Two or more deaths we did not cause means free-for-all.
     const othersDead = (this.cfg.match?.mechs ?? 16) - (o.alive ?? 16) - (this.myKills || 0)
-    if (othersDead >= 2 && !this.ffa) {
+    if (othersDead >= (P.ffaN || 2) && !this.ffa) {
       this.ffa = true
       if (!(typeof process !== "undefined" && process.env && process.env.FM_NOSWITCH)) Object.assign(P, P_FFA)
     }
@@ -2387,7 +2389,7 @@ export class Brain {
       }
       if (gun && gunSol) {
         const gs = this.slotOf.gun
-        const inRange = gunSol.dist < (gun.stats.range ?? 230) - 4
+        const inRange = gunSol.dist < (gun.stats.range ?? 230) - 4 && !(P.gunMax > 0 && gunSol.dist > P.gunMax && e.hpS > 0.25)
         if (gun.ammo > 0 && !(gun.reload > 0) && inRange && this.onTarget(gunSol, tolR, tolV) && this.clearShot(gunSol, e.R + 1.5)) fire[gs] = true
       }
       if (P.oneFront > 0 && !this.charging && (fire[0] || fire[1])) {
