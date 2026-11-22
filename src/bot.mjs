@@ -176,9 +176,11 @@ export const P = {
   shortRetreatFire: 1, // ...0 = keep the old retreat aim (diagnostic: the exit rule alone)
   retarget: 0, // lesson C: in a fight, switch to a mech whose start-of-fight score beats the target's by this many points (100 = full HP share) (0 = off)
   retargetHold: 1.5, // ...but only after this many s on the current target, never off a target we are finishing, never past half a laser charge
-  // --- sim/agentW: size-aware fight range (real replays: at 100-120 m a gun hits a 0-2 cube mech with 40% of shots and a 10+ cube mech with 70%; at 60-80 m 78% and 92%)
-  bigRange: 0, // in a fight, the preferred range shrinks by this many m for each cube we hold, up to the stat cap: a bigger mech can no longer side-step bullets at range, so range only costs it its own hits (0 = off)
-  bigRangeMin: 70, // ...but never below this many m (lightning reaches 45 m, 54 m with one range upgrade)
+  // --- sim/agentA2 audit fixes (all off by default; they are bug fixes that apply to free-for-all too, so P_FFA does not reset them)
+  fixTreeMem: 0, // 1 = item memory (_remember): a pickup / crate / cube "in view but not listed" is forgotten only when no tree crown or trunk from v2/world.json is on the sight line (the server hides items behind foliage beyond the 45 m proximity range; world.mjs has no trees, so the bot took "hidden by a tree" for "gone" and dropped known lasers, crates and kill cubes after 0.3 s). Crates we shoot unseen are tracked by our hit events and dropped once dead or not answering hits (0 = off)
+  fixLootGate: 0, // > 0 = judge loot outside the next circle by the zone slack we would have AT THE ITEM (edge-crossing time there, minus the walk to it, minus the walk back in), which must exceed this many s. The old gate (our own zoneSlack > d/walk + 25) changes as we walk: an accepted item fell under the bar a few steps later and passed again on the way back, so loot <-> explore flipped every 0.3 s and the bot stood between the two goals (0 = off; 10 suggested, zone mode takes over under 7)
+  fixBigNav: 0, // 1 = cap the wall clearance we ask of the walk graph at 6.9 m: world.mjs stores wall distance only up to 7 m, so from 33 cubes (radius 6.63 + 0.45) no node qualified, myNode was -1 and every path search failed (0 = off)
+  fixNpcFace: 0, // 1 = hit by a drone we do not see (outside the view wedge) with no mech to shoot and none hitting us for 2.5 s: turn to the bearing of the hit so the drone gets listed and pestNpc() can answer it; its hits restart the 5 s regeneration timer (0 = off)
 }
 // Free-for-all profile (qualifying and the final): the survival-first settings of the first two submissions.
 // Applied once, the moment the bot sees mechs dying that it did not kill (see ingest()).
@@ -191,15 +193,53 @@ export const P_FFA = {
   fBoost: 0, noRetAll: 0, cubeGoal: 0, seekUntil: 0, rearBonus: 15, dropAll: 0, focusLow: 0, lasLock: 0, lasBoost: 0,
   upSet: 0, chaseHp: 0.4, chaseMyHp: 0.55, chaseS: 7, farmBoost: 0, lethalRelease: 0, fightCube: 0, finishRange: 0, noChase: 0, fightHide: 0, noExplore: 0, cautR: 0, endRush: 0, fightPick: 0, fightCubeCap: 0,
   firstShot: 0, shortRetreat: 0, retarget: 0, // gd-policy lessons: practice only
-  bigRange: 0, bigRangeMin: 70, // agentW: practice only
 }
 Object.assign(P, {"laserFirst":90,"noRetreat":true,"cubeRun":130,"rushUntil":120,"ffaN":3,"lateAt":330,"lateFin":1.01,"lateCore":40}) // baked by sim/train/train.mjs from sim/train/cand/late.mjs
-Object.assign(P, {"huntFrom":90,"huntUntil":420,"seekUntil":420,"fightCube":55,"fightPick":70,"weave":0.6,"weaveAll":1,"cubeHit":1,"upSet":6,"bigRange":3.5,"bigRangeMin":70}) // w01-bigrange: t32-stack-pick + the fight range shrinks 3.5 m per cube held (104 -> 70 m with a gun, 112 -> 77 m with a laser at 10 cubes) (sim/agentW/rad8w.mjs)
+Object.assign(P, {"huntFrom":90,"huntUntil":420,"seekUntil":420,"fightCube":55,"fightPick":70,"weave":0.6,"weaveAll":1,"cubeHit":1,"upSet":6}) // t32-stack-pick: t31-stack + in a fight without a laser, walk onto a known ground laser within 70 m (35 m below half HP) while still shooting (sim/variants/rad8.mjs)
+Object.assign(P, {"fixTreeMem":1,"fixLootGate":10,"fixBigNav":1}) // t36-fixes: t32 + three audit fixes: items hidden by tree foliage are no longer forgotten, the loot/explore flip during a zone shrink, navigation above 32 cubes (sim/variants/audit-fix.mjs)
 if (typeof process !== "undefined" && process.env && process.env.FM_P) Object.assign(P, JSON.parse(process.env.FM_P))
 if (typeof process !== "undefined" && process.env && process.env.FM_PFFA) Object.assign(P_FFA, JSON.parse(process.env.FM_PFFA))
 if (P.preferZap) {
   WEAPON_RANK.laser = 2
   WEAPON_RANK.lightning = 3
+}
+
+/**
+ * fixTreeMem: the trees of v2/world.json (world.mjs does not keep them). Returns flat arrays or null. No import statement: the fs module comes
+ * from process.getBuiltinModule (Node 22.3+); any failure just leaves the fix inactive.
+ */
+function loadTrees(hello) {
+  try {
+    const fs = typeof process !== "undefined" && process.getBuiltinModule ? process.getBuiltinModule("node:fs") : null
+    if (!fs) return null
+    const dirs = [hello.map?.dir, "/arena"]
+    try {
+      for (const rel of ["../arena", "../../arena"]) dirs.push(decodeURIComponent(new URL(rel, import.meta.url).pathname))
+    } catch {}
+    for (const d of dirs) {
+      if (!d) continue
+      let wj
+      try {
+        wj = JSON.parse(fs.readFileSync(d + "/v2/world.json", "utf8"))
+      } catch {
+        continue
+      }
+      const T = wj.trees
+      if (!T || !T.fields || !T.data) return null
+      const F = T.fields,
+        NF = F.length,
+        n = (T.data.length / NF) | 0
+      const col = (name, alt) => {
+        let i = F.indexOf(name)
+        if (i < 0 && alt) i = F.indexOf(alt)
+        const out = new Float32Array(n)
+        if (i >= 0) for (let k = 0; k < n; k++) out[k] = +T.data[k * NF + i] || 0
+        return out
+      }
+      return { n, x: col("x"), y: col("y"), z: col("z"), h: col("height"), cr: col("crownR"), cb: col("crownBase"), tr: col("trunkR"), cx: col("crownX", "x"), cy: col("crownY", "y") }
+    }
+  } catch {}
+  return null
 }
 
 class Enemy {
@@ -293,6 +333,55 @@ export class Brain {
     this.gst = { fs: 0, fsNew: 0, srExit: 0, srShoot: 0, rt: 0 } // gd-policy: how often each lesson acted (read by sim/agentG/fires.mjs)
     this.spots = null
     if (world) this._precomputeSpots()
+    // fixTreeMem: trees for the item memory, read once per map and shared
+    this.trees = null
+    if (P.fixTreeMem > 0 && world) {
+      if (world._trees === undefined) world._trees = loadTrees(hello)
+      this.trees = world._trees
+    }
+  }
+
+  /** fixTreeMem: does a tree stand on the segment? Crowns (vertical cylinders, a superset of the real crown) count only when `crowns`; trunks always. */
+  treeHides(ax, ay, az, bx, by, bz, crowns) {
+    const T = this.trees
+    if (!T) return false
+    const dx = bx - ax,
+      dy = by - ay,
+      dz = bz - az
+    const l2 = dx * dx + dy * dy
+    if (l2 < 1e-6) return false
+    const x0 = Math.min(ax, bx),
+      x1 = Math.max(ax, bx),
+      y0 = Math.min(ay, by),
+      y1 = Math.max(ay, by)
+    // does the segment pass through the vertical cylinder (cx, cy, r) between zlo and zhi
+    const cyl = (cx, cy, r, zlo, zhi) => {
+      const fx = ax - cx,
+        fy = ay - cy
+      const b = fx * dx + fy * dy
+      const disc = b * b - l2 * (fx * fx + fy * fy - r * r)
+      if (disc <= 0) return false
+      const sq = Math.sqrt(disc)
+      const u0 = Math.max(0, (-b - sq) / l2),
+        u1 = Math.min(1, (-b + sq) / l2)
+      if (u0 >= u1) return false
+      const za = az + dz * u0,
+        zb = az + dz * u1
+      return Math.max(za, zb) > zlo && Math.min(za, zb) < zhi
+    }
+    for (let k = 0; k < T.n; k++) {
+      const r = T.cr[k] + 0.5
+      const cx = T.cx[k],
+        cy = T.cy[k]
+      const far = cx < x0 - r || cx > x1 + r || cy < y0 - r || cy > y1 + r
+      if (crowns && !far && cyl(cx, cy, r, T.z[k] + T.cb[k] - 0.5, T.z[k] + T.h[k] + 0.5)) return true
+      const tx = T.x[k],
+        ty = T.y[k],
+        tr = T.tr[k] + 0.3
+      if (tx < x0 - tr || tx > x1 + tr || ty < y0 - tr || ty > y1 + tr) continue
+      if (cyl(tx, ty, tr, T.z[k] - 1, T.z[k] + Math.max(T.cb[k], 1))) return true
+    }
+    return false
   }
 
   // ------------------------------------------------------------------ setup
@@ -449,6 +538,7 @@ export class Brain {
     this.maxPitch = st.max_pitch ?? 1.3
     this.regenDelay = st.regen_delay ?? 5
     this.reqR = this.R + 0.45
+    if (P.fixBigNav > 0 && this.reqR > 6.9) this.reqR = 6.9 // world.mjs caps the stored wall distance at 7 m
     this.hpS = me.hp / Math.max(1, me.max_hp)
     this.gun = null
     this.laser = null
@@ -554,6 +644,15 @@ export class Brain {
         }
         case "hit": {
           this.lastDealtT = t
+          if (P.fixTreeMem > 0 && ev.target >= 1000) {
+            // a crate we may not see (foliage): keep its HP from our own hits, and forget it once dead
+            const c = this.crates.get(ev.target)
+            if (c) {
+              c.hp = (c.hp ?? this.cfg.crates?.hp ?? 300) - (ev.amount || 0)
+              c.hitT = t
+              if (c.hp <= 1) this.crates.delete(ev.target)
+            }
+          }
           const e = this.en.get(ev.target)
           if (e) {
             e.myHitT = t
@@ -641,12 +740,15 @@ export class Brain {
     const [x, y, z] = this.me.pos
     for (const it of list || []) map.set(it.id, { id: it.id, pos: it.pos, kind: it.kind, hp: it.hp, t })
     if (!this.w) return
+    const trees = P.fixTreeMem > 0 && this.trees
     for (const [id, it] of map) {
       if (it.t === t) continue
       const d = hyp(it.pos[0] - x, it.pos[1] - y)
       // somewhere we can plainly see (proximity sensors, or well inside the view wedge) and still not listed: it is gone
       const inWedge = d < 185 && Math.abs(angNorm(Math.atan2(it.pos[1] - y, it.pos[0] - x) - this.me.aim[0])) < 0.85
       if ((d < 38 || inWedge) && this.w.los(x, y, z + this.eyeH, it.pos[0], it.pos[1], it.pos[2] + zoff)) {
+        // fixTreeMem: ...unless a tree may be hiding it (canopy blocks sight beyond the proximity range, trunks at any range)
+        if (trees && this.treeHides(x, y, z + this.eyeH, it.pos[0], it.pos[1], it.pos[2] + zoff, d >= 38)) continue
         it.miss = (it.miss || 0) + 1
         if (it.miss >= 3) map.delete(id)
       }
@@ -1427,7 +1529,7 @@ export class Brain {
             if (I < 0 || J < 0 || I >= w.NX || J >= w.NY) continue
             for (let L = 0; L < 2; L++) {
               const n = L * w.NC + J * w.NX + I
-              if (!(this.main && this.main[n]) || w.wd[n] < this.reqR + 0.5) continue
+              if (!(this.main && this.main[n]) || w.wd[n] < (P.fixBigNav > 0 ? Math.min(this.reqR + 0.5, 7) : this.reqR + 0.5)) continue
               const dd = di * di + dj * dj + (w.surf[n] > z + 30 ? 1e6 : 0)
               if (dd > 2 && dd < bd) {
                 bd = dd
@@ -1937,8 +2039,6 @@ export class Brain {
     let pr = P.fightRange > 0 ? P.fightRange + (this.laser ? 8 : 0) : this.laser ? 112 : 104
     if (this.laser && P.rangeLas > 0) pr = P.rangeLas
     if (!this.laser && P.rangeGun > 0) pr = P.rangeGun
-    // bigRange: give range up as we grow (never raises pr, never takes it below bigRangeMin)
-    if (P.bigRange > 0) pr = Math.min(pr, Math.max(P.bigRangeMin, pr - P.bigRange * Math.min(this.me.cubes || 0, this.cfg.cubes?.stat_cap ?? 10)))
     if (this.lightning && !this.laser && (this.hpS - e.hpS > 0.1 || e.hpS < 0.45) && !e.has("lightning")) pr = 34
     if (P.zapRange > 0 && this.lightning && this.me.energy > 22 && !(e.has("lightning") && this.hpS < e.hpS)) pr = P.zapRange
     if (this.finalPhase) pr = Math.min(pr, 45)
@@ -2225,7 +2325,29 @@ export class Brain {
     const zc = this.o.zone
     const insideNow = (p) => hyp(p[0] - zc.center[0], p[1] - zc.center[1]) < zc.radius - 8
     const insideNext = (p) => hyp(p[0] - this.nc[0], p[1] - this.nc[1]) < this.nr - 2
-    const okPlace = (p, d) => insideNow(p) && (insideNext(p) || (!this.sqz && this.zoneSlack > d / this.walk + 25))
+    // fixLootGate: zone slack on arrival at p, which does not change as we walk toward it (see P.fixLootGate)
+    const slackAt = (p, d) => {
+      const zz = this.o.zone
+      const out = (tau) => {
+        const c = this.zoneAt(tau)
+        return hyp(p[0] - c[0], p[1] - c[1]) > c[2] - 3
+      }
+      let lo = Math.max(t, zz.shrink_start),
+        hi = zz.shrink_end
+      let tc = Infinity
+      if (out(lo)) tc = lo
+      else if (out(hi)) {
+        for (let k = 0; k < 12; k++) {
+          const mid = (lo + hi) / 2
+          if (out(mid)) hi = mid
+          else lo = mid
+        }
+        tc = hi
+      }
+      const back = Math.max(0, hyp(p[0] - this.nc[0], p[1] - this.nc[1]) - this.safeR)
+      return tc - t - (d * 1.15) / this.walk - (back * 1.4) / this.walk
+    }
+    const okPlace = (p, d) => insideNow(p) && (insideNext(p) || (!this.sqz && (P.fixLootGate > 0 ? slackAt(p, d) > P.fixLootGate : this.zoneSlack > d / this.walk + 25)))
     const reachableZ = (p) => !this.w || Math.abs(this.w.standZ(p[0], p[1], z + 1.5) - p[2]) < 3.2 || (this.w.nodeAt(p[0], p[1], p[2], 3) >= 0 && this.main && this.main[this.w.nodeAt(p[0], p[1], p[2], 3)])
     const nearEnemy = (p) => {
       for (const e of this.en.values()) if (t - e.t < 12 && hyp(p[0] - e.pos[0], p[1] - e.pos[1]) < (rush ? 80 : 110)) return true
@@ -2361,6 +2483,22 @@ export class Brain {
       const tz = tgt.pos[2] + (L.type === "crate" ? 1.2 : 1.8)
       const los = !this.w || this.w.ray(x, y, z + this.muzH, tgt.pos[0], tgt.pos[1], tz, 2) >= 1
       const want = L.type === "crate" ? (P.rushUntil > 0 && this.rushOn() ? 90 : 38) : 72
+      if (P.fixTreeMem > 0 && L.type === "crate") {
+        // shooting a crate the server does not list (behind foliage, or long gone): give it up when 4 s of fire bring no hit event
+        if (los && d <= want + 8 && t - tgt.t > 1) {
+          if (this.ghostId !== L.id) {
+            this.ghostId = L.id
+            this.ghostT0 = t
+          }
+          if (t - this.ghostT0 > 4 && t - (tgt.hitT ?? -99) > 3) {
+            this.crates.delete(L.id)
+            this.ghostId = null
+            fail()
+            this.scan(A)
+            return
+          }
+        } else this.ghostId = null
+      }
       if (!los || d > want + 8) {
         if (!this.moveToPoint(A, tgt.pos[0], tgt.pos[1], tgt.pos[2], 1, this.fbGo()) && this.pathPartial && this.path && this.path.length < 5) fail()
       } else if (L.type === "npc") {
@@ -2728,6 +2866,8 @@ export class Brain {
         } else if ((laser.cooldown || 0) <= 0.11 && inRange && !(t < this.shortUntil)) fire[ls] = true
       }
     }
+    // fixNpcFace: a drone we cannot see is hitting us and nothing else needs the torso: look where the hit came from
+    if (P.fixNpcFace > 0 && !(e && e.los) && !this.farmTarget && t - this.lastNpcDmgT < 2.5 && this.npcBearing != null && t - this.lastMechDmgT > 2.5 && !this.charging && !this.pestNpc()) A.aim = [this.npcBearing, 0]
     this.farmTarget = null
     // reload in the quiet moments
     if (gun) {
