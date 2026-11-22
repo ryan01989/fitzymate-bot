@@ -37,6 +37,8 @@ const UPSETS = [null,
   ["gun_mag", "plating", "gun_damage", "armor", "laser_damage", "laser_charge", "gun_rate", "nanites", "servos", "capacitor", "gun_velocity", "sensors", "gyros", "reactor", "jets", "laser_pierce", "lightning_range", "lightning_chain", "lightning_efficiency", "mortar_reload", "mortar_velocity", "mortar_splash"],
   // 6: the current order with nanites moved up to third. Two nanites turn a 40% -> 80% heal from 17 s into 7 s (regen 115 HP/s after 2 s), and retreats are what keeps this bot alive
   ["plating", "armor", "nanites", "laser_charge", "laser_damage", "gun_damage", "gun_rate", "capacitor", "servos", "gun_velocity", "sensors", "gyros", "reactor", "gun_mag", "jets", "lightning_range", "lightning_chain", "laser_pierce", "lightning_efficiency", "mortar_reload", "mortar_velocity", "mortar_splash"],
+  // 7: set 6 with gun_mag second (sim/agentB/b22: a drum magazine is +31% gun damage per second, about +15% of our damage, as much as plating's +15% HP; armor about +9%)
+  ["plating", "gun_mag", "armor", "nanites", "laser_charge", "laser_damage", "gun_damage", "gun_rate", "capacitor", "servos", "gun_velocity", "sensors", "gyros", "reactor", "jets", "lightning_range", "lightning_chain", "laser_pierce", "lightning_efficiency", "mortar_reload", "mortar_velocity", "mortar_splash"],
 ]
 const WEAPON_RANK = { laser: 3, lightning: 2, gun: 1, mortar: 0 }
 
@@ -206,6 +208,7 @@ Object.assign(P, {"fixTreeMem":1,"fixLootGate":10,"fixBigNav":1}) // t36-fixes
 Object.assign(P, {"fixLootReach":2.5,"fixTreeSoft":4}) // a01-reach-soft: t36-fixes + the two second-pass fixes backed by real data / the protocol: walk the last metre onto a cube / weapon the path stops short of (no more 30 s parks), thin foliage (under 4 m of crown; server canopyDensity 0.35, canopyBlockT 0.25 -> blocks past ln(4)/0.35 = 3.96 m) does not hide an item. fixFinish (stay on a low target through a retreat trigger) left out: it is the one commit-more change in t40 (sim/variants/audit-fix.mjs)
 Object.assign(P, {"lasHop":14,"laserRoof":30}) // l01-hop: t36 + laser scout hop (look over roofs and trees for a laser before 90 s) + run to roof lasers up to 30 m up (sim/agentL)
 // l06-fixes: l01-hop + the two a01 fixes (fixLootReach 2.5, fixTreeSoft 4; a01 on t36 scored 5.65)
+Object.assign(P, {"upSet":7}) // l07-stack: l06 + upgrade order with gun_mag second (l03 on l01 scored 5.69)
 if (typeof process !== "undefined" && process.env && process.env.FM_P) Object.assign(P, JSON.parse(process.env.FM_P))
 if (typeof process !== "undefined" && process.env && process.env.FM_PFFA) Object.assign(P_FFA, JSON.parse(process.env.FM_PFFA))
 if (P.preferZap) {
