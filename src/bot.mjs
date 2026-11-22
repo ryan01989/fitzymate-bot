@@ -176,9 +176,6 @@ export const P = {
   shortRetreatFire: 1, // ...0 = keep the old retreat aim (diagnostic: the exit rule alone)
   retarget: 0, // lesson C: in a fight, switch to a mech whose start-of-fight score beats the target's by this many points (100 = full HP share) (0 = off)
   retargetHold: 1.5, // ...but only after this many s on the current target, never off a target we are finishing, never past half a laser charge
-  // --- sim/agentX: boost-strafe in fights at the usual range (real showdowns: gun hit rate on a target moving sideways faster than walking, i.e. boosting, 0.29 at 100-150 m vs 0.40 walking / 0.43 still, 0.60 vs 0.68 / 0.73 at 60-100 m; sim/agentW/replay_hits.out)
-  fightBoost: 0, // in a fight, boost every strafe move while energy is above this, and keep boosting down to fightBoostMin; the bullet dodge (missDist) is scored at the boosted speed. Also while the laser charges (half speed then: 9.8 instead of 5.9 m/s). Not with lightning inside 50 m of the target (arcs need the energy) (0 = off)
-  fightBoostMin: 20, // ...stop boosting below this energy (a reserve for retreats and jets)
   // --- sim/agentA2 audit fixes (all off by default; they are bug fixes that apply to free-for-all too, so P_FFA does not reset them)
   fixTreeMem: 0, // 1 = item memory (_remember): a pickup / crate / cube "in view but not listed" is forgotten only when no tree crown or trunk from v2/world.json is on the sight line (the server hides items behind foliage beyond the 45 m proximity range; world.mjs has no trees, so the bot took "hidden by a tree" for "gone" and dropped known lasers, crates and kill cubes after 0.3 s). Crates we shoot unseen are tracked by our hit events and dropped once dead or not answering hits (0 = off)
   fixLootGate: 0, // > 0 = judge loot outside the next circle by the zone slack we would have AT THE ITEM (edge-crossing time there, minus the walk to it, minus the walk back in), which must exceed this many s. The old gate (our own zoneSlack > d/walk + 25) changes as we walk: an accepted item fell under the bar a few steps later and passed again on the way back, so loot <-> explore flipped every 0.3 s and the bot stood between the two goals (0 = off; 10 suggested, zone mode takes over under 7)
@@ -197,13 +194,11 @@ export const P_FFA = {
   fBoost: 0, noRetAll: 0, cubeGoal: 0, seekUntil: 0, rearBonus: 15, dropAll: 0, focusLow: 0, lasLock: 0, lasBoost: 0,
   upSet: 0, chaseHp: 0.4, chaseMyHp: 0.55, chaseS: 7, farmBoost: 0, lethalRelease: 0, fightCube: 0, finishRange: 0, noChase: 0, fightHide: 0, noExplore: 0, cautR: 0, endRush: 0, fightPick: 0, fightCubeCap: 0,
   firstShot: 0, shortRetreat: 0, retarget: 0, // gd-policy lessons: practice only
-  fightBoost: 0, // agentX: practice only
 }
 Object.assign(P, {"laserFirst":90,"noRetreat":true,"cubeRun":130,"rushUntil":120,"ffaN":3,"lateAt":330,"lateFin":1.01,"lateCore":40}) // baked by sim/train/train.mjs from sim/train/cand/late.mjs
 Object.assign(P, {"huntFrom":90,"huntUntil":420,"seekUntil":420,"fightCube":55,"fightPick":70,"weave":0.6,"weaveAll":1,"cubeHit":1,"upSet":6}) // t32-stack-pick: t31-stack + in a fight without a laser, walk onto a known ground laser within 70 m (35 m below half HP) while still shooting (sim/variants/rad8.mjs)
 Object.assign(P, {"fixTreeMem":1,"fixLootGate":10,"fixBigNav":1}) // t36-fixes: t32 + three audit fixes: items hidden by tree foliage are no longer forgotten, the loot/explore flip during a zone shrink, navigation above 32 cubes (sim/variants/audit-fix.mjs)
 Object.assign(P, {"fixOwnLead":1}) // x01-ownlead: t36 + aim from our own position at shot time (sim/agentX/NOTES.txt)
-Object.assign(P, {"fightBoost":45,"fightBoostMin":20}) // x02-fightboost: x01 + boost-strafe in fights while energy lasts (sim/agentX/NOTES.txt)
 if (typeof process !== "undefined" && process.env && process.env.FM_P) Object.assign(P, JSON.parse(process.env.FM_P))
 if (typeof process !== "undefined" && process.env && process.env.FM_PFFA) Object.assign(P_FFA, JSON.parse(process.env.FM_PFFA))
 if (P.preferZap) {
@@ -2084,14 +2079,6 @@ export class Brain {
       return
     }
     const s0 = this.strafeSide
-    // fightBoost: boost-strafe (hysteresis on energy); the dodge below is scored at the speed we will really move
-    let fbx = false
-    if (P.fightBoost > 0 && !(this.lightning && d < 50)) {
-      if (me.energy > P.fightBoost) this.fbxOn = true
-      else if (me.energy < P.fightBoostMin) this.fbxOn = false
-      fbx = !!this.fbxOn
-    }
-    const fbSpd = fbx ? this.boostV * (this.charging ? 0.5 : 1) : undefined
     // candidates, planned one first; the dodge picks whichever clears the bullets in the air
     const cands = [mk(s0, radial * 0.75), mk(-s0, radial * 0.75), mk(s0, -1), mk(-s0, -1), mk(s0, 1), mk(-s0, 1), [0, 0]]
     // fightHide: the other mechs around; a move is worth less for each of them that sees us where it leads
@@ -2106,7 +2093,7 @@ export class Brain {
     for (let k = 0; k < cands.length; k++) {
       const mv = cands[k]
       if (k !== 6 && !free(mv)) continue
-      const miss = Math.min(this.missDist(mv, k === 6 ? undefined : fbSpd), need)
+      const miss = Math.min(this.missDist(mv), need)
       let score = miss * 10 - Math.min(k, 7) * 0.6 - (k === 6 ? 3 : 0)
       if (watchers.length) {
         const px = x + mv[0] * 6,
@@ -2126,10 +2113,6 @@ export class Brain {
       this.strafeFlipT = t + 0.25 + this.rand() * 0.5
     }
     A.move = best
-    if (fbx && hyp(best[0], best[1]) > 0.5) {
-      A.boost = true
-      this.gst && (this.gst.fbx = (this.gst.fbx || 0) + 1)
-    }
     if (P.fBoost > 0 && !this.charging && hyp(best[0], best[1]) > 0.5) {
       if (this.me.energy > P.fBoost) this.fbOn = true
       else if (this.me.energy < 12) this.fbOn = false
