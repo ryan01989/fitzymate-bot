@@ -140,7 +140,7 @@ export const P_FFA = {
   guard: 0, guardArc: 0.25, guardFire: 0.25, sqzAt: 0, sqzAway: 0, sqzHp: 0, lootHold: 0, lootHoldRe: 0, weave: 0, weaveAll: 0, cubeRun: 0,
   rushUntil: 0, mpc: 0, sweepS: 0,
 }
-Object.assign(P, {"laserFirst":90,"noRetreat":true,"cubeRun":130,"rushUntil":120}) // baked by sim/train/train.mjs from sim/train/cand/rush.mjs
+Object.assign(P, {"laserFirst":90,"noRetreat":true,"cubeRun":130,"rushUntil":120,"mpc":1}) // rush + rollout fight movement
 if (typeof process !== "undefined" && process.env && process.env.FM_P) Object.assign(P, JSON.parse(process.env.FM_P))
 if (typeof process !== "undefined" && process.env && process.env.FM_PFFA) Object.assign(P_FFA, JSON.parse(process.env.FM_PFFA))
 if (P.preferZap) {
