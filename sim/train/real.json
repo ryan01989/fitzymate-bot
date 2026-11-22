@@ -274,5 +274,12 @@
   "real": 5.27,
   "pred": "my estimate -0.2 to +0.4",
   "note": "t13 + noRetreat false. Tie with t13 (5.40): retreating from 1-2 attackers is neutral."
+ },
+ {
+  "name": "t20b-farmboost-veto",
+  "file": "sim/variants/t20b-farmboost-veto.mjs",
+  "real": 5.23,
+  "pred": "my estimate: 40% to gain, +-0.4",
+  "note": "t13 + farmBoost 30 + rushVeto 1. Tie with t13 (5.40). No-enemy sim had +40% cubes by 90 s; real does not move."
  }
 ]

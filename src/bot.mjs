@@ -154,6 +154,11 @@ export const P = {
   lasBoost: 0, // ...and boost to the laser while energy is above this (0 = off)
   farmBoost: 0, // walking to loot or exploring with no mech in sight within 150 m: boost while energy is above this, down to 15 (0 = off)
   farmBoostUntil: 420, // ...until this match time
+  // --- lessons from a stronger bot's play style (new-idea.md), built in our own terms
+  lethalRelease: 0, // laser: let a partial charge go as soon as this fraction of its damage already kills the target (0 = off). 0.75 leaves room for three armor upgrades (-24%) on the target
+  fightCube: 0, // in a fight, a remembered cube within this many m takes over the legs while we keep shooting; half that below 50% HP (0 = off). 55 m is under 5 s of walking
+  finishRange: 0, // in a fight, close to this range on a target under finishHp while we are above finishMyHp and at most 2 mechs are shooting us (0 = off). 55 m: our gun hits 88% inside 60 m and lightning reaches 45 m
+  noChase: 0, // 1 = a target out of sight ends the fight after 0.6 s instead of being chased around cover (0 = off)
   focusLow: 0, // in a fight, switch to a mech in sight this much lower in HP share (0 = off)
 }
 // Free-for-all profile (qualifying and the final): the survival-first settings of the first two submissions.
@@ -165,10 +170,10 @@ export const P_FFA = {
   guard: 0, guardArc: 0.25, guardFire: 0.25, sqzAt: 0, sqzAway: 0, sqzHp: 0, lootHold: 0, lootHoldRe: 0, weave: 0, weaveAll: 0, cubeRun: 0,
   rushUntil: 0, gunMax: 0, lateAt: 0, lateFin: 0.35, lateHeal: 0, lateCore: 0,
   fBoost: 0, noRetAll: 0, cubeGoal: 0, seekUntil: 0, rearBonus: 15, dropAll: 0, focusLow: 0, lasLock: 0, lasBoost: 0,
-  upSet: 0, chaseHp: 0.4, chaseMyHp: 0.55, chaseS: 7, farmBoost: 0,
+  upSet: 0, chaseHp: 0.4, chaseMyHp: 0.55, chaseS: 7, farmBoost: 0, lethalRelease: 0, fightCube: 0, finishRange: 0, noChase: 0,
 }
 Object.assign(P, {"laserFirst":90,"noRetreat":true,"cubeRun":130,"rushUntil":120,"ffaN":3,"lateAt":330,"lateFin":1.01,"lateCore":40}) // baked by sim/train/train.mjs from sim/train/cand/late.mjs
-Object.assign(P, {"huntFrom":90,"huntUntil":420,"seekUntil":420,"farmBoost":30,"rushVeto":1}) // t20b: t20a + during the rush (to 120 s; hunting starts at 90 s) start no fight with a mech beyond 70 m that has not hit us (sim/variants/rad5.mjs)
+Object.assign(P, {"huntFrom":90,"huntUntil":420,"seekUntil":420,"lethalRelease":0.75}) // t22a-lethal: t13 + let a partial laser charge go as soon as it already kills the target (sim/variants/rad6.mjs)
 if (typeof process !== "undefined" && process.env && process.env.FM_P) Object.assign(P, JSON.parse(process.env.FM_P))
 if (typeof process !== "undefined" && process.env && process.env.FM_PFFA) Object.assign(P_FFA, JSON.parse(process.env.FM_PFFA))
 if (P.preferZap) {
@@ -1020,7 +1025,7 @@ export class Brain {
     if (this.mode === "fight" && target) {
       const lost = t - (target.losT ?? -99)
       const chase = target.hpS < P.chaseHp && hpS > P.chaseMyHp && this.others(target, P.crowd) === 0
-      if (lost < (chase ? P.chaseS : 2.5) && t - this.fightStartT < 60 && !this.lasRunNow(target) && !this.rushQuiet(target)) return
+      if (lost < (P.noChase ? 0.6 : chase ? P.chaseS : 2.5) && t - this.fightStartT < 60 && !this.lasRunNow(target) && !this.rushQuiet(target)) return
       this.mode = "hold"
       this.targetId = -1
     }
@@ -1759,6 +1764,33 @@ export class Brain {
     }
     const [x, y, z] = me.pos
     this.aimTarget = e
+    // fightCube: a remembered cube close by takes over the legs; aim and fire stay on the target (doAimFire)
+    if (P.fightCube > 0 && this.inZone && !this.zoneUrgent) {
+      const reach = this.hpS < 0.5 ? P.fightCube * 0.5 : P.fightCube
+      const zc = this.o.zone
+      let bc = null,
+        bd = reach
+      for (const c of this.cubes.values()) {
+        const dc = hyp(c.pos[0] - x, c.pos[1] - y)
+        if (dc >= bd || Math.abs(c.pos[2] - z) > 4) continue
+        if (hyp(c.pos[0] - zc.center[0], c.pos[1] - zc.center[1]) > zc.radius - 4) continue
+        if (this.badLoot && this.badLoot.get(c.id) > t) continue
+        bd = dc
+        bc = c
+      }
+      if (bc) {
+        if (this.gCubeId !== bc.id) {
+          this.gCubeId = bc.id
+          this.gCubeT = t
+        }
+        // not getting there (unreachable, or someone took it and we cannot see the spot): give this one up for a while
+        if (t - this.gCubeT > 12) (this.badLoot ??= new Map()).set(bc.id, t + 30)
+        else {
+          this.moveToPoint(A, bc.pos[0], bc.pos[1], bc.pos[2], 1, false, { replan: 1.2 })
+          return
+        }
+      }
+    }
     if (!e.los) {
       // chase / re-acquire through cover toward where it is
       const lead = Math.min(2, t - e.t)
@@ -1780,6 +1812,8 @@ export class Brain {
     if (this.lightning && !this.laser && (this.hpS - e.hpS > 0.1 || e.hpS < 0.45) && !e.has("lightning")) pr = 34
     if (P.zapRange > 0 && this.lightning && this.me.energy > 22 && !(e.has("lightning") && this.hpS < e.hpS)) pr = P.zapRange
     if (this.finalPhase) pr = Math.min(pr, 45)
+    // finishRange: close in on a weak target to raise the hit rate and cut its escape time
+    if (P.finishRange > 0 && e.hpS < P.finishHp && this.hpS > P.finishMyHp && this.attackers(3).length <= 2) pr = Math.min(pr, P.finishRange)
     const maxR = (this.gun?.stats?.range || 230) - 30
     pr = Math.min(pr, maxR)
     let radial = clamp((d - pr) / P.bandRange, -1, 1)
@@ -2469,8 +2503,20 @@ export class Brain {
           const ready = laser.charge >= full - 0.051
           if (ready || laser.charge >= full * 0.5) sol = lasSol
           const good = inRange && clear && this.onTarget(lasSol, tolR * 0.9, tolV)
+          // lethalRelease: a partial charge that already kills is let go now (cube scaling and mortar cook-off counted)
+          let lethal = false
+          if (P.lethalRelease > 0 && !ready && laser.charge >= (laser.stats.min_charge ?? 0.15) && inRange && clear) {
+            const mf = laser.stats.min_frac ?? 0.35
+            const cc = this.cfg.cubes || {}
+            const est = (laser.stats.damage ?? 315) * (mf + (1 - mf) * Math.min(1, laser.charge / full)) * (1 + (cc.damage_per_cube ?? 0.04) * Math.min(me.cubes || 0, cc.stat_cap ?? 10)) * (e.has("mortar") ? 1 + (laser.stats.cookoff ?? 0.6) : 1)
+            if (P.lethalRelease * est >= e.hp) {
+              sol = lasSol
+              lethal = good
+            }
+          }
           // let go when full and on target; hold a full charge a little for a better line
-          if (ready && good) fire[ls] = false
+          if (lethal) fire[ls] = false
+          else if (ready && good) fire[ls] = false
           else if (ready && laser.charge > full + (laser.stats.hold_s ?? 2) - 0.35) fire[ls] = false
           else if (!ready && !clear && laser.charge > full * 0.6 && good) fire[ls] = false
           else fire[ls] = true
