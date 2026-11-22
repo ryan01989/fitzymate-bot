@@ -559,5 +559,11 @@
   "file": "sim/variants/sq12c-stack.mjs",
   "real": 5.85,
   "note": "builders-4 (built by session buildersmech-24 / sq2 agent). sq12b (6.05) + sqRing2 (second ring of fight positions at 12 m) + sqRetLos (no-cover retreat keeps the shot line) + per-match reset of the movement gate. -0.20. Squad family after 6.05: 5.85, 5.83, 5.63, 5.85 -> true level ~5.8-5.85 (old family ~5.7); 6.05 was a high draw."
+ },
+ {
+  "name": "sq12-tmC",
+  "file": "sim/variants/sq12-tmC.mjs",
+  "real": 5.5,
+  "note": "builders-4 (built by a session buildersmech-24 agent). sq12b (6.05) + robCover 5 (retreat cover must stay hidden when each threat sidesteps 5 m; also on in P_FFA). Sim +0.33 on 24 matches; real -0.55. Sim wrong again."
  }
 ]

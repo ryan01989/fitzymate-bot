@@ -47,7 +47,6 @@ const WEAPON_RANK = { laser: 3, lightning: 2, gun: 1, mortar: 0 }
 
 // Tunables (see README "Tuning").
 export const P = {
-  robCover: 0, // retreat cover must also stay hidden from each threat's eye shifted this many m sideways (perpendicular to the sight line), so a sidestep does not expose it (0 = off)
   ffaN: 2, // free-for-all detection: switch to P_FFA once this many mechs died that we did not kill (practice squads never kill each other)
   gunMax: 0, // do not fire the gun beyond this many m at a target above 25% HP (0 = off; sim hit rate falls to about 26% past 140 m)
   hideHp: 0.4, // below this HP share: stop trading, go regenerate
@@ -218,7 +217,6 @@ export const P = {
 // Free-for-all profile (qualifying and the final): the survival-first settings of the first two submissions.
 // Applied once, the moment the bot sees mechs dying that it did not kill (see ingest()).
 export const P_FFA = {
-  robCover: 0,
   sqMove: 0, sqAim: 0,
   hideHp: 0.4, resumeHp: 0.8, initHpLow: 0.75, initAdv: 0.2, vetoAdv: -0.12, vetoCubes: -5, crowd: 90, openingS: 45, calmS: 4,
   healBelow: 0, killLoot: false, dropHeal: false, fightRange: 0, bandRange: 14, noRetreat: false, berserk: false, zapRange: 0,
@@ -242,7 +240,7 @@ Object.assign(P, {"dropAll":1}) // gb11-dropall: w03 + go for every supply drop 
 Object.assign(P, {"sqMove":1,"sqAim":1}) // sq2-move: gb11 + fight movement by position sampling (new-idea 5.1-5.5), our ranges kept (sqRange 0); aim drops to 85% height when the centre is blocked
 Object.assign(P, {"squad":1})
 Object.assign(P, {"sqMove":0,"sqAim":0,"sqMoveAt":30,"sqFrom":30}) // sq12b-stack: sq12 with the squad layer and the fight-movement rework both held off until 30 s, so a free-for-all (detected at about 23-25 s on the real server) plays like gb11 // sq1-squad: gb11 + the reference practice decision layer as one mode (engage filter, per-tick target score, 1.5 s retreat pulses, no chase, cube detour 70/40 m, finish close-in 20 m, lethal release 0.7, laser seek 240 m)
-Object.assign(P, {"robCover":5}); Object.assign(P_FFA, {"robCover":5}) // sq12-tmC: robust retreat cover, hidden even if a threat sidesteps robCover m
+Object.assign(P, {"sqFrom":60}) // sq12-p60: sq12b (6.05) with the squad decision layer held off until 60 s (patience: the gb11 opening rush and farming run a further 30 s before the reference engage rules)
 if (typeof process !== "undefined" && process.env && process.env.FM_P) Object.assign(P, JSON.parse(process.env.FM_P))
 if (typeof process !== "undefined" && process.env && process.env.FM_PFFA) Object.assign(P_FFA, JSON.parse(process.env.FM_PFFA))
 if (P.preferZap) {
@@ -2110,21 +2108,6 @@ export class Brain {
     }
     return true
   }
-  /** hidden from every threat, and from each threat's eye moved P.robCover m to either side of the sight line */
-  robustHidden(threats, mx, my, mz) {
-    if (!this.hiddenFrom(threats, mx, my, mz)) return false
-    const mg = P.robCover
-    if (!(mg > 0)) return true
-    const side = []
-    for (const th of threats) {
-      const vx = mx - th[0], vy = my - th[1]
-      const l = hyp(vx, vy)
-      if (l < 1) return false
-      const ox = (-vy / l) * mg, oy = (vx / l) * mg
-      side.push([th[0] + ox, th[1] + oy, th[2]], [th[0] - ox, th[1] - oy, th[2]])
-    }
-    return this.hiddenFrom(side, mx, my, mz)
-  }
   /** nearest spot out of every threat's sight, weighted toward distance from them */
   findCover(threats) {
     const w = this.w
@@ -2143,7 +2126,6 @@ export class Brain {
     const vis = w.visited
     const floor = Math.min(curD - 4, 42)
     let best = -1,
-      fallback = -1,
       bestScore = 1e18
     for (let k = 0; k < n; k++) {
       const m = vis[k]
@@ -2165,14 +2147,9 @@ export class Brain {
       const score = g * 0.55 - Math.min(dmin, 160) * 0.7
       if (score >= bestScore) continue
       if (!this.hiddenFrom(threats, mx, my, mz)) continue
-      if (P.robCover > 0 && !this.robustHidden(threats, mx, my, mz)) {
-        if (fallback < 0) fallback = m
-        continue
-      }
       bestScore = score
       best = m
     }
-    if (best < 0) best = fallback
     if (best < 0) return null
     const path = w.pathTo(best)
     return { node: best, path, x: w.nodeX(best), y: w.nodeY(best), z: w.surf[best] }
