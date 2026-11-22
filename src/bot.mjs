@@ -209,6 +209,7 @@ Object.assign(P, {"fixLootReach":2.5,"fixTreeSoft":4}) // a01-reach-soft: t36-fi
 Object.assign(P, {"lasHop":14,"laserRoof":30}) // l01-hop: t36 + laser scout hop (look over roofs and trees for a laser before 90 s) + run to roof lasers up to 30 m up (sim/agentL)
 // l06-fixes: l01-hop + the two a01 fixes (fixLootReach 2.5, fixTreeSoft 4; a01 on t36 scored 5.65)
 Object.assign(P, {"upSet":7}) // l07-stack: l06 + upgrade order with gun_mag second (l03 on l01 scored 5.69)
+Object.assign(P, {"lasHop":20}) // l08-stack20: l07 with the 20 m scout hop (l04 on l01 scored 5.68; sim laser held at 90 s 80->88%)
 if (typeof process !== "undefined" && process.env && process.env.FM_P) Object.assign(P, JSON.parse(process.env.FM_P))
 if (typeof process !== "undefined" && process.env && process.env.FM_PFFA) Object.assign(P_FFA, JSON.parse(process.env.FM_PFFA))
 if (P.preferZap) {
