@@ -35,6 +35,8 @@ const UPSETS = [null,
   ["sensors", "gyros", "plating", "armor", "laser_charge", "laser_damage", "nanites", "gun_damage", "gun_rate", "capacitor", "servos", "gun_velocity", "reactor", "gun_mag", "jets", "lightning_range", "lightning_chain", "laser_pierce", "lightning_efficiency", "mortar_reload", "mortar_velocity", "mortar_splash"],
   // 5: the organiser's probe-astra bots (replays): gun_mag, plating, gun_damage, armor first. Two gun_mag = 28 rounds and a 1.5 s reload: +49% sustained gun damage
   ["gun_mag", "plating", "gun_damage", "armor", "laser_damage", "laser_charge", "gun_rate", "nanites", "servos", "capacitor", "gun_velocity", "sensors", "gyros", "reactor", "jets", "laser_pierce", "lightning_range", "lightning_chain", "lightning_efficiency", "mortar_reload", "mortar_velocity", "mortar_splash"],
+  // 6: the current order with nanites moved up to third. Two nanites turn a 40% -> 80% heal from 17 s into 7 s (regen 115 HP/s after 2 s), and retreats are what keeps this bot alive
+  ["plating", "armor", "nanites", "laser_charge", "laser_damage", "gun_damage", "gun_rate", "capacitor", "servos", "gun_velocity", "sensors", "gyros", "reactor", "gun_mag", "jets", "lightning_range", "lightning_chain", "laser_pierce", "lightning_efficiency", "mortar_reload", "mortar_velocity", "mortar_splash"],
 ]
 const WEAPON_RANK = { laser: 3, lightning: 2, gun: 1, mortar: 0 }
 
@@ -158,6 +160,8 @@ export const P = {
   lethalRelease: 0, // laser: let a partial charge go as soon as this fraction of its damage already kills the target (0 = off). 0.75 leaves room for three armor upgrades (-24%) on the target
   fightCube: 0, // in a fight, a remembered cube within this many m takes over the legs while we keep shooting; half that below 50% HP (0 = off). 55 m is under 5 s of walking
   finishRange: 0, // in a fight, close to this range on a target under finishHp while we are above finishMyHp and at most 2 mechs are shooting us (0 = off). 55 m: our gun hits 88% inside 60 m and lightning reaches 45 m
+  fightPick: 0, // in a fight without a laser: a known laser on the ground within this many m takes over the legs like a fightCube cube, while we keep shooting; half that below 50% HP (0 = off). Dead mechs drop their weapons next to their cubes
+  fightCubeCap: 0, // 1 = fightCube ignores cubes once we hold the stat cap (10), unless they reach the next upgrade threshold: past the cap a cube only makes us bigger
   fightHide: 0, // in a fight with other mechs around (seen in the last 3 s, within 170 m): score points taken off a move for each of them that could see us where it leads, and 1.5x that for losing the shot at the target; eight compass moves join the candidates (0 = off). A full bullet dodge is worth about 38 points
   cautR: 0, // practice: once the next circle is this many m or smaller, switch to the cautious free-for-all profile for the rest of the match (0 = off). 140 m is announced at about 195 s
   dieAt: 0, // probe: stand idle from this match time, so the score is our kills before it (0 = off)
@@ -182,7 +186,7 @@ export const P_FFA = {
   guard: 0, guardArc: 0.25, guardFire: 0.25, sqzAt: 0, sqzAway: 0, sqzHp: 0, lootHold: 0, lootHoldRe: 0, weave: 0, weaveAll: 0, cubeRun: 0,
   rushUntil: 0, gunMax: 0, lateAt: 0, lateFin: 0.35, lateHeal: 0, lateCore: 0,
   fBoost: 0, noRetAll: 0, cubeGoal: 0, seekUntil: 0, rearBonus: 15, dropAll: 0, focusLow: 0, lasLock: 0, lasBoost: 0,
-  upSet: 0, chaseHp: 0.4, chaseMyHp: 0.55, chaseS: 7, farmBoost: 0, lethalRelease: 0, fightCube: 0, finishRange: 0, noChase: 0, fightHide: 0, noExplore: 0, cautR: 0, endRush: 0,
+  upSet: 0, chaseHp: 0.4, chaseMyHp: 0.55, chaseS: 7, farmBoost: 0, lethalRelease: 0, fightCube: 0, finishRange: 0, noChase: 0, fightHide: 0, noExplore: 0, cautR: 0, endRush: 0, fightPick: 0, fightCubeCap: 0,
   firstShot: 0, shortRetreat: 0, retarget: 0, // gd-policy lessons: practice only
 }
 Object.assign(P, {"laserFirst":90,"noRetreat":true,"cubeRun":130,"rushUntil":120,"ffaN":3,"lateAt":330,"lateFin":1.01,"lateCore":40}) // baked by sim/train/train.mjs from sim/train/cand/late.mjs
@@ -1867,12 +1871,29 @@ export class Brain {
     const [x, y, z] = me.pos
     this.aimTarget = e
     // fightCube: a remembered cube close by takes over the legs; aim and fire stay on the target (doAimFire)
-    if (P.fightCube > 0 && this.inZone && !this.zoneUrgent) {
+    if ((P.fightCube > 0 || P.fightPick > 0) && this.inZone && !this.zoneUrgent) {
       const reach = this.hpS < 0.5 ? P.fightCube * 0.5 : P.fightCube
       const zc = this.o.zone
       let bc = null,
         bd = reach
-      for (const c of this.cubes.values()) {
+      // fightPick: without a laser, a laser on the ground comes before any cube
+      if (P.fightPick > 0 && !this.laser) {
+        let bl = this.hpS < 0.5 ? P.fightPick * 0.5 : P.fightPick
+        for (const q of this.picks.values()) {
+          if (q.kind !== "laser") continue
+          const dq = hyp(q.pos[0] - x, q.pos[1] - y)
+          if (dq >= bl || Math.abs(q.pos[2] - z) > 4) continue
+          if (hyp(q.pos[0] - zc.center[0], q.pos[1] - zc.center[1]) > zc.radius - 4) continue
+          if (this.badLoot && this.badLoot.get(q.id) > t) continue
+          bl = dq
+          bc = q
+        }
+      }
+      const cubesNow = me.cubes || 0,
+        capC = this.cfg.cubes?.stat_cap ?? 10
+      const nextTh = (this.cfg.cubes?.upgrade_thresholds || []).find((v) => v > cubesNow)
+      const skipCubes = bc || !(P.fightCube > 0) || (P.fightCubeCap > 0 && cubesNow >= capC && !(nextTh !== undefined && nextTh - cubesNow <= 2))
+      if (!skipCubes) for (const c of this.cubes.values()) {
         const dc = hyp(c.pos[0] - x, c.pos[1] - y)
         if (dc >= bd || Math.abs(c.pos[2] - z) > 4) continue
         if (hyp(c.pos[0] - zc.center[0], c.pos[1] - zc.center[1]) > zc.radius - 4) continue
