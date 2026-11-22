@@ -200,7 +200,7 @@ export const P_FFA = {
 Object.assign(P, {"laserFirst":90,"noRetreat":true,"cubeRun":130,"rushUntil":120,"ffaN":3,"lateAt":330,"lateFin":1.01,"lateCore":40}) // baked by sim/train/train.mjs from sim/train/cand/late.mjs
 Object.assign(P, {"huntFrom":90,"huntUntil":420,"seekUntil":420,"fightCube":55,"fightPick":70,"weave":0.6,"weaveAll":1,"cubeHit":1,"upSet":6}) // t32-stack-pick: t31-stack + in a fight without a laser, walk onto a known ground laser within 70 m (35 m below half HP) while still shooting (sim/variants/rad8.mjs)
 Object.assign(P, {"fixTreeMem":1,"fixLootGate":10,"fixBigNav":1}) // t36-fixes
-Object.assign(P, {"fixLootReach":2.5,"fixTreeSoft":4}) // a01-reach-soft: t36-fixes + the two second-pass fixes backed by real data / the protocol: walk the last metre onto a cube / weapon the path stops short of (no more 30 s parks), thin foliage (under 4 m of crown; server canopyDensity 0.35, canopyBlockT 0.25 -> blocks past ln(4)/0.35 = 3.96 m) does not hide an item. fixFinish (stay on a low target through a retreat trigger) left out: it is the one commit-more change in t40 (sim/variants/audit-fix.mjs)
+Object.assign(P, {"fixLootReach":2.5}) // t40a-lootreach: t36-fixes + walk the last metre onto a cube / weapon the path stops short of (no more 30 s parks) (sim/variants/audit-fix.mjs)
 if (typeof process !== "undefined" && process.env && process.env.FM_P) Object.assign(P, JSON.parse(process.env.FM_P))
 if (typeof process !== "undefined" && process.env && process.env.FM_PFFA) Object.assign(P_FFA, JSON.parse(process.env.FM_PFFA))
 if (P.preferZap) {

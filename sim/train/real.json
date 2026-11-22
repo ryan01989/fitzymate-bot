@@ -403,5 +403,17 @@
   "file": "sim/variants/t38a-dronehp.mjs",
   "real": 5.59,
   "note": "new scoring. t36 + npcHp 0.92. -0.22 vs t36 (5.81), although the sim showed the switch almost never firing."
+ },
+ {
+  "name": "t40-fixes2",
+  "file": "sim/variants/t40-fixes2.mjs",
+  "real": 5.46,
+  "note": "builders-4 (96 fresh seeds). t36 + fixLootReach 2.5 + fixFinish 0.08 + fixTreeSoft 4. -0.35 vs t36 (5.81). Fix family is now 5.81, 5.59, 5.59, 5.54, 5.46."
+ },
+ {
+  "name": "a01-reach-soft",
+  "file": "sim/variants/a01-reach-soft.mjs",
+  "real": 5.65,
+  "note": "builders-4 (96 fresh seeds). t36 + fixLootReach 2.5 + fixTreeSoft 4 (t40 minus fixFinish). +0.19 vs t40 (5.46), -0.16 vs t36 (5.81). Fix family now 5.81, 5.59, 5.59, 5.54, 5.46, 5.65 (mean 5.61)."
  }
 ]
