@@ -541,5 +541,11 @@
   "file": "sim/variants/sq12m-stack.mjs",
   "real": 5.85,
   "note": "builders-4 (built by session buildersmech-24). sq12b (6.05) + loot-parking fix (build_parkfix.py) + fight-movement rework on from 0 s instead of the 30 s gate. -0.20 vs sq12b. Sim said +0.29 (n=24): wrong sign again on fight movement. Suggests the 6.05 run did keep the 30 s gate (the warm-up likely did not reach t=30), and that the rework before 30 s hurts. Parking fix not isolated."
+ },
+ {
+  "name": "sq12w-stack",
+  "file": "sim/variants/sq12w-stack.mjs",
+  "real": 5.83,
+  "note": "builders-4 (built by session buildersmech-24). sq12b (6.05) + gb11's seek rule restored inside the squad layer + wave seeking (45 s sighting memory, next-circle centre, lane hold). -0.22 vs sq12b. Two derivatives of sq12b now 5.85 / 5.83: the squad family's level is likely ~5.85-5.9 and 6.05 a high draw."
  }
 ]

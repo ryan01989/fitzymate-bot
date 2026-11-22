@@ -194,14 +194,6 @@ export const P = {
   shortRetreatFire: 1, // ...0 = keep the old retreat aim (diagnostic: the exit rule alone)
   retarget: 0, // lesson C: in a fight, switch to a mech whose start-of-fight score beats the target's by this many points (100 = full HP share) (0 = off)
   retargetHold: 1.5, // ...but only after this many s on the current target, never off a target we are finishing, never past half a laser charge
-  // --- sim/agentWave: the hunter-wave cycle (90-240 s); kill cycle = no-contact search + fight + loot + regeneration
-  wave: 0, // 1 = (a) out of a fight below seekHp, keep seeking a known mech when our regeneration (5 s delay, then regen_per_s) gets us above seekHp by the time we are within 110 m of it, else wait; (b) with no mech in the 14 s table, seek the freshest sighting of the last wvMem s (each forgotten once we stand within 25 m of it), then, instead of standing at a hold spot, walk toward the next circle's centre; (c) from wvLate s until the 70 m circle: no (b) seeking, and out of a fight with nobody shooting us below wvLateHp break line of sight and regenerate to healTo (on the way when outside the next circle) (0 = off)
-  wvHurt: 0.5, // ...(a) never below this HP share
-  wvMem: 45, // ...(b) seconds a sighting stays a seek goal
-  wvLate: 215, // ...(c) start of the late preparation (match time)
-  wvLateHp: 0.7, // ...(c) below this HP share regenerate (up to healTo) before the mass hunt
-  wvLane: 0, // seeking: a mech listed but out of our line of sight, 50 m to this many m away and coming for us (hunt signal >= 1.5): stop and face its bearing so it walks into our view at our range instead of us walking into it round a corner; for at most wvLaneS s per approach (0 = off)
-  wvLaneS: 6,
   // --- sim/agentA2 audit fixes (all off by default; they are bug fixes that apply to free-for-all too, so P_FFA does not reset them)
   fixLootReach: 0, // > 0 = walking onto a cube / weapon / kill-cube centre: when the path has ended (or we stand still) and the item is still more than 1.2 m away, step straight at it (the server slides us along walls) and give it up after this many s without getting 0.3 m closer; a kill spot (id -7) is simply dropped on arrival. The walk graph only has nodes with wall distance >= R + 0.45 on a 2 m grid, so the goal node can lie beyond the 3.5 m cube radius / 3.7 m take reach; the bot then stood still next to the item for 30 s, and again for each further cube there (0 = off; 2.5 suggested)
   fixFinish: 0, // HP share: a retreat trigger (3+ attackers, out-traded, ...) does not pull us off a fight target in line of sight below this share while we are at 50%+ HP and it is inside 200 m; 0.08 of 1400 HP is under three gun hits. Without it the bot left a 4% target at 83% HP because a third mech had hit it (sim seed 4030, 63.4 s) (0 = off; 0.08 suggested)
@@ -234,7 +226,6 @@ export const P_FFA = {
   fBoost: 0, noRetAll: 0, cubeGoal: 0, seekUntil: 0, rearBonus: 15, dropAll: 0, focusLow: 0, lasLock: 0, lasBoost: 0,
   upSet: 0, chaseHp: 0.4, chaseMyHp: 0.55, chaseS: 7, farmBoost: 0, lethalRelease: 0, fightCube: 0, finishRange: 0, noChase: 0, fightHide: 0, noExplore: 0, cautR: 0, endRush: 0, fightPick: 0, fightCubeCap: 0,
   firstShot: 0, shortRetreat: 0, retarget: 0, // gd-policy lessons: practice only
-  wave: 0, // sim/agentWave: practice only
   squad: 0, sqQuiet: 0, // sq1-squad: practice only
 }
 Object.assign(P, {"laserFirst":90,"noRetreat":true,"cubeRun":130,"rushUntil":120,"ffaN":3,"lateAt":330,"lateFin":1.01,"lateCore":40}) // baked by sim/train/train.mjs from sim/train/cand/late.mjs
@@ -246,7 +237,7 @@ Object.assign(P, {"lasHop":14,"laserRoof":30}) // l01-hop: t36 + laser scout hop
 Object.assign(P, {"upSet":7}) // l07-stack: l06 + upgrade order with gun_mag second (l03 on l01 scored 5.69)
 Object.assign(P, {"upSet":8}) // w03-upgd: l07 + upgrade order 8 (gun_damage before nanites, servos down; sim/agentW2)
 Object.assign(P, {"dropAll":1}) // gb11-dropall: w03 + go for every supply drop (3 cubes + full repair + full energy) within 230 m that we can reach by landing + 8 s and that no known mech is within 70 m of; ahead of other loot
-Object.assign(P, {"wave":1,"wvLane":135}) // wv1-wave / wv1b-wave: gb11 + hunter-wave cycle (seek while regenerating, long sighting memory, next-centre wait, heal before the mass hunt; wv1b adds the lane hold wvLane; sim/agentWave)
+// sq12bp-stack: + parkfix (sim/agentTalk/build_parkfix.py): the dead fixLootReach block made live after the loot walk
 Object.assign(P, {"sqMove":1,"sqAim":1}) // sq2-move: gb11 + fight movement by position sampling (new-idea 5.1-5.5), our ranges kept (sqRange 0); aim drops to 85% height when the centre is blocked
 Object.assign(P, {"squad":1})
 Object.assign(P, {"sqMove":0,"sqAim":0,"sqMoveAt":30,"sqFrom":30}) // sq12b-stack: sq12 with the squad layer and the fight-movement rework both held off until 30 s, so a free-for-all (detected at about 23-25 s on the real server) plays like gb11 // sq1-squad: gb11 + the reference practice decision layer as one mode (engage filter, per-tick target score, 1.5 s retreat pulses, no chase, cube detour 70/40 m, finish close-in 20 m, lethal release 0.7, laser seek 240 m)
@@ -256,8 +247,6 @@ if (P.preferZap) {
   WEAPON_RANK.laser = 2
   WEAPON_RANK.lightning = 3
 }
-
-const WVC = typeof process !== "undefined" && process.env && process.env.FM_WVC ? 1 : 0 // wave counters (sim only)
 
 /**
  * fixTreeMem: the trees of v2/world.json (world.mjs does not keep them). Returns flat arrays or null. No import statement: the fs module comes
@@ -579,7 +568,6 @@ export class Brain {
         this.doExplore(A)
         break
       case "seek":
-        if (P.wave > 0 && P.wvLane > 0 && this.wvLaneStep(A)) break
         this.moveToPoint(A, this.seekGoal[0], this.seekGoal[1], this.seekGoal[2], 1, false)
         this.scan(A, null)
         break
@@ -763,7 +751,6 @@ export class Brain {
             this.en.delete(ev.target)
           }
           if (this.sqzSeen) this.sqzSeen.delete(ev.target)
-          if (this.wvSeen) this.wvSeen.delete(ev.target)
           if (this.targetId === ev.target) this.targetId = -1
           break
         }
@@ -922,21 +909,6 @@ export class Brain {
     this.sqz = P.sqzAt > 0 && t >= P.sqzAt && nr >= 100
     // late plan (P.lateAt): from lateAt once the next circle is 70 m or less
     this.lateOn = P.lateAt > 0 && t >= P.lateAt && nr <= 70
-    if (P.wave > 0) {
-      // wave: where each mech was last seen, kept for P.wvMem s (the enemy table forgets after 14 s)
-      const ws = (this.wvSeen ??= new Map())
-      this.wvDt = Math.min(1, Math.max(0, t - (this.wvT ?? t)))
-      this.wvT = t
-      if (WVC && !this.wvc) this.wvc = { seekHurt: 0, hurtWait: 0, seekMem: 0, seekCentre: 0, memDone: 0, lateHeal: 0, lateHealMove: 0, baseSeek: 0, lane: 0, laneN: 0 }
-      for (const e of this.vis) if (e.cur) ws.set(e.id, [e.pos[0], e.pos[1], e.pos[2], t])
-      const [mx, my] = this.me.pos
-      for (const [id, q] of ws)
-        if (t - q[3] > P.wvMem) ws.delete(id)
-        else if (t - q[3] > 1 && hyp(q[0] - mx, q[1] - my) < 25) {
-          ws.delete(id) // we stood there and nobody is in view: forget it
-          if (this.wvc) this.wvc.memDone++
-        }
-    }
     if (P.sqzAt > 0 && P.sqzAway > 0) {
       // where each mech was last seen, kept longer than the 14 s enemy table
       const seen = (this.sqzSeen ??= new Map())
@@ -1308,13 +1280,11 @@ export class Brain {
     }
     // --- heal before the next fight (hunters arrive one after another)
     const lateHeal = this.lateOn ? P.lateHeal : 0
-    const wvH = P.wave > 0 && P.wvLate > 0 && t >= P.wvLate && this.nr >= 100 && !this.finalPhase ? P.wvLateHp : 0 // wave (c)
-    const healBelow = Math.max(this.sqz ? Math.max(P.healBelow, P.sqzHp) : P.healBelow, lateHeal, wvH)
+    const healBelow = Math.max(this.sqz ? Math.max(P.healBelow, P.sqzHp) : P.healBelow, lateHeal)
     if (healBelow > 0 && this.mode !== "fight" && atk.length === 0) {
       const weakInSight = losE.some((e) => e.hpS < (lateHeal > 0 ? P.lateFin : 0.3) && e.dist < 200)
       if (!weakInSight && (hpS < healBelow || (this.mode === "recover" && hpS < Math.max(P.healTo, lateHeal)))) {
-        if (wvH > 0 && this.wvc) this.wvc[this.dNext > 0 ? "lateHealMove" : "lateHeal"] += this.wvDt
-        if ((this.sqz || wvH > 0) && this.dNext > 0) {
+        if (this.sqz && this.dNext > 0) {
           // squeeze prep, not yet inside the next circle: regenerate on the way to the hold spot, not behind the nearest cover
           this.mode = "hold"
           return
@@ -1403,11 +1373,9 @@ export class Brain {
       if (g) {
         this.seekGoal = [g.pos[0], g.pos[1], g.pos[2]]
         this.mode = "seek"
-        if (this.wvc) this.wvc.baseSeek += this.wvDt
         return
       }
     }
-    if (P.wave > 0 && !this.loot && this.wvSeek()) return
     this.mode = this.loot ? "loot" : !P.noExplore && P.farmHard && t < P.farmUntil && !this.sqz && hpS > P.exploreHp && this.zoneSlack > 25 && t - this.lastMechDmgT > 4 ? "explore" : "hold"
   }
 
@@ -1541,7 +1509,6 @@ export class Brain {
     }
     this.loot = this.pickLoot()
     if (SQD && this.loot && this.loot.kind === "laser" && t >= P.laserFirst) SQD.lasSeek++
-    if (P.wave > 0 && !this.loot && this.wvSqSeek()) return
     this.mode = this.loot ? "loot" : "hold"
   }
   /** run fn with some P fields replaced, then put them back */
@@ -1651,105 +1618,6 @@ export class Brain {
       A.boost = false
       if (SQD) SQD.quiet++
     }
-  }
-
-  /**
-   * wave: seek when decide()'s own seek did not (see P.wave). (a) a known mech while hurt, only when regeneration gets us above
-   * seekHp by the time we are within 110 m of it; (b) the freshest remembered sighting; (c) the next circle's centre in place of a hold
-   * spot. Returns true when it set mode seek.
-   */
-  wvSeek() {
-    const t = this.t,
-      me = this.me
-    const [x, y] = me.pos
-    if (!(P.seekUntil > 0 && t < P.seekUntil && this.huntOk()) || this.zoneSlack <= 20 || this.finalPhase || this.lateOn) return false
-    if (t - this.lastMechDmgT < 3 || this.hpS < P.wvHurt) return false
-    const late = P.wvLate > 0 && t >= P.wvLate
-    const c = this.wvc,
-      dt = this.wvDt || 0
-    const regenIn = Math.max(0, this.regenDelay - (t - Math.max(this.lastDamagedT, this.lastDealtT)))
-    const rps = me.stats?.regen_per_s ?? this.cfg.mech?.regen_per_s ?? 45
-    // HP share when we get within 110 m of a point d m away (the fight starts there)
-    const arrive = (d) => Math.min(me.max_hp, me.hp + rps * Math.max(0, Math.max(0, d - 110) / this.walk - regenIn)) / Math.max(1, me.max_hp)
-    const zc = this.o.zone
-    const inside = (p) => hyp(p[0] - zc.center[0], p[1] - zc.center[1]) < zc.radius - 10
-    let goal = null,
-      kind = null
-    // (a) a mech in the 14 s table (decide() seeks it itself above seekHp)
-    let g = null
-    for (const e of this.en.values()) if (!e.phantom && (!g || e.t > g.t)) g = e
-    if (g) {
-      if (this.hpS > P.seekHp) return false
-      if (arrive(hyp(g.pos[0] - x, g.pos[1] - y)) < P.seekHp) {
-        if (c) c.hurtWait += dt
-        return false
-      }
-      goal = g.pos
-      kind = "seekHurt"
-    } else if (!late) {
-      // (b) the freshest sighting of the last P.wvMem s (reached sooner = better)
-      let bs = -1e9
-      if (this.wvSeen)
-        for (const q of this.wvSeen.values()) {
-          if (!inside(q)) continue
-          const d = hyp(q[0] - x, q[1] - y)
-          const sc = -(t - q[3]) - d / this.walk
-          if (sc > bs && arrive(d) >= P.seekHp) {
-            bs = sc
-            goal = q
-          }
-        }
-      if (goal) kind = "seekMem"
-      else if (this.nr > 60 && hyp(this.nc[0] - x, this.nc[1] - y) > Math.max(40, 0.35 * this.nr) && this.hpS > P.seekHp) {
-        // (c) nothing known: hunters and wanderers meet in the next circle, so wait for them nearer its middle; only where we would stand at a hold spot
-        const explore = !P.noExplore && P.farmHard && t < P.farmUntil && !this.sqz && this.hpS > P.exploreHp && this.zoneSlack > 25 && t - this.lastMechDmgT > 4
-        if (!explore) {
-          const gz = this.w ? this.w.ground(this.nc[0], this.nc[1]) : me.pos[2]
-          goal = [this.nc[0], this.nc[1], gz]
-          kind = "seekCentre"
-        }
-      }
-    }
-    if (!goal) return false
-    if (c) c[kind] += dt
-    this.seekGoal = [goal[0], goal[1], goal[2]]
-    this.mode = "seek"
-    return true
-  }
-
-  /** wave lane: while seeking, let a mech that is coming for us (listed, out of sight, 50 m..P.wvLane) walk into our view: stand and face it (see P.wvLane) */
-  wvLaneStep(A) {
-    const t = this.t
-    const [x, y] = this.me.pos
-    let g = null
-    for (const e of this.en.values()) if (e.cur && !e.los && e.dist > 50 && e.dist < P.wvLane && e.hunt >= 1.5 && (!g || e.dist < g.dist)) g = e
-    if (!g || this.zoneSlack < 20) return false
-    if (this.wvLaneT0 == null || t - (this.wvLaneLast ?? -99) > 2) {
-      this.wvLaneT0 = t
-      if (this.wvc) this.wvc.laneN++
-    }
-    this.wvLaneLast = t
-    if (t - this.wvLaneT0 > P.wvLaneS) return false
-    if (this.wvc) this.wvc.lane += this.wvDt || 0
-    A.move = [0, 0]
-    A.aim = [Math.atan2(g.pos[1] - y, g.pos[0] - x), 0]
-    return true
-  }
-
-  /** wave on the squad layer: decide()'s seek (P.seekUntil / seekHp, freshest mech of the 14 s table), then wvSeek() */
-  wvSqSeek() {
-    const t = this.t
-    if (P.seekUntil > 0 && t < P.seekUntil && this.huntOk() && this.hpS > P.seekHp && this.zoneSlack > 20) {
-      let g = null
-      for (const e of this.en.values()) if (!e.phantom && t - e.t < 20 && (!g || e.t > g.t)) g = e
-      if (g) {
-        this.seekGoal = [g.pos[0], g.pos[1], g.pos[2]]
-        this.mode = "seek"
-        if (this.wvc) this.wvc.baseSeek += this.wvDt
-        return true
-      }
-    }
-    return this.wvSeek()
   }
 
   setFight(e) {
@@ -3384,6 +3252,33 @@ export class Brain {
     } else this.lootStuck = 0
     const arrived = this.moveToPoint(A, L.pos[0], L.pos[1], L.pos[2], 1, (P.lasBoost > 0 && L.kind === "laser" && !this.laser && this.me.energy > P.lasBoost) || this.fbGo())
     if (!arrived && this.pathPartial && this.path && this.path.length < 5) fail()
+    if (P.fixLootReach > 0 && this.loot && d >= 1.2 && !this.jet && (arrived || hyp(A.move[0], A.move[1]) < 0.05)) {
+      // parkfix: the walk is over and the item is not ours (the fixLootReach block above is nested under d < 1.2 and never runs)
+      if (L.id === -7) {
+        // a spot, not an item: as near as the walk graph goes; the cubes lying there are ordinary cube targets for pickLoot()
+        this.killLoot = null
+        this.loot = null
+      } else {
+        if (this.pkReachId !== L.id || t - (this.pkReachSeenT ?? -99) > 1) {
+          this.pkReachId = L.id
+          this.pkReachT = t
+          this.pkReachD = d
+        }
+        this.pkReachSeenT = t
+        if (d < this.pkReachD - 0.3) {
+          this.pkReachD = d
+          this.pkReachT = t
+        }
+        if (t - this.pkReachT > P.fixLootReach) {
+          fail()
+          if (L.id <= -100) this.kcRun = null
+          this.pkReachId = null
+        } else if (Math.abs(L.pos[2] - z) < 2.5) {
+          const k = Math.min(1, Math.max(0.35, d / 3))
+          A.move = [((L.pos[0] - x) / d) * k, ((L.pos[1] - y) / d) * k]
+        }
+      }
+    }
     if (P.rushUntil > 0 && this.rushOn() && this.w && !this.vis.some((e) => e.los && e.dist < 170)) {
       // rush: shoot the nearest crate in view on the way (not with a mech in sight: we would turn our back to it) (it does not move; the cubes wait for us)
       let bc = null,
