@@ -57,7 +57,7 @@ export const P = {
   ffaDead: 2, // deaths we did not cause...
   ffaObs: 5, // ...seen on this many observations in a row
 }
-Object.assign(P, {})
+Object.assign(P, {"dodgeBoostE":25}) // variant 1: duelist (defaults)
 if (typeof process !== "undefined" && process.env && process.env.VG_P) Object.assign(P, JSON.parse(process.env.VG_P))
 
 class Foe {
