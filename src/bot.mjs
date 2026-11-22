@@ -164,7 +164,7 @@ export const P_FFA = {
   upSet: 0, chaseHp: 0.4, chaseMyHp: 0.55, chaseS: 7,
 }
 Object.assign(P, {"laserFirst":90,"noRetreat":true,"cubeRun":130,"rushUntil":120,"ffaN":3,"lateAt":330,"lateFin":1.01,"lateCore":40}) // baked by sim/train/train.mjs from sim/train/cand/late.mjs
-Object.assign(P, {"huntFrom":90,"huntUntil":420,"seekUntil":420,"noRetAll":1}) // t17a-laststand: t13 + never retreat from mechs in sight, whatever their number (no dying with our back turned) (sim/variants/rad4.mjs)
+Object.assign(P, {"huntFrom":90,"huntUntil":420,"seekUntil":420,"noRetreat":false}) // t18a-retreat: t13 + retreat rules back on for 1-2 attackers too (out-traded, or hit by two: break off and regenerate) (sim/variants/rad4.mjs)
 if (typeof process !== "undefined" && process.env && process.env.FM_P) Object.assign(P, JSON.parse(process.env.FM_P))
 if (typeof process !== "undefined" && process.env && process.env.FM_PFFA) Object.assign(P_FFA, JSON.parse(process.env.FM_PFFA))
 if (P.preferZap) {

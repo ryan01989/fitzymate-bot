@@ -260,5 +260,12 @@
   "file": "sim/variants/t12-kite200.mjs",
   "real": 5.38,
   "note": "rerun; two-run mean 5.295 = same level as t11 (5.23, 5.38) and t13 (5.40). Kiting is neutral."
+ },
+ {
+  "name": "t17a-laststand",
+  "file": "sim/variants/t17a-laststand.mjs",
+  "real": 4.98,
+  "pred": "none (sim cannot rank); my estimate -0.1 to +0.3",
+  "note": "t13 + noRetAll 1. -0.4 vs t13 (5.40): retreating from 3+ attackers keeps the bot alive for later kills. Dead."
  }
 ]
