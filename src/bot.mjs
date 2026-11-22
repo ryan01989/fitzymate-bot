@@ -41,8 +41,6 @@ const UPSETS = [null,
   ["plating", "gun_mag", "armor", "nanites", "laser_charge", "laser_damage", "gun_damage", "gun_rate", "capacitor", "servos", "gun_velocity", "sensors", "gyros", "reactor", "jets", "lightning_range", "lightning_chain", "laser_pierce", "lightning_efficiency", "mortar_reload", "mortar_velocity", "mortar_splash"],
   // 8 (sim/agentW2): set 7 with gun_damage ahead of nanites and servos last of the stat picks. In 21 recorded showdowns the top-3 finishers' first three picks were gun_damage 13.6% / nanites 12.4% / servos 3.0%; places 4-16: gun_damage 10.2% / nanites 15.5% / servos 6.5% (offers are not recorded, so this is choice share, not a ranking)
   ["plating", "gun_mag", "armor", "gun_damage", "nanites", "laser_charge", "laser_damage", "gun_rate", "capacitor", "gun_velocity", "sensors", "gyros", "reactor", "servos", "jets", "lightning_range", "lightning_chain", "laser_pierce", "lightning_efficiency", "mortar_reload", "mortar_velocity", "mortar_splash"],
-  // 9: set 8 with gun_damage third, ahead of armor (the offense trend: upSet 6 -> 7 gun_mag 2nd -> 8 gun_damage before nanites scored 5.69/5.83/5.67 -> 5.85)
-  ["plating", "gun_mag", "gun_damage", "armor", "nanites", "laser_charge", "laser_damage", "gun_rate", "capacitor", "gun_velocity", "sensors", "gyros", "reactor", "servos", "jets", "lightning_range", "lightning_chain", "laser_pierce", "lightning_efficiency", "mortar_reload", "mortar_velocity", "mortar_splash"],
 ]
 const WEAPON_RANK = { laser: 3, lightning: 2, gun: 1, mortar: 0 }
 
@@ -214,7 +212,7 @@ Object.assign(P, {"lasHop":14,"laserRoof":30}) // l01-hop: t36 + laser scout hop
 // l06-fixes: l01-hop + the two a01 fixes (fixLootReach 2.5, fixTreeSoft 4; a01 on t36 scored 5.65)
 Object.assign(P, {"upSet":7}) // l07-stack: l06 + upgrade order with gun_mag second (l03 on l01 scored 5.69)
 Object.assign(P, {"upSet":8}) // w03-upgd: l07 + upgrade order 8 (gun_damage before nanites, servos down; sim/agentW2)
-Object.assign(P, {"upSet":9}) // w04-upgd9: w03 + gun_damage third, ahead of armor
+Object.assign(P, {"dropAll":1}) // gb11-dropall: w03 + go for every supply drop (3 cubes + full repair + full energy) within 230 m that we can reach by landing + 8 s and that no known mech is within 70 m of; ahead of other loot
 if (typeof process !== "undefined" && process.env && process.env.FM_P) Object.assign(P, JSON.parse(process.env.FM_P))
 if (typeof process !== "undefined" && process.env && process.env.FM_PFFA) Object.assign(P_FFA, JSON.parse(process.env.FM_PFFA))
 if (P.preferZap) {
