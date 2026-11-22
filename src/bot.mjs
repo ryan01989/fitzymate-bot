@@ -28,6 +28,12 @@ const UPGRADES = [
   "servos", "gun_velocity", "sensors", "gyros", "reactor", "gun_mag", "jets", "lightning_range",
   "lightning_chain", "laser_pierce", "lightning_efficiency", "mortar_reload", "mortar_velocity", "mortar_splash",
 ]
+const UPSETS = [null,
+  ["laser_damage", "laser_charge", "gun_damage", "gun_rate", "plating", "armor", "gun_mag", "nanites", "laser_pierce", "capacitor", "servos", "gyros", "gun_velocity", "sensors", "reactor", "jets", "lightning_range", "lightning_chain", "lightning_efficiency", "mortar_reload", "mortar_velocity", "mortar_splash"],
+  ["armor", "plating", "nanites", "laser_charge", "laser_damage", "gun_damage", "gun_rate", "capacitor", "servos", "gun_velocity", "sensors", "gyros", "reactor", "gun_mag", "jets", "lightning_range", "lightning_chain", "laser_pierce", "lightning_efficiency", "mortar_reload", "mortar_velocity", "mortar_splash"],
+  ["gun_damage", "gun_rate", "gun_mag", "plating", "armor", "laser_charge", "laser_damage", "gun_velocity", "nanites", "capacitor", "servos", "sensors", "gyros", "reactor", "jets", "lightning_range", "lightning_chain", "laser_pierce", "lightning_efficiency", "mortar_reload", "mortar_velocity", "mortar_splash"],
+  ["sensors", "gyros", "plating", "armor", "laser_charge", "laser_damage", "nanites", "gun_damage", "gun_rate", "capacitor", "servos", "gun_velocity", "reactor", "gun_mag", "jets", "lightning_range", "lightning_chain", "laser_pierce", "lightning_efficiency", "mortar_reload", "mortar_velocity", "mortar_splash"],
+]
 const WEAPON_RANK = { laser: 3, lightning: 2, gun: 1, mortar: 0 }
 
 // Tunables (see README "Tuning").
@@ -127,6 +133,17 @@ export const P = {
   lateFin: 0.35, // ...HP share under which a mech is still worth attacking late
   lateHeal: 0, // ...and out of a fight with nobody shooting us, below this HP share break line of sight and regenerate up to it; supply drops are taken whenever hurt (0 = off)
   lateCore: 0, // ...and hold spots are pulled toward the centre of the next circle by this many score points at its edge (no outer-ring preference) (0 = off)
+  // --- sim/variants/rad.mjs: radical switches (all off by default)
+  upSet: 0, // upgrade order: 0 current, 1 offense (laser/gun dmg first), 2 tank (armor/plating/nanites), 3 gun, 4 sensors+gyros first
+  fBoost: 0, // in a fight, boost-strafe while energy is above this (0 = off)
+  noRetAll: 0, // 1 = never retreat from mechs in sight, whatever their number
+  cubeGoal: 0, // the rush ends early once we hold this many cubes (0 = off)
+  seekUntil: 0, // until this time, out of a fight and above seekHp: walk toward the last known mech (0 = off)
+  seekHp: 0.75,
+  rearBonus: 15, // target score bonus for a mech facing away from us
+  dropAll: 0, // 1 = go for every supply drop (3 cubes + full repair) when nobody is within dropCrowd m of it
+  dropCrowd: 70,
+  focusLow: 0, // in a fight, switch to a mech in sight this much lower in HP share (0 = off)
 }
 // Free-for-all profile (qualifying and the final): the survival-first settings of the first two submissions.
 // Applied once, the moment the bot sees mechs dying that it did not kill (see ingest()).
@@ -136,8 +153,10 @@ export const P_FFA = {
   farmHard: false, huntUntil: 0, calmAfter: 0, laserFirst: 0, laserInit: 0, laserInitUntil: 0, lootFix: 0, laserRoof: 0, laserRun: 0, laserAway: 0, oneFront: 0,
   guard: 0, guardArc: 0.25, guardFire: 0.25, sqzAt: 0, sqzAway: 0, sqzHp: 0, lootHold: 0, lootHoldRe: 0, weave: 0, weaveAll: 0, cubeRun: 0,
   rushUntil: 0, gunMax: 0, lateAt: 0, lateFin: 0.35, lateHeal: 0, lateCore: 0,
+  fBoost: 0, noRetAll: 0, cubeGoal: 0, seekUntil: 0, rearBonus: 15, dropAll: 0, focusLow: 0,
 }
 Object.assign(P, {"laserFirst":90,"noRetreat":true,"cubeRun":130,"rushUntil":120,"ffaN":3,"lateAt":330,"lateFin":1.01,"lateCore":40}) // baked by sim/train/train.mjs from sim/train/cand/late.mjs
+Object.assign(P, {"fightRange":200,"fBoost":40}) // t12-kite200: hold the gun's full reach and boost-strafe in fights (sim/variants/rad.mjs)
 if (typeof process !== "undefined" && process.env && process.env.FM_P) Object.assign(P, JSON.parse(process.env.FM_P))
 if (typeof process !== "undefined" && process.env && process.env.FM_PFFA) Object.assign(P_FFA, JSON.parse(process.env.FM_PFFA))
 if (P.preferZap) {
@@ -341,6 +360,10 @@ export class Brain {
         break
       case "explore":
         this.doExplore(A)
+        break
+      case "seek":
+        this.moveToPoint(A, this.seekGoal[0], this.seekGoal[1], this.seekGoal[2], 1, false)
+        this.scan(A, null)
         break
       default:
         this.doHold(A)
@@ -589,8 +612,9 @@ export class Brain {
     if (!of || !of.choices?.length) return
     let best = 0,
       bestR = 1e9
+    const UL = UPSETS[P.upSet] || UPGRADES
     for (let i = 0; i < of.choices.length; i++) {
-      let r = UPGRADES.indexOf(of.choices[i].id)
+      let r = UL.indexOf(of.choices[i].id)
       if (r < 0) r = 50
       if (r < bestR) {
         bestR = r
@@ -735,7 +759,7 @@ export class Brain {
 
   /** rush: is the early cube rush on this tick (P.rushUntil)? */
   rushOn() {
-    return P.rushUntil > 0 && this.t < P.rushUntil && !this.finalPhase && !this.sqz
+    return P.rushUntil > 0 && this.t < P.rushUntil && !this.finalPhase && !this.sqz && !(P.cubeGoal > 0 && (this.me.cubes || 0) >= P.cubeGoal)
   }
   /** rush: a mech that is not on us (beyond P.rushNear, no hit on us for P.rushHit s, not nearly dead) is no reason to start a fight */
   rushSkip(e) {
@@ -893,8 +917,8 @@ export class Brain {
         return
       }
     } else if (hpS < P.hideHp && losE.length && !(this.mode === "fight" && target && target.hpS < 0.25)) retreat = true
-    if (retreat && P.noRetreat && atk.length <= 2 && (target || atk.length)) {
-      const e = target && target.los ? target : atk.find((q) => q.los) || null
+    if (retreat && P.noRetreat && (atk.length <= 2 || P.noRetAll) && (target || atk.length || (P.noRetAll && losE.length))) {
+      const e = target && target.los ? target : atk.find((q) => q.los) || (P.noRetAll ? losE.reduce((b, q) => (!b || q.hp < b.hp ? q : b), null) : null)
       if (e) {
         this.setFight(e)
         return
@@ -951,6 +975,14 @@ export class Brain {
       if (this.mode === "recover") this.mode = "hold"
     }
     // --- continue a fight
+    if (P.focusLow > 0 && this.mode === "fight" && target) {
+      let lo = null
+      for (const e of losE) if (e !== target && e.dist < 200 && e.hpS < target.hpS - P.focusLow && (!lo || e.hpS < lo.hpS)) lo = e
+      if (lo) {
+        this.setFight(lo)
+        return
+      }
+    }
     if (this.mode === "fight" && target) {
       const lost = t - (target.losT ?? -99)
       const chase = target.hpS < P.chaseHp && hpS > P.chaseMyHp && this.others(target, P.crowd) === 0
@@ -965,7 +997,7 @@ export class Brain {
       if (e.dist > P.startDist) continue
       if (P.rushUntil > 0 && this.rushSkip(e)) continue
       if (!this.wantFight(e, false)) continue
-      const s = (1 - e.hpS) * 100 - e.dist * P.scoreDist + (this.rearOf(e) ? 15 : 0)
+      const s = (1 - e.hpS) * 100 - e.dist * P.scoreDist + (this.rearOf(e) ? P.rearBonus : 0)
       if (s > bestScore) {
         bestScore = s
         best = e
@@ -996,6 +1028,15 @@ export class Brain {
     if (P.lootHold > 0 && !this.loot && (wasLoot || held) && losE.some((e) => e.dist < 170)) {
       if (held || P.lootHoldRe <= 0 || t - (this.lootOffT ?? -99) <= P.lootHoldRe) this.lootBlockT = t
       if (wasLoot) this.lootOffT = t
+    }
+    if (!this.loot && P.seekUntil > 0 && t < P.seekUntil && hpS > P.seekHp && this.zoneSlack > 20) {
+      let g = null
+      for (const e of this.en.values()) if (!e.phantom && t - e.t < 20 && (!g || e.t > g.t)) g = e
+      if (g) {
+        this.seekGoal = [g.pos[0], g.pos[1], g.pos[2]]
+        this.mode = "seek"
+        return
+      }
     }
     this.mode = this.loot ? "loot" : P.farmHard && t < P.farmUntil && !this.sqz && hpS > P.exploreHp && this.zoneSlack > 25 && t - this.lastMechDmgT > 4 ? "explore" : "hold"
   }
@@ -1758,6 +1799,11 @@ export class Brain {
       this.strafeFlipT = t + 0.25 + this.rand() * 0.5
     }
     A.move = best
+    if (P.fBoost > 0 && !this.charging && hyp(best[0], best[1]) > 0.5) {
+      if (this.me.energy > P.fBoost) this.fbOn = true
+      else if (this.me.energy < 12) this.fbOn = false
+      if (this.fbOn) A.boost = true
+    }
     // a lightning carrier inside its reach: open the range fast
     if (e.has("lightning") && d < 52 && this.me.energy > 25 && !(this.lightning && this.hpS > e.hpS)) {
       A.move = mk(s0 * 0.35, -1)
@@ -1936,7 +1982,7 @@ export class Brain {
   pickLoot() {
     const t = this.t
     const me = this.me
-    if ((P.dropHeal || (this.lateOn && P.lateHeal > 0)) && this.hpS < 0.85 && this.zoneSlack > 10) {
+    if ((P.dropHeal || P.dropAll || (this.lateOn && P.lateHeal > 0)) && (this.hpS < 0.85 || P.dropAll) && this.zoneSlack > 10) {
       const [x, y] = me.pos
       let best = null
       for (const dr of this.o.drops || []) {
@@ -1944,7 +1990,7 @@ export class Brain {
         const d = hyp(dr.pos[0] - x, dr.pos[1] - y)
         if (d > 230 || dr.lands_in > d / this.walk + 8) continue
         let crowded = false
-        for (const e of this.en.values()) if (t - e.t < 8 && hyp(dr.pos[0] - e.pos[0], dr.pos[1] - e.pos[1]) < 70) crowded = true
+        for (const e of this.en.values()) if (t - e.t < 8 && hyp(dr.pos[0] - e.pos[0], dr.pos[1] - e.pos[1]) < (P.dropAll ? P.dropCrowd : 70)) crowded = true
         if (!crowded && (!best || d < best.d)) best = { type: "drop", id: dr.id, pos: dr.pos, d }
       }
       if (best) return best
