@@ -1,0 +1,27 @@
+agentL: laser spawn analysis (Nov 22, ~6 AM)
+
+Scripts (run from this folder):
+  extract.py <export.json> laser.json   one-pass extract of the 21 showdown replays (headers, weapon/crate/death events, 1 Hz positions)
+  analyze.py   -> analyze.out   floor/crate laser counts, take times, possession, nearest lying laser for laserless mechs
+  roofs.py     -> roofs.out     which roofs hold items, heights, spawn distance to roof lasers
+  cases.py + vis.mjs -> vis.out  lasers in sight (world.mjs buildings + tree crowns/trunks) from standing eye vs a jet hop +6..+20 m
+  evalL.mjs    copy of sim/eval-cal.mjs that also dumps the bot's hop count (hopN)
+  lasstat.py   laser possession at 20/45/90 s from evalL dumps
+
+Facts (real data):
+  - Loot is random per seed: 840 floor-item positions and 755 crate positions over 21 matches, none repeated.
+    hello config: loot.floor_count 40, floor_roof_fraction 0.25, weights mortar:laser:lightning 1:1:1,
+    crate_weapon_chance 0.5, crates 36 with roof_fraction 0.25.
+  - Floor lasers 12.3/match (10-16); 22% on roofs (2.8/match, 1-6).
+  - Roof floor lasers: 0 of 58 taken by 90 s, 1 ever. House bots: 54 of 55 laser pickups on the ground.
+  - Ground floor lasers: taken 39% by 15 s, 50% by 45 s, 54% by 90 s; 44% never.
+  - Crates: 17.6 of 36 broken/match; 54% drop a weapon, 15.7% a laser (2.8/match). Roof crates: 12 of 189 broken.
+  - Roof items sit on 81 of 250 building prisms, roughly in proportion to roof area (corr 0.85);
+    the 12 biggest roofs hold 46% of roof items. Median roof 17 m above ground (p90 22).
+  - Nothing reveals loot before sight: hello has seed + map only; obs lists pickups/crates in sight only
+    (200 m in the 120-degree wedge, 45 m all round); crates do not show contents.
+  - Laserless mechs at 45 s: a laser lies within 200 m for 73%, but from the standing eye only 19% have one in sight;
+    from +14 m: 41% (+23 points, a third to half of them on roofs).
+
+Build: sim/variants/l01-hop.mjs = t36 + lasHop 14 (jump+jet 14 m with a full torso turn, calm, grounded,
+  energy >= 75, no laser goal, before 90 s, at most every 10 s) + laserRoof 30.

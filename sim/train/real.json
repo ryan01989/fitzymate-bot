@@ -427,5 +427,11 @@
   "file": "sim/variants/x02-fightboost.mjs",
   "real": 5.6,
   "note": "builders-4. t36 + fixOwnLead 1 (aim from own position at shot time) + fightBoost 45 / fightBoostMin 20 (boost-strafe in fights). Sim paired +0.6 on two seed sets; real at family level: boost-strafe does not pay (sim wrong again on fight movement, as with kiting)."
+ },
+ {
+  "name": "x01-ownlead",
+  "file": "sim/variants/x01-ownlead.mjs",
+  "real": 5.43,
+  "note": "builders-4. t36 + fixOwnLead 1 (aim from own position at shot time). -0.18 vs the fix-family mean 5.61. The two builds with fixOwnLead scored 5.60 (x02) and 5.43 (mean 5.52): a weak hint it costs ~0.1; keep it out of further stacks."
  }
 ]

@@ -1,0 +1,24 @@
+T=0s cases 336 (spawns at T=0, else laserless mechs): a laser lying within 200 m 88%
+  eye +0 m: one in sight 33% (nearest is on a roof 3), newly in sight vs standing 0%, median dist 70
+  eye +6 m: one in sight 34% (nearest is on a roof 12), newly in sight vs standing 5%, median dist 65
+  eye +10 m: one in sight 42% (nearest is on a roof 33), newly in sight vs standing 13%, median dist 75
+  eye +14 m: one in sight 49% (nearest is on a roof 48), newly in sight vs standing 20%, median dist 78
+  eye +20 m: one in sight 57% (nearest is on a roof 66), newly in sight vs standing 27%, median dist 84
+T=15s cases 231 (spawns at T=0, else laserless mechs): a laser lying within 200 m 76%
+  eye +0 m: one in sight 17% (nearest is on a roof 4), newly in sight vs standing 0%, median dist 98
+  eye +6 m: one in sight 20% (nearest is on a roof 11), newly in sight vs standing 5%, median dist 95
+  eye +10 m: one in sight 29% (nearest is on a roof 26), newly in sight vs standing 15%, median dist 95
+  eye +14 m: one in sight 37% (nearest is on a roof 41), newly in sight vs standing 23%, median dist 112
+  eye +20 m: one in sight 44% (nearest is on a roof 55), newly in sight vs standing 29%, median dist 114
+T=45s cases 153 (spawns at T=0, else laserless mechs): a laser lying within 200 m 73%
+  eye +0 m: one in sight 19% (nearest is on a roof 4), newly in sight vs standing 0%, median dist 113
+  eye +6 m: one in sight 24% (nearest is on a roof 9), newly in sight vs standing 5%, median dist 110
+  eye +10 m: one in sight 32% (nearest is on a roof 18), newly in sight vs standing 14%, median dist 110
+  eye +14 m: one in sight 41% (nearest is on a roof 33), newly in sight vs standing 23%, median dist 113
+  eye +20 m: one in sight 48% (nearest is on a roof 42), newly in sight vs standing 30%, median dist 110
+T=90s cases 90 (spawns at T=0, else laserless mechs): a laser lying within 200 m 80%
+  eye +0 m: one in sight 16% (nearest is on a roof 3), newly in sight vs standing 0%, median dist 98
+  eye +6 m: one in sight 22% (nearest is on a roof 9), newly in sight vs standing 7%, median dist 98
+  eye +10 m: one in sight 31% (nearest is on a roof 16), newly in sight vs standing 16%, median dist 94
+  eye +14 m: one in sight 36% (nearest is on a roof 20), newly in sight vs standing 20%, median dist 98
+  eye +20 m: one in sight 46% (nearest is on a roof 29), newly in sight vs standing 30%, median dist 107

@@ -1,0 +1,19 @@
+roof items (floor pickups + crates): 399 matched to prism 399
+prisms ever holding a roof item 81 of 250 building prisms
+corr(count, area) 0.85; items per 1000 m2 roof: median 2.79
+top prisms: (idx, items in 21 matches, area m2, top z, height above ground)
+   57 23 8275 14.71 18.0 (-163, -118)
+   15 20 7583 14.9 16.8 (-101, -272)
+   182 20 5268 12.8 16.2 (-70, 260)
+   49 18 5344 25.72 21.9 (129, -143)
+   200 15 3451 25.22 22.1 (185, 315)
+   185 14 4408 13.56 13.6 (20, 262)
+   53 13 4653 6.52 7.4 (-81, -116)
+   203 13 2540 30.21 26.7 (259, 334)
+   35 12 4349 16.49 16.2 (52, -214)
+   210 12 5135 17.44 20.3 (-50, 342)
+   196 11 3109 17.11 14.9 (106, 308)
+   161 11 1943 24.25 20.1 (275, 228)
+roof height above ground of roof items: median 17.2 p10 8.9 p90 22.2 max 40.3
+roof lasers per match: [2, 3, 1, 1, 4, 3, 3, 2, 2, 1, 4, 6, 4, 4, 2, 4, 3, 2, 2, 2, 3]
+spawns with a roof laser within {100: 0.11, 150: 0.21, 200: 0.34, 300: 0.54}  climb needed (laser z - spawn z) for <200 m: median 19.1 p90 25.9

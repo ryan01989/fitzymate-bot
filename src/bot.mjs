@@ -102,6 +102,9 @@ export const P = {
   // --- sim/train/cand/lootfix.mjs
   lootFix: 0, // 1 = drop the kill-loot spot once the path to it has ended, it proved unreachable, or we stood still for 2 s on the way (0 = off: keep returning to it for 30 s)
   // --- sim/train/cand/laser2.mjs
+  lasHop: 0, // laser scout hop (sim/agentL): before P.laserFirst, without a laser and with no laser goal, calm and grounded with energy >= lasHopE, jump and jet this many m up while spinning the torso a full turn, so lasers on roofs and behind trees/buildings come into view (in real showdowns 22% of floor lasers lie on roofs and 57 of 58 were never taken). At most once per lasHopEvery s (0 = off)
+  lasHopE: 75,
+  lasHopEvery: 10,
   laserRoof: 0, // laserFirst also runs to a laser on a roof (off the walk graph) when it lies at most this many m above our feet and a jet route to it exists (0 = off: roof lasers are skipped)
   // --- sim/train/cand/laser3.mjs
   laserRun: 0, // laserFirst: a laser goal within this many m (a) keeps us from starting a fight with a mech more than 60 m away, (b) ends a fight gone quiet (not hit for 4 s, no hit of ours for 2 s, target beyond 60 m) and (c) ends a retreat once not hit for 4 s at 60%+ HP with no mech in sight inside 120 m (0 = off)
@@ -180,7 +183,6 @@ export const P = {
   fixTreeMem: 0, // 1 = item memory (_remember): a pickup / crate / cube "in view but not listed" is forgotten only when no tree crown or trunk from v2/world.json is on the sight line (the server hides items behind foliage beyond the 45 m proximity range; world.mjs has no trees, so the bot took "hidden by a tree" for "gone" and dropped known lasers, crates and kill cubes after 0.3 s). Crates we shoot unseen are tracked by our hit events and dropped once dead or not answering hits (0 = off)
   fixLootGate: 0, // > 0 = judge loot outside the next circle by the zone slack we would have AT THE ITEM (edge-crossing time there, minus the walk to it, minus the walk back in), which must exceed this many s. The old gate (our own zoneSlack > d/walk + 25) changes as we walk: an accepted item fell under the bar a few steps later and passed again on the way back, so loot <-> explore flipped every 0.3 s and the bot stood between the two goals (0 = off; 10 suggested, zone mode takes over under 7)
   fixBigNav: 0, // 1 = cap the wall clearance we ask of the walk graph at 6.9 m: world.mjs stores wall distance only up to 7 m, so from 33 cubes (radius 6.63 + 0.45) no node qualified, myNode was -1 and every path search failed (0 = off)
-  fixOwnLead: 0, // 1 = aim from where our muzzle will be when the shot leaves, not from where it is in the observation: lead() moves the shot origin by our own velocity x the same latency it already applies to the target (0.075 s gun, 0.09 s laser). Real bullets do not inherit the shooter's velocity (slope 0.03 on 3,403 real shots, sim/agentX/bullet_inherit.py) and the shot leaves one or two ticks after the observation, so a strafe at 11.7 m/s put every shot about 0.9 m (boosting 1.5 m) to the side of the solution (0 = off)
   fixNpcFace: 0, // 1 = hit by a drone we do not see (outside the view wedge) with no mech to shoot and none hitting us for 2.5 s: turn to the bearing of the hit so the drone gets listed and pestNpc() can answer it; its hits restart the 5 s regeneration timer (0 = off)
 }
 // Free-for-all profile (qualifying and the final): the survival-first settings of the first two submissions.
@@ -188,7 +190,7 @@ export const P = {
 export const P_FFA = {
   hideHp: 0.4, resumeHp: 0.8, initHpLow: 0.75, initAdv: 0.2, vetoAdv: -0.12, vetoCubes: -5, crowd: 90, openingS: 45, calmS: 4,
   healBelow: 0, killLoot: false, dropHeal: false, fightRange: 0, bandRange: 14, noRetreat: false, berserk: false, zapRange: 0,
-  farmHard: false, huntUntil: 0, calmAfter: 0, laserFirst: 0, laserInit: 0, laserInitUntil: 0, lootFix: 0, laserRoof: 0, laserRun: 0, laserAway: 0, oneFront: 0,
+  farmHard: false, huntUntil: 0, calmAfter: 0, laserFirst: 0, laserInit: 0, laserInitUntil: 0, lootFix: 0, laserRoof: 0, lasHop: 0, laserRun: 0, laserAway: 0, oneFront: 0,
   guard: 0, guardArc: 0.25, guardFire: 0.25, sqzAt: 0, sqzAway: 0, sqzHp: 0, lootHold: 0, lootHoldRe: 0, weave: 0, weaveAll: 0, cubeRun: 0,
   rushUntil: 0, gunMax: 0, lateAt: 0, lateFin: 0.35, lateHeal: 0, lateCore: 0,
   fBoost: 0, noRetAll: 0, cubeGoal: 0, seekUntil: 0, rearBonus: 15, dropAll: 0, focusLow: 0, lasLock: 0, lasBoost: 0,
@@ -198,7 +200,7 @@ export const P_FFA = {
 Object.assign(P, {"laserFirst":90,"noRetreat":true,"cubeRun":130,"rushUntil":120,"ffaN":3,"lateAt":330,"lateFin":1.01,"lateCore":40}) // baked by sim/train/train.mjs from sim/train/cand/late.mjs
 Object.assign(P, {"huntFrom":90,"huntUntil":420,"seekUntil":420,"fightCube":55,"fightPick":70,"weave":0.6,"weaveAll":1,"cubeHit":1,"upSet":6}) // t32-stack-pick: t31-stack + in a fight without a laser, walk onto a known ground laser within 70 m (35 m below half HP) while still shooting (sim/variants/rad8.mjs)
 Object.assign(P, {"fixTreeMem":1,"fixLootGate":10,"fixBigNav":1}) // t36-fixes: t32 + three audit fixes: items hidden by tree foliage are no longer forgotten, the loot/explore flip during a zone shrink, navigation above 32 cubes (sim/variants/audit-fix.mjs)
-Object.assign(P, {"fixOwnLead":1}) // x01-ownlead: t36 + aim from our own position at shot time (sim/agentX/NOTES.txt)
+Object.assign(P, {"lasHop":14,"laserRoof":30}) // l01-hop: t36 + laser scout hop (look over roofs and trees for a laser before 90 s) + run to roof lasers up to 30 m up (sim/agentL)
 if (typeof process !== "undefined" && process.env && process.env.FM_P) Object.assign(P, JSON.parse(process.env.FM_P))
 if (typeof process !== "undefined" && process.env && process.env.FM_PFFA) Object.assign(P_FFA, JSON.parse(process.env.FM_PFFA))
 if (P.preferZap) {
@@ -505,6 +507,7 @@ export class Brain {
     this.unstick(A)
     this.doAimFire(A)
     this.doTake(A)
+    if (P.lasHop > 0) this.lasHopStep(A)
     this.prof.modeMs = +(T3 - T2).toFixed(1)
     this.prof.tail = +(now() - T3).toFixed(1)
     A.aim[0] = angNorm(A.aim[0])
@@ -2685,6 +2688,43 @@ export class Brain {
     A.aim = [this.scanYaw, 0]
   }
 
+
+  /** P.lasHop: a jet hop with a full torso turn, to look over roofs, trees and buildings for a laser (see P.lasHop). */
+  lasHopStep(A) {
+    const t = this.t,
+      me = this.me
+    const [x, y, z] = me.pos
+    const threat = t - this.lastMechDmgT < 1 || this.vis.some((e) => e.los && e.dist < 120)
+    const H = this.hop
+    if (H) {
+      const el = t - H.t0
+      if (threat || this.laser || el > 3.6 || (el > 0.6 && me.grounded) || this.mode === "fight" || this.mode === "retreat" || this.mode === "zone") {
+        this.hop = null
+        this.hopT = t
+        this.hopEnd = (this.hopEnd || 0) + 1
+        return
+      }
+      if (el < 0.3 && me.grounded) A.jump = true
+      A.boost = z - H.z0 < P.lasHop && me.energy > 18
+      if (z - H.z0 > Math.min(7, P.lasHop * 0.5) || el > 1.2) {
+        H.spin = (H.spin || 0) + 0.38
+        if (H.spin <= 2 * PI + 0.4) A.aim = [H.yaw + H.spin, 0]
+      }
+      A.fire = [false, false]
+      return
+    }
+    if (!(t < P.laserFirst) || this.laser || t < 0.5 || t - (this.hopT ?? -99) < P.lasHopEvery) return
+    if (!me.grounded || me.energy < P.lasHopE || this.hpS < 0.5 || threat || this.charging || this.finalPhase) return
+    if (this.mode !== "loot" && this.mode !== "explore" && this.mode !== "hold" && this.mode !== "seek") return
+    if (this.lasGoal || (this.loot && this.loot.kind === "laser") || A.fire[0] || A.fire[1] || this.zoneSlack < 20) return
+    if (this.w && !this.w.los(x, y, z + this.Hh + 0.5, x, y, z + this.Hh + P.lasHop + 2)) return // a roof or overhang above us
+    this.hop = { t0: t, z0: z, yaw: this.lastAim[0] }
+    this.hopN = (this.hopN || 0) + 1
+    A.jump = true
+    A.boost = true
+    A.fire = [false, false]
+  }
+
   /** the drone most likely shooting at us */
   pestNpc() {
     const [x, y, z] = this.me.pos
@@ -2704,15 +2744,9 @@ export class Brain {
   /** intercept solution for a constant-velocity target */
   lead(pos, vel, cz, speed, latency) {
     const me = this.me
-    let mx = me.pos[0],
+    const mx = me.pos[0],
       my = me.pos[1],
       mz = me.pos[2] + this.muzH
-    if (P.fixOwnLead > 0 && me.vel) {
-      // fixOwnLead: the shot leaves from where we will be, latency s from now
-      mx += (me.vel[0] || 0) * latency * P.fixOwnLead
-      my += (me.vel[1] || 0) * latency * P.fixOwnLead
-      if (!me.grounded) mz += (me.vel[2] || 0) * latency * P.fixOwnLead
-    }
     let px = pos[0],
       py = pos[1],
       pz = cz
