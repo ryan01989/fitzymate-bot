@@ -535,5 +535,11 @@
   "file": "sim/variants/sq12b-stack.mjs",
   "real": 6.05,
   "note": "builders-4 (built by session buildersmech-24). NEW BEST (+0.20 over w03 5.85). gb11-dropall + sq1 squad decision layer (reference engage filter, per-tick target score, 1.5 s retreat pulses, no chasing, fight cubes 70 m, laser seek all match, lethal release) from 30 s + sq2 position-sampling fight movement (sqMove/sqAim). sqMove is gated at 30 s, but main.mjs's warm-up Brain runs fake observations to t=40 s and can trip the gate, so in real matches the movement rework may run from 0 s. Keep stacking on this exact file."
+ },
+ {
+  "name": "sq12m-stack",
+  "file": "sim/variants/sq12m-stack.mjs",
+  "real": 5.85,
+  "note": "builders-4 (built by session buildersmech-24). sq12b (6.05) + loot-parking fix (build_parkfix.py) + fight-movement rework on from 0 s instead of the 30 s gate. -0.20 vs sq12b. Sim said +0.29 (n=24): wrong sign again on fight movement. Suggests the 6.05 run did keep the 30 s gate (the warm-up likely did not reach t=30), and that the rework before 30 s hurts. Parking fix not isolated."
  }
 ]
