@@ -37,6 +37,8 @@ const UPSETS = [null,
   ["gun_mag", "plating", "gun_damage", "armor", "laser_damage", "laser_charge", "gun_rate", "nanites", "servos", "capacitor", "gun_velocity", "sensors", "gyros", "reactor", "jets", "laser_pierce", "lightning_range", "lightning_chain", "lightning_efficiency", "mortar_reload", "mortar_velocity", "mortar_splash"],
   // 6: the current order with nanites moved up to third. Two nanites turn a 40% -> 80% heal from 17 s into 7 s (regen 115 HP/s after 2 s), and retreats are what keeps this bot alive
   ["plating", "armor", "nanites", "laser_charge", "laser_damage", "gun_damage", "gun_rate", "capacitor", "servos", "gun_velocity", "sensors", "gyros", "reactor", "gun_mag", "jets", "lightning_range", "lightning_chain", "laser_pierce", "lightning_efficiency", "mortar_reload", "mortar_velocity", "mortar_splash"],
+  // 7: set 6 with gun_mag second (sim/agentB/b22: a drum magazine is +31% gun damage per second, about +15% of our damage, as much as plating's +15% HP; armor about +9%)
+  ["plating", "gun_mag", "armor", "nanites", "laser_charge", "laser_damage", "gun_damage", "gun_rate", "capacitor", "servos", "gun_velocity", "sensors", "gyros", "reactor", "jets", "lightning_range", "lightning_chain", "laser_pierce", "lightning_efficiency", "mortar_reload", "mortar_velocity", "mortar_splash"],
 ]
 const WEAPON_RANK = { laser: 3, lightning: 2, gun: 1, mortar: 0 }
 
@@ -105,6 +107,7 @@ export const P = {
   lasHop: 0, // laser scout hop (sim/agentL): before P.laserFirst, without a laser and with no laser goal, calm and grounded with energy >= lasHopE, jump and jet this many m up while spinning the torso a full turn, so lasers on roofs and behind trees/buildings come into view (in real showdowns 22% of floor lasers lie on roofs and 57 of 58 were never taken). At most once per lasHopEvery s (0 = off)
   lasHopE: 75,
   lasHopEvery: 10,
+  cubeFirst: 0, // farming: value multiplier for a remembered cube (was 1.6: 34 x 1.6 = 54 vs a crate's 55, so the rush broke a new crate before walking to the cubes it had just made; 31% of crate cubes still lay there 30 s later, sim/agentB/b22). 2 = 68: a cube about 37 m further away still beats a crate in place (0 = off, keep 1.6)
   laserRoof: 0, // laserFirst also runs to a laser on a roof (off the walk graph) when it lies at most this many m above our feet and a jet route to it exists (0 = off: roof lasers are skipped)
   // --- sim/train/cand/laser3.mjs
   laserRun: 0, // laserFirst: a laser goal within this many m (a) keeps us from starting a fight with a mech more than 60 m away, (b) ends a fight gone quiet (not hit for 4 s, no hit of ours for 2 s, target beyond 60 m) and (c) ends a retreat once not hit for 4 s at 60%+ HP with no mech in sight inside 120 m (0 = off)
@@ -190,7 +193,7 @@ export const P = {
 export const P_FFA = {
   hideHp: 0.4, resumeHp: 0.8, initHpLow: 0.75, initAdv: 0.2, vetoAdv: -0.12, vetoCubes: -5, crowd: 90, openingS: 45, calmS: 4,
   healBelow: 0, killLoot: false, dropHeal: false, fightRange: 0, bandRange: 14, noRetreat: false, berserk: false, zapRange: 0,
-  farmHard: false, huntUntil: 0, calmAfter: 0, laserFirst: 0, laserInit: 0, laserInitUntil: 0, lootFix: 0, laserRoof: 0, lasHop: 0, laserRun: 0, laserAway: 0, oneFront: 0,
+  farmHard: false, huntUntil: 0, calmAfter: 0, laserFirst: 0, laserInit: 0, laserInitUntil: 0, lootFix: 0, laserRoof: 0, lasHop: 0, cubeFirst: 0, laserRun: 0, laserAway: 0, oneFront: 0,
   guard: 0, guardArc: 0.25, guardFire: 0.25, sqzAt: 0, sqzAway: 0, sqzHp: 0, lootHold: 0, lootHoldRe: 0, weave: 0, weaveAll: 0, cubeRun: 0,
   rushUntil: 0, gunMax: 0, lateAt: 0, lateFin: 0.35, lateHeal: 0, lateCore: 0,
   fBoost: 0, noRetAll: 0, cubeGoal: 0, seekUntil: 0, rearBonus: 15, dropAll: 0, focusLow: 0, lasLock: 0, lasBoost: 0,
@@ -201,7 +204,7 @@ Object.assign(P, {"laserFirst":90,"noRetreat":true,"cubeRun":130,"rushUntil":120
 Object.assign(P, {"huntFrom":90,"huntUntil":420,"seekUntil":420,"fightCube":55,"fightPick":70,"weave":0.6,"weaveAll":1,"cubeHit":1,"upSet":6}) // t32-stack-pick: t31-stack + in a fight without a laser, walk onto a known ground laser within 70 m (35 m below half HP) while still shooting (sim/variants/rad8.mjs)
 Object.assign(P, {"fixTreeMem":1,"fixLootGate":10,"fixBigNav":1}) // t36-fixes: t32 + three audit fixes: items hidden by tree foliage are no longer forgotten, the loot/explore flip during a zone shrink, navigation above 32 cubes (sim/variants/audit-fix.mjs)
 Object.assign(P, {"lasHop":14,"laserRoof":30}) // l01-hop: t36 + laser scout hop (look over roofs and trees for a laser before 90 s) + run to roof lasers up to 30 m up (sim/agentL)
-Object.assign(P, {"lasHop":20}) // l04-hop20: l01 with a 20 m scout hop (sight test on real geometry with trees: a laser in sight for +30 points of laserless mechs at 45 s, vs +23 at 14 m; sim/agentL/vis.out)
+Object.assign(P, {"upSet":7}) // l03-gunmag: l01 + upgrade order with gun_mag second (sim/agentB/b22)
 if (typeof process !== "undefined" && process.env && process.env.FM_P) Object.assign(P, JSON.parse(process.env.FM_P))
 if (typeof process !== "undefined" && process.env && process.env.FM_PFFA) Object.assign(P_FFA, JSON.parse(process.env.FM_PFFA))
 if (P.preferZap) {
@@ -2423,7 +2426,7 @@ export class Brain {
     let cubeVal = cubes < (this.cfg.cubes?.stat_cap ?? 10) ? 34 : nextTh - cubes <= 2 ? 16 : 0
     if (farming && cubeVal === 0 && nextTh - cubes <= 6) cubeVal = 20
     const reach = farming ? 2.4 : 1
-    if (cubeVal > 0) for (const c of this.cubes.values()) if (reachableZ(c.pos)) consider("cube", c, cubeVal * (farming ? 1.6 : 1), 90 * reach)
+    if (cubeVal > 0) for (const c of this.cubes.values()) if (reachableZ(c.pos)) consider("cube", c, cubeVal * (farming ? P.cubeFirst || 1.6 : 1), 90 * reach)
     if (this.killLoot && t - this.killLoot.t < 25) consider("cube", { id: -7, pos: this.killLoot.pos }, 60, 140 * (farming ? 1.5 : 1))
     if (P.farm && cubeVal > 0) {
       const quiet = farming || !this.sounds.some((s) => t - s.t < 5 && s.D < 160 && (s.kind === "gun" || s.kind === "laser" || s.kind === "lightning" || s.kind === "laser_charge"))
