@@ -312,5 +312,17 @@
   "file": "sim/variants/probe-idle240.mjs",
   "real": 5.41,
   "note": "new scoring. t13 standing idle from 240 s scores 5.41 vs t13's 5.28: t13 earns nothing after 240 s (the difference is noise; idling cannot raise the score). All points come before 240 s. Timeline: about 1.6 by 90 s, 3.6 by 180 s (v3 probes), about 5.3 by 240 s."
+ },
+ {
+  "name": "t28-squeeze",
+  "file": "sim/variants/t28-squeeze.mjs",
+  "real": 5.29,
+  "note": "new scoring. t13 + from 190 s stop seeking, hold the far side of the next circle. Tie with t13 (5.28)."
+ },
+ {
+  "name": "t29-early-squeeze",
+  "file": "sim/variants/t29-early-squeeze.mjs",
+  "real": 5.08,
+  "note": "new scoring (user wrote 't20: 5.08'; taken as t29). t28 + hunting and seeking from 45 s. -0.2 vs t28/t13: early hunting costs points; farming first is better."
  }
 ]

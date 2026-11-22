@@ -158,19 +158,8 @@ export const P = {
   lethalRelease: 0, // laser: let a partial charge go as soon as this fraction of its damage already kills the target (0 = off). 0.75 leaves room for three armor upgrades (-24%) on the target
   fightCube: 0, // in a fight, a remembered cube within this many m takes over the legs while we keep shooting; half that below 50% HP (0 = off). 55 m is under 5 s of walking
   finishRange: 0, // in a fight, close to this range on a target under finishHp while we are above finishMyHp and at most 2 mechs are shooting us (0 = off). 55 m: our gun hits 88% inside 60 m and lightning reaches 45 m
-  fightHide: 0, // in a fight with other mechs around (seen in the last 3 s, within 170 m): score points taken off a move for each of them that could see us where it leads, and 1.5x that for losing the shot at the target; eight compass moves join the candidates (0 = off). A full bullet dodge is worth about 38 points
-  cautR: 0, // practice: once the next circle is this many m or smaller, switch to the cautious free-for-all profile for the rest of the match (0 = off). 140 m is announced at about 195 s
-  dieAt: 0, // probe: stand idle from this match time, so the score is our kills before it (0 = off)
-  noExplore: 0, // 1 = with nothing to loot, hold a covered spot inside the next circle instead of exploring for more; hunters come to us (0 = off)
   noChase: 0, // 1 = a target out of sight ends the fight after 0.6 s instead of being chased around cover (0 = off)
   focusLow: 0, // in a fight, switch to a mech in sight this much lower in HP share (0 = off)
-  // --- sim/variants/gd-policy.mjs: three lessons, rebuilt on our own signals (all off by default; see sim/agentG/NOTES.txt)
-  firstShot: 0, // lesson A: a mech in sight inside huntDist that is coming for us now (aimOn, or closing > 3.5 m/s inside 140 m) and has been for this many s of e.hunt: start the fight even past the crowd / HP-lead / cube / outgunned vetoes, while we are at hideHp or above (0 = off)
-  shortRetreat: 0, // lesson B: leave a retreat this many s after its last trigger once we are not swamped (< 3 attackers), not out-traded (race() <= raceOut) and not low and under fire, instead of holding to resumeHp; and shoot any threat in sight while retreating (0 = off)
-  shortRetreatHp: 0, // ...and stay while below this HP share (0 = no floor; regen is 45 HP/s after 5 s untouched, so each 0.1 costs about 3 s)
-  shortRetreatFire: 1, // ...0 = keep the old retreat aim (diagnostic: the exit rule alone)
-  retarget: 0, // lesson C: in a fight, switch to a mech whose start-of-fight score beats the target's by this many points (100 = full HP share) (0 = off)
-  retargetHold: 1.5, // ...but only after this many s on the current target, never off a target we are finishing, never past half a laser charge
 }
 // Free-for-all profile (qualifying and the final): the survival-first settings of the first two submissions.
 // Applied once, the moment the bot sees mechs dying that it did not kill (see ingest()).
@@ -181,11 +170,10 @@ export const P_FFA = {
   guard: 0, guardArc: 0.25, guardFire: 0.25, sqzAt: 0, sqzAway: 0, sqzHp: 0, lootHold: 0, lootHoldRe: 0, weave: 0, weaveAll: 0, cubeRun: 0,
   rushUntil: 0, gunMax: 0, lateAt: 0, lateFin: 0.35, lateHeal: 0, lateCore: 0,
   fBoost: 0, noRetAll: 0, cubeGoal: 0, seekUntil: 0, rearBonus: 15, dropAll: 0, focusLow: 0, lasLock: 0, lasBoost: 0,
-  upSet: 0, chaseHp: 0.4, chaseMyHp: 0.55, chaseS: 7, farmBoost: 0, lethalRelease: 0, fightCube: 0, finishRange: 0, noChase: 0, fightHide: 0, noExplore: 0, cautR: 0,
-  firstShot: 0, shortRetreat: 0, retarget: 0, // gd-policy lessons: practice only
+  upSet: 0, chaseHp: 0.4, chaseMyHp: 0.55, chaseS: 7, farmBoost: 0, lethalRelease: 0, fightCube: 0, finishRange: 0, noChase: 0,
 }
 Object.assign(P, {"laserFirst":90,"noRetreat":true,"cubeRun":130,"rushUntil":120,"ffaN":3,"lateAt":330,"lateFin":1.01,"lateCore":40}) // baked by sim/train/train.mjs from sim/train/cand/late.mjs
-Object.assign(P, {"huntFrom":45,"huntUntil":420,"seekUntil":190,"sqzAt":190,"sqzAway":25}) // t29-early-squeeze: t28 + hunting and seeking from 45 s instead of 90 s (the laser run still comes first) (sim/variants/rad8.mjs)
+Object.assign(P, {"huntFrom":90,"huntUntil":420,"seekUntil":420,"fightCube":55}) // t22b-fightcube: t13 + in a fight, walk onto a remembered cube within 55 m (27 m below half HP) while still shooting (sim/variants/rad6.mjs)
 if (typeof process !== "undefined" && process.env && process.env.FM_P) Object.assign(P, JSON.parse(process.env.FM_P))
 if (typeof process !== "undefined" && process.env && process.env.FM_PFFA) Object.assign(P_FFA, JSON.parse(process.env.FM_PFFA))
 if (P.preferZap) {
@@ -281,7 +269,6 @@ export class Brain {
     this.farmTarget = null
     this.lastMoveCmd = 0
     this.deadline = Infinity
-    this.gst = { fs: 0, fsNew: 0, srExit: 0, srShoot: 0, rt: 0 } // gd-policy: how often each lesson acted (read by sim/agentG/fires.mjs)
     this.spots = null
     if (world) this._precomputeSpots()
   }
@@ -366,7 +353,6 @@ export class Brain {
     this.ingest(o)
     const T1 = now()
     const A = { move: [0, 0], boost: false, jump: false, aim: [this.lastAim[0], this.lastAim[1]], fire: [false, false] }
-    if (P.dieAt > 0 && this.t >= P.dieAt) return A
     this.handleOffer(o, A)
     this.zoneInfo()
     this.decide()
@@ -482,13 +468,11 @@ export class Brain {
         const closing = (e.dist - d) / dt
         const hunting = (closing > 3.5 && d < 140) || (aimOn && d < 210)
         e.hunt = clamp(e.hunt + dt * (hunting ? 1 : -0.6), 0, 6)
-        e.closeV = closing // firstShot
         e.vAvg[0] += (m.vel[0] - e.vAvg[0]) * 0.12
         e.vAvg[1] += (m.vel[1] - e.vAvg[1]) * 0.12
       } else {
         e.vAvg[0] = m.vel[0]
         e.vAvg[1] = m.vel[1]
-        e.closeV = 0 // firstShot
       }
       // aimed elsewhere while firing -> busy with someone else
       e.aimOn = aimOn
@@ -613,10 +597,6 @@ export class Brain {
     // free-for-all or a house squad? In a squad the others never kill each other, so every death
     // other than ours is a kill of ours. Two or more deaths we did not cause means free-for-all.
     const othersDead = (this.cfg.match?.mechs ?? 16) - (o.alive ?? 16) - (this.myKills || 0)
-    if (P.cautR > 0 && !this.ffa && o.zone && o.zone.next_radius <= P.cautR) {
-      this.ffa = true
-      Object.assign(P, P_FFA)
-    }
     if (othersDead >= (P.ffaN || 2) && !this.ffa) {
       this.ffa = true
       if (!(typeof process !== "undefined" && process.env && process.env.FM_NOSWITCH)) Object.assign(P, P_FFA)
@@ -754,9 +734,6 @@ export class Brain {
     // opening: a laser is a few seconds away and this mech is not on top of us yet -> pick it up first (see pickLoot)
     const lg = this.lasGoal
     if (!defending && lg && this.t - lg.t < 0.3 && ((lg.d < 70 && e.dist > lg.d + 40) || (lg.d < P.laserRun && e.dist > 60))) return false
-    // --- firstShot (lesson A): a mech coming for us has already started this fight; declining only hands it the first shot
-    if (!defending && P.firstShot > 0 && this.firstShotOk(e)) return true
-    // --- end firstShot
     if (!defending && this.t < P.huntUntil && this.huntOk() && hpS > 0.6 && e.dist < 200 && e.los) return true
     if (!defending && P.calmAfter > 0 && this.t > P.calmAfter && e.hpS >= 0.35) return false
     if (this.others(e, P.crowd) >= 1) return false
@@ -784,52 +761,6 @@ export class Brain {
     if (P.laserInit > 0 && mine === 2 && theirs < 2 && e.los && e.dist < P.laserInit && hpS >= 0.6 && (P.laserInitUntil <= 0 || this.t < P.laserInitUntil)) return true
     return false
   }
-
-  // --- firstShot (lesson A)
-  /** e is coming for us right now: in sight inside huntDist, its hunting signal on this tick (the same test ingest() feeds e.hunt with) and held for P.firstShot s, us not below hideHp */
-  firstShotOk(e) {
-    return e.los && !e.phantom && e.dist < P.huntDist && e.hunt >= P.firstShot && (e.aimOn || (e.closeV > 3.5 && e.dist < 140)) && this.hpS >= P.hideHp
-  }
-  // --- shortRetreat (lesson B)
-  /** stay in the retreat? Only for P.shortRetreat s after its last trigger, while 3+ mechs hit us in the last 3 s, while low and hit within regenDelay, or while an attacker out-trades us */
-  srStay(atk) {
-    const t = this.t
-    if (t - this.recoverT < P.shortRetreat) return true
-    if (atk.length >= 3) return true
-    if (this.hpS < P.shortRetreatHp) return true
-    if (this.hpS < P.hideHp && t - this.lastMechDmgT < this.regenDelay) return true
-    for (const e of atk) {
-      const r = this.race(e)
-      if (r != null && r > P.raceOut) return true
-    }
-    return false
-  }
-  // --- retarget (lesson C)
-  /** the start-of-fight score of decide() (higher is better) */
-  fightScore(e) {
-    return (1 - e.hpS) * 100 - e.dist * P.scoreDist + (this.rearOf(e) ? P.rearBonus : 0)
-  }
-  /** a clearly better fight target than `target` (in sight), or null: beats its score by P.retarget, after P.retargetHold s on it, never off a target we are finishing or past half a laser charge */
-  rtAlt(target, losE) {
-    const t = this.t
-    if (!target.los || t - this.fightStartT < P.retargetHold) return null
-    if (target.hpS < P.finishHp && t - (target.myHitT ?? -99) < 2) return null
-    if (this.charging && this.laser && this.laser.charge >= (this.laser.stats.charge ?? 0.75) * 0.5) return null
-    let alt = null,
-      sa = this.fightScore(target) + P.retarget
-    for (const e of losE) {
-      if (e === target || e.dist > P.startDist) continue
-      if (!(t - e.hitMeT < 3 || this.wantFight(e, false))) continue
-      const s = this.fightScore(e)
-      if (s > sa) {
-        sa = s
-        alt = e
-      }
-    }
-    if (alt) this.gst.rt++
-    return alt
-  }
-  // --- end gd-policy helpers
 
   /**
    * laserRun: should the opening laser run take over from the fight with e (or, e = null, from a retreat)? Only when we were not hit in
@@ -1026,8 +957,7 @@ export class Brain {
       }
     } else if (hpS < P.hideHp && losE.length && !(this.mode === "fight" && target && target.hpS < 0.25)) retreat = true
     if (retreat && P.noRetreat && (atk.length <= 2 || P.noRetAll) && (target || atk.length || (P.noRetAll && losE.length))) {
-      let e = target && target.los ? target : atk.find((q) => q.los) || (P.noRetAll ? losE.reduce((b, q) => (!b || q.hp < b.hp ? q : b), null) : null)
-      if (P.retarget > 0 && e && e === target && this.mode === "fight") e = this.rtAlt(target, losE) || e // --- retarget (lesson C): also when two attackers keep us fighting
+      const e = target && target.los ? target : atk.find((q) => q.los) || (P.noRetAll ? losE.reduce((b, q) => (!b || q.hp < b.hp ? q : b), null) : null)
       if (e) {
         this.setFight(e)
         return
@@ -1053,15 +983,8 @@ export class Brain {
         this.setFight(exposed[0])
         return
       }
-      if (P.shortRetreat > 0) {
-        // --- shortRetreat (lesson B): leave as soon as the reason to run is gone, not once healed
-        if (this.srStay(atk) && t - this.recoverT < 40 && !this.lasRunNow(null) && !this.rushQuiet(null)) return
-        this.gst.srExit++
-        // --- end shortRetreat
-      } else {
-        const healed = hpS >= P.resumeHp || (sinceHit > this.regenDelay + 2 && hpS >= 0.7 && !exposed.length)
-        if (!(healed && sinceHit > 2.5) && t - this.recoverT < 40 && !this.lasRunNow(null) && !this.rushQuiet(null)) return
-      }
+      const healed = hpS >= P.resumeHp || (sinceHit > this.regenDelay + 2 && hpS >= 0.7 && !exposed.length)
+      if (!(healed && sinceHit > 2.5) && t - this.recoverT < 40 && !this.lasRunNow(null) && !this.rushQuiet(null)) return
       this.mode = "hold"
       this.spotT = -99
     }
@@ -1099,15 +1022,6 @@ export class Brain {
         return
       }
     }
-    // --- retarget (lesson C): re-score the fight each tick with the start-of-fight score, switch only on a clear margin
-    if (P.retarget > 0 && this.mode === "fight" && target) {
-      const alt = this.rtAlt(target, losE)
-      if (alt) {
-        this.setFight(alt)
-        return
-      }
-    }
-    // --- end retarget
     if (this.mode === "fight" && target) {
       const lost = t - (target.losT ?? -99)
       const chase = target.hpS < P.chaseHp && hpS > P.chaseMyHp && this.others(target, P.crowd) === 0
@@ -1129,10 +1043,6 @@ export class Brain {
       }
     }
     if (best) {
-      if (P.firstShot > 0 && this.firstShotOk(best) && !(this.mode === "fight" && this.targetId === best.id)) {
-        this.gst.fs++
-        if (best.hunt < 2 || this.others(best, P.crowd) >= 1 || this.hpS < P.huntHp || this.hpS - best.hpS <= P.vetoAdv) this.gst.fsNew++ // the old rules would most likely have waited
-      }
       this.setFight(best)
       return
     }
@@ -1167,7 +1077,7 @@ export class Brain {
         return
       }
     }
-    this.mode = this.loot ? "loot" : !P.noExplore && P.farmHard && t < P.farmUntil && !this.sqz && hpS > P.exploreHp && this.zoneSlack > 25 && t - this.lastMechDmgT > 4 ? "explore" : "hold"
+    this.mode = this.loot ? "loot" : P.farmHard && t < P.farmUntil && !this.sqz && hpS > P.exploreHp && this.zoneSlack > 25 && t - this.lastMechDmgT > 4 ? "explore" : "hold"
   }
 
   setFight(e) {
@@ -1770,16 +1680,6 @@ export class Brain {
     // face the attacker (rear armor); shooting back is handled in doAimFire
     if (main) {
       this.aimTarget = main.los ? main : null
-      // --- shortRetreat (lesson B): the main threat is out of sight, but another one is in it: shoot that one (most recent attacker, then nearest)
-      if (P.shortRetreat > 0 && P.shortRetreatFire && !main.los) {
-        let q = null
-        for (const e of this.vis) if (e.los && e.dist < 230 && (!q || e.hitMeT > q.hitMeT || (e.hitMeT === q.hitMeT && e.dist < q.dist))) q = e
-        if (q) {
-          this.aimTarget = q
-          this.gst.srShoot++
-        }
-      }
-      // --- end shortRetreat
       if (!main.los) A.aim = [Math.atan2(main.pos[1] - y, main.pos[0] - x) + (exposed ? 0 : 0.5 * Math.sin(t * 1.9)), 0]
     } else this.scan(A)
   }
@@ -1949,30 +1849,18 @@ export class Brain {
     const s0 = this.strafeSide
     // candidates, planned one first; the dodge picks whichever clears the bullets in the air
     const cands = [mk(s0, radial * 0.75), mk(-s0, radial * 0.75), mk(s0, -1), mk(-s0, -1), mk(s0, 1), mk(-s0, 1), [0, 0]]
-    // fightHide: the other mechs around; a move is worth less for each of them that sees us where it leads
-    const watchers = []
-    if (P.fightHide > 0 && w) {
-      for (const q of this.en.values()) if (q !== e && !q.phantom && t - q.t < 3 && hyp(q.pos[0] - x, q.pos[1] - y) < 170) watchers.push(q)
-      if (watchers.length) for (let a = 0; a < 8; a++) cands.push([Math.cos((a * PI) / 4), Math.sin((a * PI) / 4)])
-    }
     let best = null,
       bestScore = -1e9
     const need = this.R + 1.3
     for (let k = 0; k < cands.length; k++) {
       const mv = cands[k]
-      if (k !== 6 && !free(mv)) continue
+      if (k < 6 && !free(mv)) continue
       const miss = Math.min(this.missDist(mv), need)
-      let score = miss * 10 - Math.min(k, 7) * 0.6 - (k === 6 ? 3 : 0)
-      if (watchers.length) {
-        const px = x + mv[0] * 6,
-          py = y + mv[1] * 6
-        for (const q of watchers) if (w.los(q.pos[0], q.pos[1], q.pos[2] + 8 * (1 + 0.05 * (q.cubes || 0)), px, py, z + this.Hh * 0.6)) score -= P.fightHide
-        if (!w.los(px, py, z + this.muzH, e.pos[0], e.pos[1], e.cz)) score -= P.fightHide * 1.5
-      }
+      const score = miss * 10 - k * 0.6 - (k === 6 ? 3 : 0)
       if (score > bestScore) {
         bestScore = score
         best = mv
-        if (k === 0 && miss >= need && !watchers.length) break
+        if (k === 0 && miss >= need) break
       }
     }
     if (!best) best = [-ux, -uy]
