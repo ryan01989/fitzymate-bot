@@ -180,6 +180,7 @@ export const P = {
   fixTreeMem: 0, // 1 = item memory (_remember): a pickup / crate / cube "in view but not listed" is forgotten only when no tree crown or trunk from v2/world.json is on the sight line (the server hides items behind foliage beyond the 45 m proximity range; world.mjs has no trees, so the bot took "hidden by a tree" for "gone" and dropped known lasers, crates and kill cubes after 0.3 s). Crates we shoot unseen are tracked by our hit events and dropped once dead or not answering hits (0 = off)
   fixLootGate: 0, // > 0 = judge loot outside the next circle by the zone slack we would have AT THE ITEM (edge-crossing time there, minus the walk to it, minus the walk back in), which must exceed this many s. The old gate (our own zoneSlack > d/walk + 25) changes as we walk: an accepted item fell under the bar a few steps later and passed again on the way back, so loot <-> explore flipped every 0.3 s and the bot stood between the two goals (0 = off; 10 suggested, zone mode takes over under 7)
   fixBigNav: 0, // 1 = cap the wall clearance we ask of the walk graph at 6.9 m: world.mjs stores wall distance only up to 7 m, so from 33 cubes (radius 6.63 + 0.45) no node qualified, myNode was -1 and every path search failed (0 = off)
+  fixLootReach: 0, // > 0 = walking onto a cube / weapon / kill-cube centre: when the path has ended (or we stand still) and the item is still more than 1.2 m away, step straight at it (the server slides us along walls) and give it up after this many s without getting 0.3 m closer; a kill spot (id -7) is simply dropped on arrival. The walk graph only has nodes with wall distance >= R + 0.45 on a 2 m grid, so the goal node can lie beyond the 3.5 m cube radius / 3.7 m take reach; the bot then stood still next to the item for 30 s, and again for each further cube there (0 = off; 2.5 suggested)
   fixNpcFace: 0, // 1 = hit by a drone we do not see (outside the view wedge) with no mech to shoot and none hitting us for 2.5 s: turn to the bearing of the hit so the drone gets listed and pestNpc() can answer it; its hits restart the 5 s regeneration timer (0 = off)
 }
 // Free-for-all profile (qualifying and the final): the survival-first settings of the first two submissions.
@@ -2544,6 +2545,33 @@ export class Brain {
     } else this.lootStuck = 0
     const arrived = this.moveToPoint(A, L.pos[0], L.pos[1], L.pos[2], 1, (P.lasBoost > 0 && L.kind === "laser" && !this.laser && this.me.energy > P.lasBoost) || this.fbGo())
     if (!arrived && this.pathPartial && this.path && this.path.length < 5) fail()
+    if (P.fixLootReach > 0 && this.loot && d >= 1.2 && !this.jet && (arrived || hyp(A.move[0], A.move[1]) < 0.05)) {
+      // the path is over and the item is not ours yet (see P.fixLootReach)
+      if (L.id === -7) {
+        // a spot, not an item: the cubes lying there are ordinary cube targets for pickLoot()
+        this.killLoot = null
+        this.loot = null
+      } else {
+        if (this.reachId !== L.id || t - (this.reachSeenT ?? -99) > 1) {
+          this.reachId = L.id
+          this.reachT = t
+          this.reachD = d
+        }
+        this.reachSeenT = t
+        if (d < this.reachD - 0.3) {
+          this.reachD = d
+          this.reachT = t
+        }
+        if (t - this.reachT > P.fixLootReach) {
+          fail()
+          if (L.id <= -100) this.kcRun = null
+          this.reachId = null
+        } else if (Math.abs(L.pos[2] - z) < 2.5) {
+          const k = Math.min(1, Math.max(0.35, d / 3))
+          A.move = [((L.pos[0] - x) / d) * k, ((L.pos[1] - y) / d) * k]
+        }
+      }
+    }
     if (P.rushUntil > 0 && this.rushOn() && this.w && !this.vis.some((e) => e.los && e.dist < 170)) {
       // rush: shoot the nearest crate in view on the way (not with a mech in sight: we would turn our back to it) (it does not move; the cubes wait for us)
       let bc = null,

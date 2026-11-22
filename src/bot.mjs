@@ -199,7 +199,7 @@ export const P_FFA = {
 Object.assign(P, {"laserFirst":90,"noRetreat":true,"cubeRun":130,"rushUntil":120,"ffaN":3,"lateAt":330,"lateFin":1.01,"lateCore":40}) // baked by sim/train/train.mjs from sim/train/cand/late.mjs
 Object.assign(P, {"huntFrom":90,"huntUntil":420,"seekUntil":420,"fightCube":55,"fightPick":70,"weave":0.6,"weaveAll":1,"cubeHit":1,"upSet":6}) // t32-stack-pick: t31-stack + in a fight without a laser, walk onto a known ground laser within 70 m (35 m below half HP) while still shooting (sim/variants/rad8.mjs)
 Object.assign(P, {"fixTreeMem":1,"fixLootGate":10,"fixBigNav":1}) // t36-fixes: t32 + three audit fixes: items hidden by tree foliage are no longer forgotten, the loot/explore flip during a zone shrink, navigation above 32 cubes (sim/variants/audit-fix.mjs)
-Object.assign(P, {"rangeLas":140}) // t39-laser-range: t36-fixes + hold 140 m (was 112) while we carry a laser; gun-only range unchanged at 104 m. Real data: lasers hit 65-70% out to 150 m, guns lose accuracy with range for both sides, and fighting closer cost 0.22 (sim/variants/rad10.mjs)
+Object.assign(P, {"npcHp":0.92}) // t38a-dronehp: t36-fixes + farm drones only above 92% HP; while hurt, farm crates, which does not interrupt regeneration on the real server (sim/variants/rad10.mjs)
 if (typeof process !== "undefined" && process.env && process.env.FM_P) Object.assign(P, JSON.parse(process.env.FM_P))
 if (typeof process !== "undefined" && process.env && process.env.FM_PFFA) Object.assign(P_FFA, JSON.parse(process.env.FM_PFFA))
 if (P.preferZap) {
