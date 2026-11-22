@@ -91,17 +91,32 @@ export const P = {
   lootFix: 0, // 1 = drop the kill-loot spot once the path to it has ended, it proved unreachable, or we stood still for 2 s on the way (0 = off: keep returning to it for 30 s)
   // --- sim/train/cand/laser2.mjs
   laserRoof: 0, // laserFirst also runs to a laser on a roof (off the walk graph) when it lies at most this many m above our feet and a jet route to it exists (0 = off: roof lasers are skipped)
+  // --- sim/train/cand/laser3.mjs
+  laserRun: 0, // laserFirst: a laser goal within this many m (a) keeps us from starting a fight with a mech more than 60 m away, (b) ends a fight gone quiet (not hit for 4 s, no hit of ours for 2 s, target beyond 60 m) and (c) ends a retreat once not hit for 4 s at 60%+ HP with no mech in sight inside 120 m (0 = off)
+  laserAway: 0, // laserFirst: a mech nearer to the laser than we are (but not within 40 m of it) no longer cancels the run while it moves away from the laser faster than this many m/s (0 = off)
   // --- sim/train/cand/early.mjs
   oneFront: 0, // never open a second front: a mech that has not hit us for this many s (and is not our fight target, and not under finishHp) is not shot at while retreating / recovering, is not picked as the cornered target, and makes us hold fire while it stands in our line of fire (0 = off)
+  // --- sim/train/cand/guard.mjs: out of a chosen fight, keep every recent attacker inside the front arc
+  guard: 0, // seconds a mech that hit us stays guarded against (0 = off)
+  guardArc: 0.25, // keep attackers this far (rad) inside the edge of the 180 deg front arc
+  guardFire: 0.25, // keep shooting a target in sight below this HP share instead of turning to cover another attacker
+  // --- sim/train/cand/squeeze.mjs: get set for the 240 -> 140 m shrink
+  sqzAt: 0, // from this match time until the 70 m circle is announced: stop farming / exploring and hold in the next circle (0 = off)
+  sqzAway: 0, // ...and prefer hold spots on the side of the next circle away from recently seen mechs (score points, 0 = off)
+  sqzHp: 0, // ...and below this HP share start no fight: break line of sight and regenerate to healTo first (0 = off)
+  // --- sim/train/cand/dither.mjs
+  lootHold: 0, // a mech in sight has just called off looting: stay off the loot for this many seconds after it was last in sight (0 = off)
+  lootHoldRe: 0, // ...only when looting was already called off this many seconds or less before (0 = on every call-off)
 }
 // Free-for-all profile (qualifying and the final): the survival-first settings of the first two submissions.
 // Applied once, the moment the bot sees mechs dying that it did not kill (see ingest()).
 export const P_FFA = {
   hideHp: 0.4, resumeHp: 0.8, initHpLow: 0.75, initAdv: 0.2, vetoAdv: -0.12, vetoCubes: -5, crowd: 90, openingS: 45, calmS: 4,
   healBelow: 0, killLoot: false, dropHeal: false, fightRange: 0, bandRange: 14, noRetreat: false, berserk: false, zapRange: 0,
-  farmHard: false, huntUntil: 0, calmAfter: 0, laserFirst: 0, laserInit: 0, laserInitUntil: 0, lootFix: 0, laserRoof: 0, oneFront: 0,
+  farmHard: false, huntUntil: 0, calmAfter: 0, laserFirst: 0, laserInit: 0, laserInitUntil: 0, lootFix: 0, laserRoof: 0, laserRun: 0, laserAway: 0, oneFront: 0,
+  guard: 0, guardArc: 0.25, guardFire: 0.25, sqzAt: 0, sqzAway: 0, sqzHp: 0, lootHold: 0, lootHoldRe: 0,
 }
-Object.assign(P, {"laserFirst":90,"oneFront":20}) // baked by sim/train/train.mjs from sim/train/cand/early.mjs
+Object.assign(P, {"laserFirst":90,"noRetreat":true}) // baked by sim/train/train.mjs from sim/train/cand/all.mjs
 if (typeof process !== "undefined" && process.env && process.env.FM_P) Object.assign(P, JSON.parse(process.env.FM_P))
 if (typeof process !== "undefined" && process.env && process.env.FM_PFFA) Object.assign(P_FFA, JSON.parse(process.env.FM_PFFA))
 if (P.preferZap) {
@@ -439,6 +454,7 @@ export class Brain {
               if (ev.weapon && ev.weapon !== "gun" && !e.has(ev.weapon)) e.weapons = ["gun", ev.weapon]
             }
             e.hitMeT = t
+            if (ev.bearing != null) e.hitBear = ev.bearing
             e.hunt = Math.max(e.hunt, 2.5)
             this.dmgLog.push([t, ev.amount, ev.by])
           } else if (ev.weapon === "npc") {
@@ -464,6 +480,7 @@ export class Brain {
             this.killLoot = { pos: e.pos.slice(), t }
             this.en.delete(ev.target)
           }
+          if (this.sqzSeen) this.sqzSeen.delete(ev.target)
           if (this.targetId === ev.target) this.targetId = -1
           break
         }
@@ -603,6 +620,13 @@ export class Brain {
     this.inZone = this.me.in_zone !== false
     this.zoneUrgent = !this.inZone || this.zoneSlack < 7
     this.finalPhase = nr <= 0.5 && z.radius < 40
+    // squeeze prep (P.sqzAt): active while the next circle is the 240 m or the 140 m one
+    this.sqz = P.sqzAt > 0 && t >= P.sqzAt && nr >= 100
+    if (P.sqzAt > 0 && P.sqzAway > 0) {
+      // where each mech was last seen, kept longer than the 14 s enemy table
+      const seen = (this.sqzSeen ??= new Map())
+      for (const e of this.vis) seen.set(e.id, [e.pos[0], e.pos[1], t])
+    }
   }
 
   // ------------------------------------------------------------------ decisions
@@ -639,7 +663,7 @@ export class Brain {
     if (e.hpS < P.finishHp && hpS > P.finishMyHp) return true
     // opening: a laser is a few seconds away and this mech is not on top of us yet -> pick it up first (see pickLoot)
     const lg = this.lasGoal
-    if (!defending && lg && this.t - lg.t < 0.3 && lg.d < 70 && e.dist > lg.d + 40) return false
+    if (!defending && lg && this.t - lg.t < 0.3 && ((lg.d < 70 && e.dist > lg.d + 40) || (lg.d < P.laserRun && e.dist > 60))) return false
     if (!defending && this.t < P.huntUntil && hpS > 0.6 && e.dist < 200 && e.los) return true
     if (!defending && P.calmAfter > 0 && this.t > P.calmAfter && e.hpS >= 0.35) return false
     if (this.others(e, P.crowd) >= 1) return false
@@ -666,6 +690,18 @@ export class Brain {
     // laser against no laser: the side that shoots first wins most of these, so do not wait to be shot
     if (P.laserInit > 0 && mine === 2 && theirs < 2 && e.los && e.dist < P.laserInit && hpS >= 0.6 && (P.laserInitUntil <= 0 || this.t < P.laserInitUntil)) return true
     return false
+  }
+
+  /**
+   * laserRun: should the opening laser run take over from the fight with e (or, e = null, from a retreat)? Only when we were not hit in
+   * the last 4 s, e is beyond 60 m, not being hit by us and not a finishing target, and pickLoot() has a laser goal inside P.laserRun m.
+   */
+  lasRunNow(e) {
+    const t = this.t
+    if (!(P.laserRun > 0) || !(t < P.laserFirst) || this.laser || this.finalPhase || this.hpS < (e ? 0.45 : 0.6) || t - this.lastMechDmgT < 4) return false
+    if (e ? e.dist < 60 || t - (e.myHitT ?? -99) < 2 || (e.hpS < P.finishHp && this.hpS > P.finishMyHp) : this.vis.some((q) => q.los && q.dist < 120)) return false
+    const L = this.pickLoot()
+    return !!(L && L.kind === "laser" && this.lasGoal && this.lasGoal.d < P.laserRun)
   }
 
   /** time-to-kill over time-to-die against e, from the last few seconds of trading. <1 = we are winning. */
@@ -777,14 +813,20 @@ export class Brain {
         return
       }
       const healed = hpS >= P.resumeHp || (sinceHit > this.regenDelay + 2 && hpS >= 0.7 && !exposed.length)
-      if (!(healed && sinceHit > 2.5) && t - this.recoverT < 40) return
+      if (!(healed && sinceHit > 2.5) && t - this.recoverT < 40 && !this.lasRunNow(null)) return
       this.mode = "hold"
       this.spotT = -99
     }
     // --- heal before the next fight (hunters arrive one after another)
-    if (P.healBelow > 0 && this.mode !== "fight" && atk.length === 0) {
+    const healBelow = this.sqz ? Math.max(P.healBelow, P.sqzHp) : P.healBelow
+    if (healBelow > 0 && this.mode !== "fight" && atk.length === 0) {
       const weakInSight = losE.some((e) => e.hpS < 0.3 && e.dist < 200)
-      if (!weakInSight && (hpS < P.healBelow || (this.mode === "recover" && hpS < P.healTo))) {
+      if (!weakInSight && (hpS < healBelow || (this.mode === "recover" && hpS < P.healTo))) {
+        if (this.sqz && this.dNext > 0) {
+          // squeeze prep, not yet inside the next circle: regenerate on the way to the hold spot, not behind the nearest cover
+          this.mode = "hold"
+          return
+        }
         if (this.mode !== "recover") {
           this.cover = null
           this.coverT = -99
@@ -798,7 +840,7 @@ export class Brain {
     if (this.mode === "fight" && target) {
       const lost = t - (target.losT ?? -99)
       const chase = target.hpS < P.chaseHp && hpS > P.chaseMyHp && this.others(target, P.crowd) === 0
-      if (lost < (chase ? P.chaseS : 2.5) && t - this.fightStartT < 60) return
+      if (lost < (chase ? P.chaseS : 2.5) && t - this.fightStartT < 60 && !this.lasRunNow(target)) return
       this.mode = "hold"
       this.targetId = -1
     }
@@ -818,8 +860,13 @@ export class Brain {
       this.setFight(best)
       return
     }
+    // --- sight-line hysteresis (P.lootHold): looting was called off by a mech in sight -> no turning back the moment it drops out of view.
+    // Without it the bot steps to the loot, sees the mech, steps back, loses it, and repeats every 0.4 s on the same spot.
+    const wasLoot = this.mode === "loot"
+    const held = P.lootHold > 0 && t - (this.lootBlockT ?? -99) < P.lootHold
+    this.lootHeld = held
     // --- grab the cubes a kill dropped while the coast is clear
-    if (P.killLoot && this.killLoot && t - this.killLoot.t < 30 && !losE.some((e) => e.dist < 160)) {
+    if (!held && P.killLoot && this.killLoot && t - this.killLoot.t < 30 && !losE.some((e) => e.dist < 160)) {
       const [x, y] = this.me.pos
       const d = hyp(this.killLoot.pos[0] - x, this.killLoot.pos[1] - y)
       if (d < 130) {
@@ -830,7 +877,12 @@ export class Brain {
     }
     // --- loot when quiet
     this.loot = this.pickLoot()
-    this.mode = this.loot ? "loot" : P.farmHard && t < P.farmUntil && hpS > P.exploreHp && this.zoneSlack > 25 && t - this.lastMechDmgT > 4 ? "explore" : "hold"
+    // start the hold when a mech in sight ends a loot run (with lootHoldRe: the second time in a row), and extend it while that mech stays in sight
+    if (P.lootHold > 0 && !this.loot && (wasLoot || held) && losE.some((e) => e.dist < 170)) {
+      if (held || P.lootHoldRe <= 0 || t - (this.lootOffT ?? -99) <= P.lootHoldRe) this.lootBlockT = t
+      if (wasLoot) this.lootOffT = t
+    }
+    this.mode = this.loot ? "loot" : P.farmHard && t < P.farmUntil && !this.sqz && hpS > P.exploreHp && this.zoneSlack > 25 && t - this.lastMechDmgT > 4 ? "explore" : "hold"
   }
 
   setFight(e) {
@@ -1179,6 +1231,33 @@ export class Brain {
     const threats = []
     for (const e of this.en.values()) if (t - e.t < 15) threats.push([e.pos[0], e.pos[1], e.pos[2], 1 - (t - e.t) / 20])
     const snd = this.sounds.filter((s) => t - s.t < 6 && s.kind !== "step" && s.kind !== "boost" && s.kind !== "jet" && s.kind !== "reload")
+    // squeeze prep: unit vector from the next centre toward where the mechs were seen in the last minute
+    let ax = 0,
+      ay = 0
+    if (this.sqz && P.sqzAway > 0 && this.sqzSeen) {
+      let wx = 0,
+        wy = 0,
+        ws = 0
+      for (const [id, q] of this.sqzSeen) {
+        const w = 1 - (t - q[2]) / 60
+        if (w <= 0) {
+          this.sqzSeen.delete(id)
+          continue
+        }
+        wx += q[0] * w
+        wy += q[1] * w
+        ws += w
+      }
+      const dx = wx / (ws || 1) - nc[0],
+        dy = wy / (ws || 1) - nc[1],
+        dl = hyp(dx, dy)
+      if (ws > 0.3 && dl > 25) {
+        // one sighting counts half, so a single mech does not send us across the whole circle
+        const conf = Math.min(1, ws / 2)
+        ax = (dx / dl) * conf
+        ay = (dy / dl) * conf
+      }
+    }
     const top = []
     const ringLo = this.nr > 60 ? 0.45 : 0
     for (let k = 0; k < S.count; k++) {
@@ -1196,6 +1275,7 @@ export class Brain {
         const rr = dc / this.nr
         if (rr < ringLo) s -= 30 * (ringLo - rr)
       }
+      if (ax || ay) s -= (P.sqzAway * ((sx - nc[0]) * ax + (sy - nc[1]) * ay)) / Math.max(dc, 0.5 * this.nr)
       for (const th of threats) {
         const de = hyp(sx - th[0], sy - th[1])
         if (de < 170) s -= 0.3 * (170 - de) * th[3]
@@ -1697,20 +1777,21 @@ export class Brain {
       }
       if (best) return best
     }
-    const farming = P.farmHard && t < P.farmUntil
+    const farming = P.farmHard && t < P.farmUntil && !this.sqz
     // opening: the laser run is not called off just because a mech is in sight
     const lasFirst = t < P.laserFirst && !this.laser && this.hpS >= 0.45
     let gated = false
     if (farming) {
       if (this.hpS < 0.45 || t - this.lastMechDmgT < 4 || this.vis.some((e) => e.los && e.dist < 170)) gated = true
     } else if (!this.calm || this.hpS < 0.6) gated = true
+    if (this.lootHeld) gated = true // P.lootHold, see decide()
     if (gated && !lasFirst) return null
     if (this.zoneSlack < 14) return null
     const [x, y, z] = me.pos
     const zc = this.o.zone
     const insideNow = (p) => hyp(p[0] - zc.center[0], p[1] - zc.center[1]) < zc.radius - 8
     const insideNext = (p) => hyp(p[0] - this.nc[0], p[1] - this.nc[1]) < this.nr - 2
-    const okPlace = (p, d) => insideNow(p) && (insideNext(p) || this.zoneSlack > d / this.walk + 25)
+    const okPlace = (p, d) => insideNow(p) && (insideNext(p) || (!this.sqz && this.zoneSlack > d / this.walk + 25))
     const reachableZ = (p) => !this.w || Math.abs(this.w.standZ(p[0], p[1], z + 1.5) - p[2]) < 3.2 || (this.w.nodeAt(p[0], p[1], p[2], 3) >= 0 && this.main && this.main[this.w.nodeAt(p[0], p[1], p[2], 3)])
     const nearEnemy = (p) => {
       for (const e of this.en.values()) if (t - e.t < 12 && hyp(p[0] - e.pos[0], p[1] - e.pos[1]) < 110) return true
@@ -1729,7 +1810,11 @@ export class Brain {
         for (const e of this.en.values()) {
           if (t - e.t > 12) continue
           const de = hyp(p.pos[0] - e.pos[0], p.pos[1] - e.pos[1])
-          if (de < 40 || (de < 110 && de < d)) lost = true
+          if (de < 40 || (de < 110 && de < d)) {
+            // laserAway: it is walking away from the laser, so it is not the one that takes it
+            if (P.laserAway > 0 && de >= 40 && !e.phantom && e.vel && (e.vel[0] * (e.pos[0] - p.pos[0]) + e.vel[1] * (e.pos[1] - p.pos[1])) / de > P.laserAway) continue
+            lost = true
+          }
         }
         if (lost) continue
         if (roof && !this.roofRoute(p)) continue
@@ -2077,6 +2162,18 @@ export class Brain {
       for (const q of this.vis) if (q.los && t - q.hitMeT < 2.5 && (!cand || q.hitMeT > cand.hitMeT)) cand = q
       if (cand) e = cand
     }
+    // guard: fighting a mech that is not shooting at us (cornered / final circle pick the weakest in sight) while
+    // another one in sight is, from outside the front arc that aiming at the target gives us: answer that one
+    if (P.guard > 0 && e && this.mode === "fight" && t - e.hitMeT >= P.guard && e.hpS >= P.guardFire && !this.charging) {
+      const b0 = Math.atan2(e.pos[1] - me.pos[1], e.pos[0] - me.pos[0])
+      let q = null
+      for (const c of this.vis)
+        if (c.los && t - c.hitMeT < P.guard && (!q || c.hitMeT > q.hitMeT) && Math.abs(angNorm(Math.atan2(c.pos[1] - me.pos[1], c.pos[0] - me.pos[0]) - b0)) > PI / 2 - P.guardArc) q = c
+      if (q) {
+        e = q
+        this.guardT = t
+      }
+    }
     // never let a charged laser go to waste / fire wild: keep tracking someone
     if (!e && this.charging) {
       for (const q of this.vis) if (q.los && (!e || q.dist < e.dist)) e = q
@@ -2167,6 +2264,72 @@ export class Brain {
       if (!(gun.reload > 0) && (gun.ammo === 0 || lull || (quiet && gun.ammo <= mag - 3 && this.mode !== "loot") || (quiet && gun.ammo <= mag * 0.5))) A.reload = true
     }
     A.fire = fire
+    // not in a fight, or in one but not shooting at a mech that is shooting at us: mind the rear arc
+    if (P.guard > 0 && !(this.mode === "fight" && e && e.los && t - e.hitMeT < P.guard)) this.guardAim(A, fire, e && e.los ? e : null)
+  }
+
+  /**
+   * Rear armor (P.guard): a hit from outside the 180 deg arc around our aim does x1.5. Unless we are shooting at a
+   * mech that is shooting at us, keep the torso turned so that every mech that hit us in the last P.guard seconds
+   * stays inside that arc. The aim the
+   * mode asked for (shot solution, scan, phantom) is kept whenever it already covers them. Otherwise turn to the
+   * yaw that covers the most recent damage (both of two attackers when they fit, else the one that hurts more),
+   * and among those the one that keeps most of them in view, then the squarest one.
+   * Unseen attackers are placed by the bearing of their last hit, which is the direction the rule tests.
+   */
+  guardAim(A, fire, tgt) {
+    const t = this.t
+    const [x, y] = this.me.pos
+    const win = Math.min(P.guard, 6)
+    let B = [] // [bearing, damage in the window]
+    for (const e of this.en.values()) {
+      if (t - e.hitMeT >= win) continue
+      let w = 1
+      for (const d of this.dmgLog) if (d[2] === e.id && t - d[0] < win) w += d[1]
+      const seen = !e.phantom && e.t >= e.hitMeT
+      B.push([seen || e.hitBear == null ? Math.atan2(e.pos[1] - y, e.pos[0] - x) : e.hitBear, w])
+    }
+    if (!B.length) return
+    // a laser charge in progress, or a nearly dead target in sight, is worth more than the arc
+    if (this.charging || (tgt && tgt.hpS < P.guardFire)) return
+    B = B.sort((a, b) => b[1] - a[1]).slice(0, 4)
+    const half = PI / 2 - P.guardArc
+    const view = (((this.cfg.vision?.fov_deg ?? 120) / 2) * PI) / 180 - 0.08
+    const want = A.aim[0]
+    // [covered damage, tie-break cost: attackers out of view, then the widest angle] of a yaw
+    const cover = (yaw) => {
+      let s = 0,
+        cost = 0,
+        worst = 0
+      for (const b of B) {
+        const d = Math.abs(angNorm(b[0] - yaw))
+        if (d < half) s += b[1]
+        if (d > view) cost += 10
+        if (d > worst) worst = d
+      }
+      return [s, cost + worst]
+    }
+    let best = want,
+      bc = cover(want)
+    bc[0] *= 1.2 // leave the aim alone unless turning covers clearly more
+    bc[1] = -1
+    const tryYaw = (yaw) => {
+      const c = cover(yaw)
+      if (c[0] > bc[0] + 1e-6 || (c[0] > bc[0] - 1e-6 && c[1] < bc[1])) {
+        best = yaw
+        bc = c
+      }
+    }
+    for (let i = 0; i < B.length; i++) {
+      tryYaw(B[i][0])
+      tryYaw(B[i][0] + half - 0.01)
+      tryYaw(B[i][0] - half + 0.01)
+      for (let j = 0; j < i; j++) tryYaw(B[j][0] + angNorm(B[i][0] - B[j][0]) / 2)
+    }
+    if (best === want) return
+    A.aim = [best, A.aim[1]]
+    if (this.laser) fire[this.slotOf.laser] = false // not charging: do not start a charge we cannot aim
+    this.guardT = t
   }
 }
 
