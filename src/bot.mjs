@@ -94,6 +94,16 @@ export const P = {
   exposeMove: false, // in a fight with other mechs around: step to the nearby spot that can hit the target and is seen by the fewest others
   laserRange: 0, // preferred fight range with a laser in m (0 = fightRange rule)
   retreatCost: 150, // how far (path cost) to look for cover when retreating
+  // --- weak-bot hunting (practice: the house squad hunts us weakest first, easy bots in the early waves)
+  weakHunt: false, // read mechs as weak (no strafing, or the squad order) and fight them out
+  weakPerp: 2.2, // sideways speed in m/s below which a mech aiming at us counts as not strafing
+  weakEngS: 0.8, // seconds of watching it aim at us before its strafing decides (sim: 87% of easy bots read weak, 8% of medium, ~1% of hard/expert)
+  weakPrior: false, // before that, guess from the squad order (idle house bots that wander close also turn on us, so it misfires)
+  weakHp: 0.3, // start / keep fighting a weak mech above this HP share
+  weakBail: 0.2, // ...and leave only below this share while it is healthier than us
+  weakRange: 0, // preferred fight range against a weak mech in m (0 = the normal rule)
+  weakChase: 9, // seconds to keep chasing a weak mech out of sight
+  weakAlone: 200, // ...only while no other mech (weak or not) is within this range: practice deaths are 2-on-1s
 }
 // Free-for-all profile (qualifying and the final): the survival-first settings of the first two submissions.
 // Applied once, the moment the bot sees mechs dying that it did not kill (see ingest()).
@@ -101,9 +111,9 @@ export const P_FFA = {
   hideHp: 0.4, resumeHp: 0.8, initHpLow: 0.75, initAdv: 0.2, vetoAdv: -0.12, vetoCubes: -5, crowd: 90, openingS: 45, calmS: 4,
   healBelow: 0, killLoot: false, dropHeal: false, fightRange: 0, bandRange: 14, noRetreat: false, berserk: false, zapRange: 0,
   farmHard: false, huntUntil: 0, calmAfter: 0, laserFirst: 0, laserInit: 0, laserInitUntil: 0,
-  lateHunt: 0, crowdLos: false, exposeMove: false, laserRange: 0, retreatCost: 150,
+  lateHunt: 0, crowdLos: false, exposeMove: false, laserRange: 0, retreatCost: 150, weakHunt: false,
 }
-Object.assign(P, {"laserFirst":90,"lateHunt":0.6,"crowdLos":true,"exposeMove":true,"fightRange":55,"laserRange":85,"retreatCost":150}) // t02: laser first + late-game hunting; t03: retreat cover search back to 150
+Object.assign(P, {"laserFirst":90,"lateHunt":0.6,"crowdLos":true,"exposeMove":true,"fightRange":55,"laserRange":85,"retreatCost":150,"weakHunt":true}) // t02: laser first + late-game hunting; t03: retreat cover search back to 150; t04: hunt weak (non-strafing) bots
 if (typeof process !== "undefined" && process.env && process.env.FM_P) Object.assign(P, JSON.parse(process.env.FM_P))
 if (typeof process !== "undefined" && process.env && process.env.FM_PFFA) Object.assign(P_FFA, JSON.parse(process.env.FM_PFFA))
 if (P.preferZap) {
@@ -133,6 +143,8 @@ class Enemy {
     this.dist = 999
     this.los = false
     this.retreats = 0
+    this.perp = 0 // smoothed sideways speed while it aims at us
+    this.engT = 0 // seconds seen aiming at us
   }
   get hpS() {
     return this.maxHp > 0 ? this.hp / this.maxHp : 1
@@ -198,6 +210,7 @@ export class Brain {
     this.lastMoveCmd = 0
     this.deadline = Infinity
     this.spots = null
+    this.weakOn = !!P.weakHunt
     if (world) this._precomputeSpots()
   }
 
@@ -391,6 +404,14 @@ export class Brain {
         const closing = (e.dist - d) / dt
         const hunting = (closing > 3.5 && d < 140) || (aimOn && d < 210)
         e.hunt = clamp(e.hunt + dt * (hunting ? 1 : -0.6), 0, 6)
+        if (aimOn && d < 170 && d > 1) {
+          // sideways speed across our line of sight: easy bots walk straight at us, better ones strafe
+          const ux = (x - m.pos[0]) / d,
+            uy = (y - m.pos[1]) / d
+          const vp = Math.abs(-uy * m.vel[0] + ux * m.vel[1])
+          e.perp = e.engT > 0 ? e.perp + (vp - e.perp) * Math.min(1, dt * 1.5) : vp
+          e.engT += dt
+        }
         e.vAvg[0] += (m.vel[0] - e.vAvg[0]) * 0.12
         e.vAvg[1] += (m.vel[1] - e.vAvg[1]) * 0.12
       } else {
@@ -517,6 +538,7 @@ export class Brain {
     // free-for-all or a house squad? In a squad the others never kill each other, so every death
     // other than ours is a kill of ours. Two or more deaths we did not cause means free-for-all.
     const othersDead = (this.cfg.match?.mechs ?? 16) - (o.alive ?? 16) - (this.myKills || 0)
+    this.othersDead = othersDead
     if (othersDead >= 2 && !this.ffa) {
       this.ffa = true
       if (!(typeof process !== "undefined" && process.env && process.env.FM_NOSWITCH)) Object.assign(P, P_FFA)
@@ -631,12 +653,27 @@ export class Brain {
     const b = Math.atan2(y - e.pos[1], x - e.pos[0])
     return Math.abs(angNorm(e.aim[0] - b)) > PI / 2
   }
+  /** practice only: is e one of the weak house bots? */
+  isWeak(e) {
+    // practice-only: a couple of house bots dying to drones or the zone flips this.ffa, so use a looser test
+    if (!this.weakOn || (this.othersDead || 0) >= 4 || !e) return false
+    if (e.engT >= P.weakEngS) return e.perp < P.weakPerp
+    // weakest first: while our kills plus the 90 s waves stay within the 4 easy bots, every hunter is one
+    return P.weakPrior && (e.hunt >= 1 || e.aimOn || this.t - e.hitMeT < 3) && (this.myKills || 0) + 1 + Math.floor(this.t / 90) <= 4
+  }
+  /** other mechs seen near us lately (any skill): a second house bot joining is what kills us in practice */
+  strongNear(e, radius) {
+    let n = 0
+    for (const q of this.en.values()) if (q !== e && !q.phantom && this.t - q.t < 3 && q.dist < Math.max(radius, P.weakAlone)) n++
+    return n
+  }
   wantFight(e, defending) {
     const me = this.me
     const hpS = this.hpS
     const adv = hpS - e.hpS
     const cubeDiff = (me.cubes || 0) - (e.cubes || 0)
     if (this.finalPhase) return true
+    if (this.isWeak(e) && this.hpS > P.weakHp && this.strongNear(e, P.crowd) === 0) return true
     if (e.hpS < P.finishHp && hpS > P.finishMyHp) return true
     // opening: a laser is a few seconds away and this mech is not on top of us yet -> pick it up first (see pickLoot)
     const lg = this.lasGoal
@@ -727,6 +764,12 @@ export class Brain {
         return
       }
     }
+    // --- weak house bot: fight it out unless nearly dead and losing
+    const weakT = this.mode === "fight" && target && this.isWeak(target) ? target : null
+    const weakOk = weakT && !(hpS < P.weakBail && weakT.hpS > hpS) && this.strongNear(weakT, P.crowd) === 0
+    if (weakOk && atk.every((q) => q === weakT) && atk.length <= 1) {
+      if (target.los || t - (target.losT ?? -99) < P.weakChase) return
+    }
     // --- retreat triggers
     let retreat = false
     if (atk.length >= 2) retreat = true
@@ -799,6 +842,7 @@ export class Brain {
     if (this.mode === "fight" && target) {
       const lost = t - (target.losT ?? -99)
       const chase = target.hpS < P.chaseHp && hpS > P.chaseMyHp && this.others(target, P.crowd) === 0
+      if (this.isWeak(target) && lost < P.weakChase && t - this.fightStartT < 90) return
       if (lost < (chase ? P.chaseS : 2.5) && t - this.fightStartT < 60) return
       this.mode = "hold"
       this.targetId = -1
@@ -1508,6 +1552,7 @@ export class Brain {
     // preferred range by loadout: far enough that bullets can be side-stepped
     let pr = P.fightRange > 0 ? P.fightRange + (this.laser ? 8 : 0) : this.laser ? 112 : 104
     if (this.laser && P.laserRange > 0) pr = P.laserRange
+    if (P.weakRange > 0 && this.isWeak(e)) pr = P.weakRange
     if (this.lightning && !this.laser && (this.hpS - e.hpS > 0.1 || e.hpS < 0.45) && !e.has("lightning")) pr = 34
     if (P.zapRange > 0 && this.lightning && this.me.energy > 22 && !(e.has("lightning") && this.hpS < e.hpS)) pr = P.zapRange
     if (this.finalPhase) pr = Math.min(pr, 45)
