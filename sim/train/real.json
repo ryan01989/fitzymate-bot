@@ -240,5 +240,12 @@
   "real": 5.21,
   "pred": "+0.74 +-0.16 over t11 (3 packs x 48 seeds)",
   "note": "t11 + fightRange 200 + fBoost 40. Sim said +0.74, real is flat vs t11 (5.23) / best 5.38. Sim wrong again on a fight-behaviour change."
+ },
+ {
+  "name": "t13-hunt90",
+  "file": "sim/variants/t13-hunt90.mjs",
+  "real": 5.4,
+  "pred": "+0.19 +-0.08 over t11 (sim bot mostly dead before 90 s)",
+  "note": "t11 + huntFrom 90, huntUntil 420, seekUntil 420. Best so far by a hair (prev 5.38); within noise of t11, does not hurt."
  }
 ]

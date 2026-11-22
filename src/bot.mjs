@@ -163,7 +163,7 @@ export const P_FFA = {
   fBoost: 0, noRetAll: 0, cubeGoal: 0, seekUntil: 0, rearBonus: 15, dropAll: 0, focusLow: 0, lasLock: 0, lasBoost: 0,
 }
 Object.assign(P, {"laserFirst":90,"noRetreat":true,"cubeRun":130,"rushUntil":120,"ffaN":3,"lateAt":330,"lateFin":1.01,"lateCore":40}) // baked by sim/train/train.mjs from sim/train/cand/late.mjs
-Object.assign(P, {"lasLock":300,"lasLockHit":110,"lasBoost":30}) // t15-laslock: the opening laser run (inside 300 m) comes before every fight, boosting to it (sim/variants/rad4.mjs)
+Object.assign(P, {"huntFrom":90,"huntUntil":420,"seekUntil":420,"lasLock":300,"lasLockHit":110,"lasBoost":30}) // t16: t13-hunt90 + t15-laslock (sim/variants/rad4.mjs)
 if (typeof process !== "undefined" && process.env && process.env.FM_P) Object.assign(P, JSON.parse(process.env.FM_P))
 if (typeof process !== "undefined" && process.env && process.env.FM_PFFA) Object.assign(P_FFA, JSON.parse(process.env.FM_PFFA))
 if (P.preferZap) {
