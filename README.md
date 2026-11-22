@@ -41,7 +41,7 @@ The rules come from the team's showdown analysis (placement only; most deaths ar
 - **Opening and positioning.** Picks a hold spot inside the *next* circle, toward its outer part, scored for cover, distance from every known mech and drone, and broken line of sight. Parks there silently and sweeps only the open sector. Rotates early; never plans to take zone damage.
 - **Starting fights.** Only with the first shot and an edge: target under 60% HP, target busy with someone else, HP share 30+ points ahead, a laser against a mech without one from behind, or a mech that is plainly coming for it. Never when 10+ HP points or 5+ cubes behind, or with another mech within 110 m.
 - **Being shot.** Faces the attacker (rear armor). Answers only when not out-gunned or behind; otherwise breaks line of sight.
-- **During a fight.** Holds about 105–112 m, where gun bullets can be side-stepped; picks each step from candidate moves by the miss distance to bullets already in the air. Tracks the damage race (time-to-kill over time-to-die) and leaves when losing it, or below 50% HP without a lead. Steps behind a corner to reload.
+- **During a fight.** Holds about 105–112 m, where gun bullets can be side-stepped; picks each step from candidate moves by the miss distance to bullets already in the air. When no walking step clears the bullets in the air, sprints whichever step does (boost dodge). Closes to about 20 m on a target under 38% HP while healthy and facing at most two attackers, so it cannot slip away to regenerate (finish rush). Tracks the damage race (time-to-kill over time-to-die) and leaves when losing it, or below 50% HP without a lead. Steps behind a corner to reload.
 - **Retreat.** Bounded search for the nearest spot hidden from every recent threat, weighted toward distance; keeps moving while a pursuer closes; regenerates; turns to fight only when running is not working against one or two pursuers.
 - **Weapons and upgrades.** Keeps the gun; laser first, lightning until a laser turns up, never mortar. Upgrades: plating, armor, laser charge/damage, nanites, then gun.
 - **Loot.** Only when quiet: lasers, cubes up to the stat cap, crates and lone drones, supply drops with nobody near.
@@ -49,7 +49,7 @@ The rules come from the team's showdown analysis (placement only; most deaths ar
 
 ## Tuning
 
-`P` in `src/bot.mjs`: `hideHp`, `resumeHp`, `initHpLow`, `initAdv`, `vetoAdv`, `vetoCubes`, `crowd`, `openingS`, `farm`, `calmS`, `zoneMarginFrac`, `silentNear`. Set `farm: false` for a purely passive bot.
+`P` in `src/bot.mjs`: `hideHp`, `resumeHp`, `initHpLow`, `initAdv`, `vetoAdv`, `vetoCubes`, `crowd`, `openingS`, `farm`, `calmS`, `zoneMarginFrac`, `silentNear`, `dodgeBoost` (energy needed for a boost dodge, 0 = off), `finishRush` / `finishRushMe` / `finishRushR` (finish-rush thresholds and range, 0 = off), `hostileS` (open fights only on mechs that are after us; off, it lost in the simulator). Set `farm: false` for a purely passive bot.
 
 ## Local simulator
 

@@ -117,6 +117,14 @@ export const P = {
   cubeRunS: 20, // ...and for at most this many s after the kill
   // --- sim/train/cand/rush.mjs: early cube rush
   rushUntil: 0, // until this match time crates / drones / cubes come first: a mech in view no longer calls farming off, fights start only with a mech that hit us in the last rushHit s, is inside rushNear m or is nearly dead, a fight gone quiet ends, crates are shot from range (gun + laser), also while walking to cubes (0 = off)
+  // --- hostile-only: open fights only on mechs that are after us
+  hostileS: 0, // start a fight only with a mech that hit us in the last hostileS s, aims at us, or is closing in on us (finishing a nearly dead mech is always allowed; 0 = off)
+  // --- boost dodge: in a fight, when no walking step clears the bullets in the air, sprint the step that does
+  dodgeBoost: 0, // ...only with more than this much energy (0 = off)
+  // --- finish rush: a target low enough to finish gets no time to recover; close in to point-blank
+  finishRush: 0, // target HP share below which we close to finishRushR m (while we are above finishRushMe and at most 2 mechs are on us; 0 = off)
+  finishRushMe: 0.42,
+  finishRushR: 20,
   rushNear: 70, // ...a mech in sight this close still calls the rush off / may be fought
   rushHit: 4, // ...and so does being hit by a mech in the last this many s
   rushVeto: 0, // ...1 = also start no fight with a mech beyond rushNear that has not hit us for rushHit s (unless nearly dead), and end such a fight gone quiet (0 = fights as usual)
@@ -128,9 +136,9 @@ export const P_FFA = {
   healBelow: 0, killLoot: false, dropHeal: false, fightRange: 0, bandRange: 14, noRetreat: false, berserk: false, zapRange: 0,
   farmHard: false, huntUntil: 0, calmAfter: 0, laserFirst: 0, laserInit: 0, laserInitUntil: 0, lootFix: 0, laserRoof: 0, laserRun: 0, laserAway: 0, oneFront: 0,
   guard: 0, guardArc: 0.25, guardFire: 0.25, sqzAt: 0, sqzAway: 0, sqzHp: 0, lootHold: 0, lootHoldRe: 0, weave: 0, weaveAll: 0, cubeRun: 0,
-  rushUntil: 0,
+  rushUntil: 0, hostileS: 0, dodgeBoost: 0, finishRush: 0,
 }
-Object.assign(P, {"laserFirst":90,"noRetreat":true,"cubeRun":130,"rushUntil":120}) // baked by sim/train/train.mjs from sim/train/cand/rush.mjs
+Object.assign(P, {"laserFirst":90,"noRetreat":true,"cubeRun":130,"rushUntil":120,"dodgeBoost":20,"finishRush":0.38}) // rush + boost dodge + finish rush
 if (typeof process !== "undefined" && process.env && process.env.FM_P) Object.assign(P, JSON.parse(process.env.FM_P))
 if (typeof process !== "undefined" && process.env && process.env.FM_PFFA) Object.assign(P_FFA, JSON.parse(process.env.FM_PFFA))
 if (P.preferZap) {
@@ -679,6 +687,8 @@ export class Brain {
     const cubeDiff = (me.cubes || 0) - (e.cubes || 0)
     if (this.finalPhase) return true
     if (e.hpS < P.finishHp && hpS > P.finishMyHp) return true
+    // hostile-only: a mech minding its own business stays out of it (a provoked one is one more gun on us)
+    if (!defending && P.hostileS > 0 && !(this.t - e.hitMeT < P.hostileS || e.aimOn || e.hunt >= 2)) return false
     // opening: a laser is a few seconds away and this mech is not on top of us yet -> pick it up first (see pickLoot)
     const lg = this.lasGoal
     if (!defending && lg && this.t - lg.t < 0.3 && ((lg.d < 70 && e.dist > lg.d + 40) || (lg.d < P.laserRun && e.dist > 60))) return false
@@ -1681,6 +1691,7 @@ export class Brain {
     if (this.lightning && !this.laser && (this.hpS - e.hpS > 0.1 || e.hpS < 0.45) && !e.has("lightning")) pr = 34
     if (P.zapRange > 0 && this.lightning && this.me.energy > 22 && !(e.has("lightning") && this.hpS < e.hpS)) pr = P.zapRange
     if (this.finalPhase) pr = Math.min(pr, 45)
+    if (P.finishRush > 0 && e.hpS < P.finishRush && this.hpS > P.finishRushMe && this.attackers(3).length <= 2) pr = Math.min(pr, P.finishRushR)
     const maxR = (this.gun?.stats?.range || 230) - 30
     pr = Math.min(pr, maxR)
     let radial = clamp((d - pr) / P.bandRange, -1, 1)
@@ -1736,6 +1747,26 @@ export class Brain {
       this.strafeFlipT = t + 0.25 + this.rand() * 0.5
     }
     A.move = best
+    // boost dodge: walking cannot get us off a bullet's line in time; a sprint step might
+    if (P.dodgeBoost > 0 && me.energy > P.dodgeBoost && !this.charging && me.grounded) {
+      const walkMiss = this.missDist(best)
+      if (walkMiss < need) {
+        let fast = null,
+          fastMiss = walkMiss + 0.4
+        for (let k = 0; k < 6; k++) {
+          if (!free(cands[k])) continue
+          const m = this.missDist(cands[k], this.boostV)
+          if (m > fastMiss) {
+            fastMiss = m
+            fast = cands[k]
+          }
+        }
+        if (fast) {
+          A.move = fast
+          A.boost = true
+        }
+      }
+    }
     // a lightning carrier inside its reach: open the range fast
     if (e.has("lightning") && d < 52 && this.me.energy > 25 && !(this.lightning && this.hpS > e.hpS)) {
       A.move = mk(s0 * 0.35, -1)
