@@ -553,5 +553,11 @@
   "file": "sim/variants/sq12bp-stack.mjs",
   "real": 5.63,
   "note": "builders-4 (built by session buildersmech-24). sq12b (6.05) + only the loot-parking fix (build_parkfix.py: fixLootReach made live after the loot walk). -0.42. Builds with the parking fix: 5.85 (sq12m), 5.63; without: 6.05, 5.83 (sq12w). Either the fix costs ~0.2 (walking the last metres onto loot may expose the bot) or noise; do not ship it without a cleaner test."
+ },
+ {
+  "name": "sq12c-stack",
+  "file": "sim/variants/sq12c-stack.mjs",
+  "real": 5.85,
+  "note": "builders-4 (built by session buildersmech-24 / sq2 agent). sq12b (6.05) + sqRing2 (second ring of fight positions at 12 m) + sqRetLos (no-cover retreat keeps the shot line) + per-match reset of the movement gate. -0.20. Squad family after 6.05: 5.85, 5.83, 5.63, 5.85 -> true level ~5.8-5.85 (old family ~5.7); 6.05 was a high draw."
  }
 ]

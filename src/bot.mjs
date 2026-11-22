@@ -47,6 +47,7 @@ const WEAPON_RANK = { laser: 3, lightning: 2, gun: 1, mortar: 0 }
 
 // Tunables (see README "Tuning").
 export const P = {
+  robCover: 0, // retreat cover must also stay hidden from each threat's eye shifted this many m sideways (perpendicular to the sight line), so a sidestep does not expose it (0 = off)
   ffaN: 2, // free-for-all detection: switch to P_FFA once this many mechs died that we did not kill (practice squads never kill each other)
   gunMax: 0, // do not fire the gun beyond this many m at a target above 25% HP (0 = off; sim hit rate falls to about 26% past 140 m)
   hideHp: 0.4, // below this HP share: stop trading, go regenerate
@@ -77,8 +78,6 @@ export const P = {
   sqMpc: 1, // with sqMove: when bullets are in the air, check the blended move against the bullet prediction (missDist) and take a better-clearing top-ranked spot instead
   sqCubes: 0, // with sqMove: 1 = cubes only pull through the spot score (+1.5 per m closer, within 40 m) instead of fightCube taking over the legs
   sqHold: 3, // with sqMove: s the scorer keeps working on a target out of our sight (seen this recently): we may have stepped out on purpose, and the shot line is scored from where it was last seen; after that the old chase
-  sqRing2: 0, // with sqMove: 1 = a second ring of 16 spots at 12 m (move cost 0.4 per m), so cover a little farther away is found
-  sqRetLos: 0, // with sqMove: 1 = fight movement called from a retreat (no cover found) always wants the shot line
   sqAim: 0, // 1 = aim at 85% of the target's height when its centre is blocked from our muzzle
   noRetreat: false, // stand and fight against one or two attackers whatever the HP
   berserk: false, // attack anything in sight
@@ -219,7 +218,8 @@ export const P = {
 // Free-for-all profile (qualifying and the final): the survival-first settings of the first two submissions.
 // Applied once, the moment the bot sees mechs dying that it did not kill (see ingest()).
 export const P_FFA = {
-  sqMove: 0, sqAim: 0, sqRing2: 0, sqRetLos: 0,
+  robCover: 0,
+  sqMove: 0, sqAim: 0,
   hideHp: 0.4, resumeHp: 0.8, initHpLow: 0.75, initAdv: 0.2, vetoAdv: -0.12, vetoCubes: -5, crowd: 90, openingS: 45, calmS: 4,
   healBelow: 0, killLoot: false, dropHeal: false, fightRange: 0, bandRange: 14, noRetreat: false, berserk: false, zapRange: 0,
   farmHard: false, huntUntil: 0, calmAfter: 0, laserFirst: 0, laserInit: 0, laserInitUntil: 0, lootFix: 0, laserRoof: 0, lasHop: 0, laserRun: 0, laserAway: 0, oneFront: 0,
@@ -242,7 +242,7 @@ Object.assign(P, {"dropAll":1}) // gb11-dropall: w03 + go for every supply drop 
 Object.assign(P, {"sqMove":1,"sqAim":1}) // sq2-move: gb11 + fight movement by position sampling (new-idea 5.1-5.5), our ranges kept (sqRange 0); aim drops to 85% height when the centre is blocked
 Object.assign(P, {"squad":1})
 Object.assign(P, {"sqMove":0,"sqAim":0,"sqMoveAt":30,"sqFrom":30}) // sq12b-stack: sq12 with the squad layer and the fight-movement rework both held off until 30 s, so a free-for-all (detected at about 23-25 s on the real server) plays like gb11 // sq1-squad: gb11 + the reference practice decision layer as one mode (engage filter, per-tick target score, 1.5 s retreat pulses, no chase, cube detour 70/40 m, finish close-in 20 m, lethal release 0.7, laser seek 240 m)
-Object.assign(P, {"sqRing2":1,"sqRetLos":1}) // sq12c-stack: sq12b + sq2 v2 movement (second ring of spots at 12 m; a retreat with no cover fight-moves wanting the shot line)
+Object.assign(P, {"robCover":5}); Object.assign(P_FFA, {"robCover":5}) // sq12-tmC: robust retreat cover, hidden even if a threat sidesteps robCover m
 if (typeof process !== "undefined" && process.env && process.env.FM_P) Object.assign(P, JSON.parse(process.env.FM_P))
 if (typeof process !== "undefined" && process.env && process.env.FM_PFFA) Object.assign(P_FFA, JSON.parse(process.env.FM_PFFA))
 if (P.preferZap) {
@@ -368,11 +368,6 @@ export class Brain {
     this.strafeSide = this.rand() < 0.5 ? 1 : -1
     this.strafeFlipT = 0
     this.weaveSide = 1
-    if (P.sqMoveAt > 0) {
-      // sq12c: P outlives a match in a long-running process; the rework waits for sqMoveAt again
-      P.sqMove = 0
-      P.sqAim = 0
-    }
     this.weaveFlipT = 0
     this.scanYaw = this.rand() * TAU
     this.lastAim = [0, 0]
@@ -2115,6 +2110,21 @@ export class Brain {
     }
     return true
   }
+  /** hidden from every threat, and from each threat's eye moved P.robCover m to either side of the sight line */
+  robustHidden(threats, mx, my, mz) {
+    if (!this.hiddenFrom(threats, mx, my, mz)) return false
+    const mg = P.robCover
+    if (!(mg > 0)) return true
+    const side = []
+    for (const th of threats) {
+      const vx = mx - th[0], vy = my - th[1]
+      const l = hyp(vx, vy)
+      if (l < 1) return false
+      const ox = (-vy / l) * mg, oy = (vx / l) * mg
+      side.push([th[0] + ox, th[1] + oy, th[2]], [th[0] - ox, th[1] - oy, th[2]])
+    }
+    return this.hiddenFrom(side, mx, my, mz)
+  }
   /** nearest spot out of every threat's sight, weighted toward distance from them */
   findCover(threats) {
     const w = this.w
@@ -2133,6 +2143,7 @@ export class Brain {
     const vis = w.visited
     const floor = Math.min(curD - 4, 42)
     let best = -1,
+      fallback = -1,
       bestScore = 1e18
     for (let k = 0; k < n; k++) {
       const m = vis[k]
@@ -2154,9 +2165,14 @@ export class Brain {
       const score = g * 0.55 - Math.min(dmin, 160) * 0.7
       if (score >= bestScore) continue
       if (!this.hiddenFrom(threats, mx, my, mz)) continue
+      if (P.robCover > 0 && !this.robustHidden(threats, mx, my, mz)) {
+        if (fallback < 0) fallback = m
+        continue
+      }
       bestScore = score
       best = m
     }
+    if (best < 0) best = fallback
     if (best < 0) return null
     const path = w.pathTo(best)
     return { node: best, path, x: w.nodeX(best), y: w.nodeY(best), z: w.surf[best] }
@@ -2533,18 +2549,16 @@ export class Brain {
         return
       }
     }
-    const want = P.sqRetLos > 0 && this.mode === "retreat" ? 1 : this.sqWantLos(e, d)
+    const want = this.sqWantLos(e, d)
     // 5.4 strafe timer: 0.3-1.0 s, flip side with 60% on expiry
     if (!(t < this.sqFlipT)) {
       if (this.rand() < 0.6) this.strafeSide = -this.strafeSide
       this.sqFlipT = t + 0.3 + this.rand() * 0.7
     }
-    const NR = 16,
-      NC = P.sqRing2 > 0 ? 2 * NR : NR
-    const ang = (k) => (((k - 1) % NR) * TAU) / NR,
-      stp = (k) => (k > NR ? 12 : 6)
+    const STEP = 6,
+      NR = 16
     // scratch buffers kept on the instance (no garbage per tick)
-    const B = (this.sqBuf ??= { cx: new Float64Array(2 * NR + 1), cy: new Float64Array(2 * NR + 1), cz: new Float64Array(2 * NR + 1), ok: new Uint8Array(2 * NR + 1), sc: new Float64Array(2 * NR + 1), exp: new Uint8Array(2 * NR + 1), losAt: new Uint8Array(2 * NR + 1) })
+    const B = (this.sqBuf ??= { cx: new Float64Array(NR + 1), cy: new Float64Array(NR + 1), cz: new Float64Array(NR + 1), ok: new Uint8Array(NR + 1), sc: new Float64Array(NR + 1), exp: new Uint8Array(NR + 1), losAt: new Uint8Array(NR + 1) })
     const { cx, cy, cz, ok, sc, exp, losAt } = B
     ok.fill(0)
     exp.fill(0)
@@ -2553,11 +2567,10 @@ export class Brain {
     cy[0] = y
     cz[0] = z
     ok[0] = 1
-    for (let k = 1; k <= NC; k++) {
-      const a = ang(k)
-      cx[k] = x + Math.cos(a) * stp(k)
-      cy[k] = y + Math.sin(a) * stp(k)
-      if (k > NR && !ok[k - NR]) continue
+    for (let k = 1; k <= NR; k++) {
+      const a = ((k - 1) * TAU) / NR
+      cx[k] = x + Math.cos(a) * STEP
+      cy[k] = y + Math.sin(a) * STEP
       cz[k] = z
       if (!w) {
         ok[k] = 1
@@ -2602,13 +2615,13 @@ export class Brain {
     const zoneOn = this.dNext > -8
     sc.fill(-1e9)
     let anyHidden = false
-    for (let k = 0; k <= NC; k++) {
+    for (let k = 0; k <= NR; k++) {
       if (!ok[k]) continue
       const px = cx[k],
         py = cy[k],
         pz = cz[k]
       let v = -1.1 * Math.abs(hyp(e.pos[0] - px, e.pos[1] - py) - pr)
-      if (k > 0) v -= 0.4 * stp(k)
+      if (k > 0) v -= 0.4 * STEP
       const los = !w || w.los(px, py, pz + this.muzH, e.pos[0], e.pos[1], e.cz)
       losAt[k] = los ? 1 : 0
       if (!los) anyHidden = true
@@ -2627,14 +2640,14 @@ export class Brain {
         if (wd < wallRef) v -= 2.5 * (wallRef - wd)
       }
       if (k > 0 && want > 0) {
-        const a = ang(k)
+        const a = ((k - 1) * TAU) / NR
         v += 9 * (Math.cos(a) * sx + Math.sin(a) * sy)
       }
       if (k === 0) v += want < 0 && !los ? 14 : -8
       sc[k] = v
     }
     let bk = 0
-    for (let k = 1; k <= NC; k++) if (sc[k] > sc[bk]) bk = k
+    for (let k = 1; k <= NR; k++) if (sc[k] > sc[bk]) bk = k
     const S = this.sqS
     // gun reloading and every spot of the ring in the target's sight: walk to the nearest hidden node instead
     if (want < 0 && !anyHidden && P.sqDuck > 0 && this.duck(A, e)) {
@@ -2642,7 +2655,7 @@ export class Brain {
       return
     }
     this.path = null
-    let mv = bk === 0 ? [0, 0] : [Math.cos(ang(bk)), Math.sin(ang(bk))]
+    let mv = bk === 0 ? [0, 0] : [Math.cos(((bk - 1) * TAU) / NR), Math.sin(((bk - 1) * TAU) / NR)]
     // 5.5 sidestep: bullets about to pass within our radius + 1.1 m in the next 0.7 s, and lasers charging on us
     let ddx = 0,
       ddy = 0,
@@ -2695,7 +2708,7 @@ export class Brain {
       if (bm > 1e-6 && w && !w.walkLine(x, y, z, x + mv[0] * 4, y + mv[1] * 4, this.reqR - 0.3, this.Hh)) {
         // the sidestep runs into a wall: the nearest walkable heading to it, else the plan
         const fd = this.sqFreeDir(mv[0], mv[1])
-        mv = fd || (bk === 0 ? [0, 0] : [Math.cos(ang(bk)), Math.sin(ang(bk))])
+        mv = fd || (bk === 0 ? [0, 0] : [Math.cos(((bk - 1) * TAU) / NR), Math.sin(((bk - 1) * TAU) / NR)])
       }
     }
     // our bullet prediction: if the move still leaves a bullet on us, a top-ranked spot that clears it better wins
@@ -2705,11 +2718,11 @@ export class Brain {
       let bestV = Math.min(this.missDist(mv), need) * 10
       if (bestV < need * 10) {
         const order = []
-        for (let k = 0; k <= NC; k++) if (ok[k]) order.push(k)
+        for (let k = 0; k <= NR; k++) if (ok[k]) order.push(k)
         order.sort((a, b) => sc[b] - sc[a])
         for (let i = 0; i < Math.min(5, order.length); i++) {
           const k = order[i]
-          const c = k === 0 ? [0, 0] : [Math.cos(ang(k)), Math.sin(ang(k))]
+          const c = k === 0 ? [0, 0] : [Math.cos(((k - 1) * TAU) / NR), Math.sin(((k - 1) * TAU) / NR)]
           const v = Math.min(this.missDist(c, k === 0 ? 0.01 : 0), need) * 10 + 0.25 * (sc[k] - sc[bk])
           if (v > bestV + 0.5) {
             bestV = v
