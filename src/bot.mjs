@@ -103,7 +103,7 @@ export const P_FFA = {
   farmHard: false, huntUntil: 0, calmAfter: 0, laserFirst: 0, laserInit: 0, laserInitUntil: 0,
   lateHunt: 0, crowdLos: false, exposeMove: false, laserRange: 0, retreatCost: 150,
 }
-Object.assign(P, {"laserFirst":90}) // baked by sim/train/train.mjs from sim/train/cand/opening.mjs
+Object.assign(P, {"laserFirst":90,"lateHunt":0.6,"crowdLos":true,"exposeMove":true,"fightRange":55,"laserRange":85,"retreatCost":45}) // t02: laser first + late-game hunting
 if (typeof process !== "undefined" && process.env && process.env.FM_P) Object.assign(P, JSON.parse(process.env.FM_P))
 if (typeof process !== "undefined" && process.env && process.env.FM_PFFA) Object.assign(P_FFA, JSON.parse(process.env.FM_PFFA))
 if (P.preferZap) {
