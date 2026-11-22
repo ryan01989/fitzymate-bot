@@ -306,5 +306,11 @@
   "file": "sim/variants/t25-efficiency.mjs",
   "real": 5.2,
   "note": "new scoring. t13 + lethalRelease + fightHide + noChase. Tie with t13 (5.28)."
+ },
+ {
+  "name": "probe-idle240",
+  "file": "sim/variants/probe-idle240.mjs",
+  "real": 5.41,
+  "note": "new scoring. t13 standing idle from 240 s scores 5.41 vs t13's 5.28: t13 earns nothing after 240 s (the difference is noise; idling cannot raise the score). All points come before 240 s. Timeline: about 1.6 by 90 s, 3.6 by 180 s (v3 probes), about 5.3 by 240 s."
  }
 ]
