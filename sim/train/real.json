@@ -505,5 +505,23 @@
   "file": "sim/variants/c01-w03drone.mjs",
   "real": 5.77,
   "note": "builders-4. w03 + droneMem 90. Drone memory twice: n01 5.78 on l07 (5.83), c01 5.77 on w03 (5.85): neutral to slightly negative."
+ },
+ {
+  "name": "w04-upgd9",
+  "file": "sim/variants/w04-upgd9.mjs",
+  "real": 5.77,
+  "note": "builders-4. w03 + upSet 9 (gun_damage third, ahead of armor). No gain over w03 (5.85): the upgrade-order steps are inside the run noise."
+ },
+ {
+  "name": "gb11-dropall",
+  "file": "sim/variants/gb11-dropall.mjs",
+  "real": 5.84,
+  "note": "builders-4 (built by session buildersmech-24). w03 + dropAll 1 (every supply drop within 230 m reachable by landing + 8 s with no known mech within 70 m of it, ahead of other loot). First real score of a drop-priority build; level with the best (w03 5.85) and above the last three draws (5.67, 5.77, 5.77)."
+ },
+ {
+  "name": "gb5-noseek",
+  "file": "sim/variants/gb5-noseek.mjs",
+  "real": 5.6,
+  "note": "builders-4 (built by session buildersmech-24). w03 + seekUntil 0 (no walking toward the last seen mech when idle; hunting of mechs in sight kept). -0.25 vs w03, about one sd below the family level (~5.72): seeking does not hurt and may help; keep it on."
  }
 ]
