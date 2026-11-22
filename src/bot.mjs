@@ -176,9 +176,7 @@ export const P = {
   shortRetreatFire: 1, // ...0 = keep the old retreat aim (diagnostic: the exit rule alone)
   retarget: 0, // lesson C: in a fight, switch to a mech whose start-of-fight score beats the target's by this many points (100 = full HP share) (0 = off)
   retargetHold: 1.5, // ...but only after this many s on the current target, never off a target we are finishing, never past half a laser charge
-  // --- sim/agentW: size-aware fight range (real replays: at 100-120 m a gun hits a 0-2 cube mech with 40% of shots and a 10+ cube mech with 70%; at 60-80 m 78% and 92%)
-  bigRange: 0, // in a fight, the preferred range shrinks by this many m for each cube we hold, up to the stat cap: a bigger mech can no longer side-step bullets at range, so range only costs it its own hits (0 = off)
-  bigRangeMin: 70, // ...but never below this many m (lightning reaches 45 m, 54 m with one range upgrade)
+  npcHp: 0, // farm drones only above this HP share (0 = the old rule: 0.6 while farming, 0.8 otherwise). On the real server a hit on a drone restarts our 5 s regeneration timer and the drone shoots back; a hit on a crate does neither, so below this we farm crates and heal at the same time
   // --- sim/agentA2 audit fixes (all off by default; they are bug fixes that apply to free-for-all too, so P_FFA does not reset them)
   fixTreeMem: 0, // 1 = item memory (_remember): a pickup / crate / cube "in view but not listed" is forgotten only when no tree crown or trunk from v2/world.json is on the sight line (the server hides items behind foliage beyond the 45 m proximity range; world.mjs has no trees, so the bot took "hidden by a tree" for "gone" and dropped known lasers, crates and kill cubes after 0.3 s). Crates we shoot unseen are tracked by our hit events and dropped once dead or not answering hits (0 = off)
   fixLootGate: 0, // > 0 = judge loot outside the next circle by the zone slack we would have AT THE ITEM (edge-crossing time there, minus the walk to it, minus the walk back in), which must exceed this many s. The old gate (our own zoneSlack > d/walk + 25) changes as we walk: an accepted item fell under the bar a few steps later and passed again on the way back, so loot <-> explore flipped every 0.3 s and the bot stood between the two goals (0 = off; 10 suggested, zone mode takes over under 7)
@@ -196,11 +194,12 @@ export const P_FFA = {
   fBoost: 0, noRetAll: 0, cubeGoal: 0, seekUntil: 0, rearBonus: 15, dropAll: 0, focusLow: 0, lasLock: 0, lasBoost: 0,
   upSet: 0, chaseHp: 0.4, chaseMyHp: 0.55, chaseS: 7, farmBoost: 0, lethalRelease: 0, fightCube: 0, finishRange: 0, noChase: 0, fightHide: 0, noExplore: 0, cautR: 0, endRush: 0, fightPick: 0, fightCubeCap: 0,
   firstShot: 0, shortRetreat: 0, retarget: 0, // gd-policy lessons: practice only
-  bigRange: 0, bigRangeMin: 70, // agentW: practice only
+  npcHp: 0, rangeLas: 0, rangeGun: 0,
 }
 Object.assign(P, {"laserFirst":90,"noRetreat":true,"cubeRun":130,"rushUntil":120,"ffaN":3,"lateAt":330,"lateFin":1.01,"lateCore":40}) // baked by sim/train/train.mjs from sim/train/cand/late.mjs
-Object.assign(P, {"huntFrom":90,"huntUntil":420,"seekUntil":420,"fightCube":55,"fightPick":70,"weave":0.6,"weaveAll":1,"cubeHit":1,"upSet":6,"bigRange":3.5,"bigRangeMin":70}) // w01-bigrange: t32-stack-pick + the fight range shrinks 3.5 m per cube held (104 -> 70 m with a gun, 112 -> 77 m with a laser at 10 cubes) (sim/agentW/rad8w.mjs)
-Object.assign(P, {"fixTreeMem":1,"fixLootGate":10,"fixBigNav":1}) // t37: w01-bigrange + the three audit fixes of t36-fixes
+Object.assign(P, {"huntFrom":90,"huntUntil":420,"seekUntil":420,"fightCube":55,"fightPick":70,"weave":0.6,"weaveAll":1,"cubeHit":1,"upSet":6}) // t32-stack-pick: t31-stack + in a fight without a laser, walk onto a known ground laser within 70 m (35 m below half HP) while still shooting (sim/variants/rad8.mjs)
+Object.assign(P, {"fixTreeMem":1,"fixLootGate":10,"fixBigNav":1}) // t36-fixes: t32 + three audit fixes: items hidden by tree foliage are no longer forgotten, the loot/explore flip during a zone shrink, navigation above 32 cubes (sim/variants/audit-fix.mjs)
+Object.assign(P, {"rangeLas":140}) // t39-laser-range: t36-fixes + hold 140 m (was 112) while we carry a laser; gun-only range unchanged at 104 m. Real data: lasers hit 65-70% out to 150 m, guns lose accuracy with range for both sides, and fighting closer cost 0.22 (sim/variants/rad10.mjs)
 if (typeof process !== "undefined" && process.env && process.env.FM_P) Object.assign(P, JSON.parse(process.env.FM_P))
 if (typeof process !== "undefined" && process.env && process.env.FM_PFFA) Object.assign(P_FFA, JSON.parse(process.env.FM_PFFA))
 if (P.preferZap) {
@@ -2043,8 +2042,6 @@ export class Brain {
     let pr = P.fightRange > 0 ? P.fightRange + (this.laser ? 8 : 0) : this.laser ? 112 : 104
     if (this.laser && P.rangeLas > 0) pr = P.rangeLas
     if (!this.laser && P.rangeGun > 0) pr = P.rangeGun
-    // bigRange: give range up as we grow (never raises pr, never takes it below bigRangeMin)
-    if (P.bigRange > 0) pr = Math.min(pr, Math.max(P.bigRangeMin, pr - P.bigRange * Math.min(this.me.cubes || 0, this.cfg.cubes?.stat_cap ?? 10)))
     if (this.lightning && !this.laser && (this.hpS - e.hpS > 0.1 || e.hpS < 0.45) && !e.has("lightning")) pr = 34
     if (P.zapRange > 0 && this.lightning && this.me.energy > 22 && !(e.has("lightning") && this.hpS < e.hpS)) pr = P.zapRange
     if (this.finalPhase) pr = Math.min(pr, 45)
@@ -2430,7 +2427,7 @@ export class Brain {
       if (quiet) {
         for (const c of this.crates.values()) if (reachableZ(c.pos)) consider("crate", c, farming ? 55 : 30, 110 * reach)
         // drones hit back and pin us for seconds: in the rush they keep the old farming rule (no mech in sight inside 170 m)
-        if (this.hpS > (farming ? 0.6 : 0.8) && t - this.lastMechDmgT > (farming ? 5 : 12) && !(rush && this.vis.some((e) => e.los && e.dist < 170)))
+        if (this.hpS > (P.npcHp > 0 ? P.npcHp : farming ? 0.6 : 0.8) && t - this.lastMechDmgT > (farming ? 5 : 12) && !(rush && this.vis.some((e) => e.los && e.dist < 170)))
           for (const n of this.npcs.values()) if (t - n.t < (farming ? 6 : 2)) consider("npc", n, farming ? 80 : 44, 120 * reach)
       }
     }

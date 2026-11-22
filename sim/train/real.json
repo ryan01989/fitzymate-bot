@@ -373,5 +373,23 @@
   "file": "sim/variants/t32-stack-pick.mjs",
   "real": 5.53,
   "note": "new scoring. Second run of t32 (first 5.52). Same-build runs now agree within 0.01-0.02."
+ },
+ {
+  "name": "w01-bigrange",
+  "file": "sim/variants/w01-bigrange.mjs",
+  "real": 5.45,
+  "note": "new scoring. t32 + fight range shrinks 3.5 m per cube. -0.08 vs t32 (5.53): no gain."
+ },
+ {
+  "name": "t36-fixes",
+  "file": "sim/variants/t36-fixes.mjs",
+  "real": 5.81,
+  "note": "new scoring. t32 + fixTreeMem 1 + fixLootGate 10 + fixBigNav 1 (audit fixes). NEW BEST, +0.28: the bot was forgetting items hidden by tree foliage."
+ },
+ {
+  "name": "t37-range-fixes",
+  "file": "sim/variants/t37-range-fixes.mjs",
+  "real": 5.59,
+  "note": "new scoring. w01 + the three fixes. +0.06 vs t32, -0.22 vs t36: bigRange costs about 0.2 on top of the fixes."
  }
 ]
