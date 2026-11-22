@@ -57,7 +57,7 @@ export const P = {
   ffaDead: 2, // deaths we did not cause...
   ffaObs: 5, // ...seen on this many observations in a row
 }
-Object.assign(P, {})
+Object.assign(P, {"farmUntil":200,"farmDrones":true,"laserSeek":300,"cubeR":160}) // variant 2: economy
 if (typeof process !== "undefined" && process.env && process.env.VG_P) Object.assign(P, JSON.parse(process.env.VG_P))
 
 class Foe {
