@@ -445,5 +445,17 @@
   "file": "sim/variants/l04-hop20.mjs",
   "real": 5.68,
   "note": "builders-4. l01 with lasHop 20. Sim laser held at 90 s 80->88% vs l01. Laser-lane pair 5.78, 5.68 (mean 5.73) vs fix family 5.61: about +0.12, ~1.7 sigma."
+ },
+ {
+  "name": "l03-gunmag",
+  "file": "sim/variants/l03-gunmag.mjs",
+  "real": 5.69,
+  "note": "builders-4. l01 + upSet 7 (plating, gun_mag, armor, nanites...)."
+ },
+ {
+  "name": "l05-scout150",
+  "file": "sim/variants/l05-scout150.mjs",
+  "real": 5.66,
+  "note": "builders-4. l01 + lasHopUntil 150 (hop + known/roof lasers within 200 m, calm only, until 150 s) + stale lasGoal fix. Sim could not exercise it (bot dies ~100 s)."
  }
 ]

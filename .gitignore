@@ -5,3 +5,6 @@ sim/agent*/**/*.json
 sim/agent*/**/*.jsonl
 sim/agent*/**/*.json.gz
 sim/train/cache.jsonl
+sim/variants/t0*.mjs
+sim/variants/t1*.mjs
+sim/variants/t2*.mjs

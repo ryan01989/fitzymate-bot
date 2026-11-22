@@ -105,7 +105,6 @@ export const P = {
   lasHop: 0, // laser scout hop (sim/agentL): before P.laserFirst, without a laser and with no laser goal, calm and grounded with energy >= lasHopE, jump and jet this many m up while spinning the torso a full turn, so lasers on roofs and behind trees/buildings come into view (in real showdowns 22% of floor lasers lie on roofs and 57 of 58 were never taken). At most once per lasHopEvery s (0 = off)
   lasHopE: 75,
   lasHopEvery: 10,
-  lasHopUntil: 0, // s: keep looking for a laser after P.laserFirst until this time: the scout hop keeps running, and a known laser (roof lasers included, via laserRoof) within 200 m becomes the loot goal, but only when calm and above 60% HP (the normal loot gate; unlike laserFirst it never overrides a gate). ~30% of matches still have no laser at 90 s (0 = off)
   laserRoof: 0, // laserFirst also runs to a laser on a roof (off the walk graph) when it lies at most this many m above our feet and a jet route to it exists (0 = off: roof lasers are skipped)
   // --- sim/train/cand/laser3.mjs
   laserRun: 0, // laserFirst: a laser goal within this many m (a) keeps us from starting a fight with a mech more than 60 m away, (b) ends a fight gone quiet (not hit for 4 s, no hit of ours for 2 s, target beyond 60 m) and (c) ends a retreat once not hit for 4 s at 60%+ HP with no mech in sight inside 120 m (0 = off)
@@ -181,6 +180,9 @@ export const P = {
   retarget: 0, // lesson C: in a fight, switch to a mech whose start-of-fight score beats the target's by this many points (100 = full HP share) (0 = off)
   retargetHold: 1.5, // ...but only after this many s on the current target, never off a target we are finishing, never past half a laser charge
   // --- sim/agentA2 audit fixes (all off by default; they are bug fixes that apply to free-for-all too, so P_FFA does not reset them)
+  fixLootReach: 0, // > 0 = walking onto a cube / weapon / kill-cube centre: when the path has ended (or we stand still) and the item is still more than 1.2 m away, step straight at it (the server slides us along walls) and give it up after this many s without getting 0.3 m closer; a kill spot (id -7) is simply dropped on arrival. The walk graph only has nodes with wall distance >= R + 0.45 on a 2 m grid, so the goal node can lie beyond the 3.5 m cube radius / 3.7 m take reach; the bot then stood still next to the item for 30 s, and again for each further cube there (0 = off; 2.5 suggested)
+  fixFinish: 0, // HP share: a retreat trigger (3+ attackers, out-traded, ...) does not pull us off a fight target in line of sight below this share while we are at 50%+ HP and it is inside 200 m; 0.08 of 1400 HP is under three gun hits. Without it the bot left a 4% target at 83% HP because a third mech had hit it (sim seed 4030, 63.4 s) (0 = off; 0.08 suggested)
+  fixTreeSoft: 0, // metres: with fixTreeMem, a tree crown counts as hiding an item only when the sight line runs at least this far inside crown cylinders (trunks always hide). Real stream: 40 of 40 lines with under 4 m of crown were listed by the server, 89% at 4-8 m, 20% past 8 m, 0 of 35 with a trunk. Without it any touch of a crown keeps a "gone" item remembered (0 = off; 4 suggested)
   fixTreeMem: 0, // 1 = item memory (_remember): a pickup / crate / cube "in view but not listed" is forgotten only when no tree crown or trunk from v2/world.json is on the sight line (the server hides items behind foliage beyond the 45 m proximity range; world.mjs has no trees, so the bot took "hidden by a tree" for "gone" and dropped known lasers, crates and kill cubes after 0.3 s). Crates we shoot unseen are tracked by our hit events and dropped once dead or not answering hits (0 = off)
   fixLootGate: 0, // > 0 = judge loot outside the next circle by the zone slack we would have AT THE ITEM (edge-crossing time there, minus the walk to it, minus the walk back in), which must exceed this many s. The old gate (our own zoneSlack > d/walk + 25) changes as we walk: an accepted item fell under the bar a few steps later and passed again on the way back, so loot <-> explore flipped every 0.3 s and the bot stood between the two goals (0 = off; 10 suggested, zone mode takes over under 7)
   fixBigNav: 0, // 1 = cap the wall clearance we ask of the walk graph at 6.9 m: world.mjs stores wall distance only up to 7 m, so from 33 cubes (radius 6.63 + 0.45) no node qualified, myNode was -1 and every path search failed (0 = off)
@@ -191,7 +193,7 @@ export const P = {
 export const P_FFA = {
   hideHp: 0.4, resumeHp: 0.8, initHpLow: 0.75, initAdv: 0.2, vetoAdv: -0.12, vetoCubes: -5, crowd: 90, openingS: 45, calmS: 4,
   healBelow: 0, killLoot: false, dropHeal: false, fightRange: 0, bandRange: 14, noRetreat: false, berserk: false, zapRange: 0,
-  farmHard: false, huntUntil: 0, calmAfter: 0, laserFirst: 0, laserInit: 0, laserInitUntil: 0, lootFix: 0, laserRoof: 0, lasHop: 0, lasHopUntil: 0, laserRun: 0, laserAway: 0, oneFront: 0,
+  farmHard: false, huntUntil: 0, calmAfter: 0, laserFirst: 0, laserInit: 0, laserInitUntil: 0, lootFix: 0, laserRoof: 0, lasHop: 0, laserRun: 0, laserAway: 0, oneFront: 0,
   guard: 0, guardArc: 0.25, guardFire: 0.25, sqzAt: 0, sqzAway: 0, sqzHp: 0, lootHold: 0, lootHoldRe: 0, weave: 0, weaveAll: 0, cubeRun: 0,
   rushUntil: 0, gunMax: 0, lateAt: 0, lateFin: 0.35, lateHeal: 0, lateCore: 0,
   fBoost: 0, noRetAll: 0, cubeGoal: 0, seekUntil: 0, rearBonus: 15, dropAll: 0, focusLow: 0, lasLock: 0, lasBoost: 0,
@@ -200,9 +202,10 @@ export const P_FFA = {
 }
 Object.assign(P, {"laserFirst":90,"noRetreat":true,"cubeRun":130,"rushUntil":120,"ffaN":3,"lateAt":330,"lateFin":1.01,"lateCore":40}) // baked by sim/train/train.mjs from sim/train/cand/late.mjs
 Object.assign(P, {"huntFrom":90,"huntUntil":420,"seekUntil":420,"fightCube":55,"fightPick":70,"weave":0.6,"weaveAll":1,"cubeHit":1,"upSet":6}) // t32-stack-pick: t31-stack + in a fight without a laser, walk onto a known ground laser within 70 m (35 m below half HP) while still shooting (sim/variants/rad8.mjs)
-Object.assign(P, {"fixTreeMem":1,"fixLootGate":10,"fixBigNav":1}) // t36-fixes: t32 + three audit fixes: items hidden by tree foliage are no longer forgotten, the loot/explore flip during a zone shrink, navigation above 32 cubes (sim/variants/audit-fix.mjs)
+Object.assign(P, {"fixTreeMem":1,"fixLootGate":10,"fixBigNav":1}) // t36-fixes
+Object.assign(P, {"fixLootReach":2.5,"fixTreeSoft":4}) // a01-reach-soft: t36-fixes + the two second-pass fixes backed by real data / the protocol: walk the last metre onto a cube / weapon the path stops short of (no more 30 s parks), thin foliage (under 4 m of crown; server canopyDensity 0.35, canopyBlockT 0.25 -> blocks past ln(4)/0.35 = 3.96 m) does not hide an item. fixFinish (stay on a low target through a retreat trigger) left out: it is the one commit-more change in t40 (sim/variants/audit-fix.mjs)
 Object.assign(P, {"lasHop":14,"laserRoof":30}) // l01-hop: t36 + laser scout hop (look over roofs and trees for a laser before 90 s) + run to roof lasers up to 30 m up (sim/agentL)
-Object.assign(P, {"lasHopUntil":150}) // l05-scout150: l01 + keep scouting for a laser (hop + known/roof lasers within 200 m, calm only) until 150 s
+// l06-fixes: l01-hop + the two a01 fixes (fixLootReach 2.5, fixTreeSoft 4; a01 on t36 scored 5.65)
 if (typeof process !== "undefined" && process.env && process.env.FM_P) Object.assign(P, JSON.parse(process.env.FM_P))
 if (typeof process !== "undefined" && process.env && process.env.FM_PFFA) Object.assign(P_FFA, JSON.parse(process.env.FM_PFFA))
 if (P.preferZap) {
@@ -375,12 +378,39 @@ export class Brain {
         zb = az + dz * u1
       return Math.max(za, zb) > zlo && Math.min(za, zb) < zhi
     }
+    // fixTreeSoft: metres of the segment inside that cylinder
+    const soft = P.fixTreeSoft > 0
+    const len3 = soft ? hyp(dx, dy, dz) : 0
+    let inCrown = 0
+    const chord = (cx, cy, r, zlo, zhi) => {
+      const fx = ax - cx,
+        fy = ay - cy
+      const b = fx * dx + fy * dy
+      const disc = b * b - l2 * (fx * fx + fy * fy - r * r)
+      if (disc <= 0) return 0
+      const sq = Math.sqrt(disc)
+      let u0 = Math.max(0, (-b - sq) / l2),
+        u1 = Math.min(1, (-b + sq) / l2)
+      if (u0 >= u1) return 0
+      if (Math.abs(dz) > 1e-9) {
+        const ua = (zlo - az) / dz,
+          ub = (zhi - az) / dz
+        u0 = Math.max(u0, Math.min(ua, ub))
+        u1 = Math.min(u1, Math.max(ua, ub))
+      } else if (az <= zlo || az >= zhi) return 0
+      return u1 > u0 ? (u1 - u0) * len3 : 0
+    }
     for (let k = 0; k < T.n; k++) {
       const r = T.cr[k] + 0.5
       const cx = T.cx[k],
         cy = T.cy[k]
       const far = cx < x0 - r || cx > x1 + r || cy < y0 - r || cy > y1 + r
-      if (crowns && !far && cyl(cx, cy, r, T.z[k] + T.cb[k] - 0.5, T.z[k] + T.h[k] + 0.5)) return true
+      if (crowns && !far) {
+        if (soft) {
+          inCrown += chord(cx, cy, T.cr[k], T.z[k] + T.cb[k], T.z[k] + T.h[k])
+          if (inCrown >= P.fixTreeSoft) return true
+        } else if (cyl(cx, cy, r, T.z[k] + T.cb[k] - 0.5, T.z[k] + T.h[k] + 0.5)) return true
+      }
       const tx = T.x[k],
         ty = T.y[k],
         tr = T.tr[k] + 0.3
@@ -1139,6 +1169,10 @@ export class Brain {
       } else if (this.mode === "retreat" && t - (this.retreatT ?? -99) < 2.5 && !(e.hpS < 0.2)) retreat = true
       else if (!this.wantFight(e, true)) retreat = true
       else {
+    if (retreat && P.fixFinish > 0 && this.mode === "fight" && target && target.los && target.hpS < P.fixFinish && hpS >= 0.5 && target.dist < 200) {
+      this.setFight(target) // two or three more hits and it is a kill (see P.fixFinish)
+      return
+    }
         this.setFight(e)
         return
       }
@@ -2318,7 +2352,6 @@ export class Brain {
     const farming = (P.farmHard && t < P.farmUntil && !this.sqz) || rush
     // opening: the laser run is not called off just because a mech is in sight
     const lasFirst = t < P.laserFirst && !this.laser && this.hpS >= 0.45
-    const lasLate = !lasFirst && P.lasHopUntil > 0 && t < P.lasHopUntil && !this.laser && this.hpS >= 0.6 // P.lasHopUntil
     let gated = false
     if (rush) {
       // rush: only a mech on us calls it off
@@ -2361,10 +2394,10 @@ export class Brain {
       for (const e of this.en.values()) if (t - e.t < 12 && hyp(p[0] - e.pos[0], p[1] - e.pos[1]) < (rush ? 80 : 110)) return true
       return false
     }
-    if (lasFirst || lasLate) {
+    if (lasFirst) {
       // nearest known laser; the usual "no loot within 110 m of a mech" rule gives way when we are the closer one
       let goal = null,
-        gd = lasLate ? 200 : t - this.lastMechDmgT < 4 ? 60 : 300
+        gd = t - this.lastMechDmgT < 4 ? 60 : 300
       for (const p of this.picks.values()) {
         if (p.kind !== "laser") continue
         const d = hyp(p.pos[0] - x, p.pos[1] - y)
@@ -2549,6 +2582,33 @@ export class Brain {
         fail()
         this.lootStuck = 0
         if (L.type === "cube") this.cubes.delete(L.id)
+    if (P.fixLootReach > 0 && this.loot && d >= 1.2 && !this.jet && (arrived || hyp(A.move[0], A.move[1]) < 0.05)) {
+      // the path is over and the item is not ours yet (see P.fixLootReach)
+      if (L.id === -7) {
+        // a spot, not an item: the cubes lying there are ordinary cube targets for pickLoot()
+        this.killLoot = null
+        this.loot = null
+      } else {
+        if (this.reachId !== L.id || t - (this.reachSeenT ?? -99) > 1) {
+          this.reachId = L.id
+          this.reachT = t
+          this.reachD = d
+        }
+        this.reachSeenT = t
+        if (d < this.reachD - 0.3) {
+          this.reachD = d
+          this.reachT = t
+        }
+        if (t - this.reachT > P.fixLootReach) {
+          fail()
+          if (L.id <= -100) this.kcRun = null
+          this.reachId = null
+        } else if (Math.abs(L.pos[2] - z) < 2.5) {
+          const k = Math.min(1, Math.max(0.35, d / 3))
+          A.move = [((L.pos[0] - x) / d) * k, ((L.pos[1] - y) / d) * k]
+        }
+      }
+    }
       }
     } else this.lootStuck = 0
     const arrived = this.moveToPoint(A, L.pos[0], L.pos[1], L.pos[2], 1, (P.lasBoost > 0 && L.kind === "laser" && !this.laser && this.me.energy > P.lasBoost) || this.fbGo())
@@ -2716,10 +2776,10 @@ export class Brain {
       A.fire = [false, false]
       return
     }
-    if (!(t < Math.max(P.laserFirst, P.lasHopUntil || 0)) || this.laser || t < 0.5 || t - (this.hopT ?? -99) < P.lasHopEvery) return
+    if (!(t < P.laserFirst) || this.laser || t < 0.5 || t - (this.hopT ?? -99) < P.lasHopEvery) return
     if (!me.grounded || me.energy < P.lasHopE || this.hpS < 0.5 || threat || this.charging || this.finalPhase) return
     if (this.mode !== "loot" && this.mode !== "explore" && this.mode !== "hold" && this.mode !== "seek") return
-    if ((this.lasGoal && (!(P.lasHopUntil > 0) || t - this.lasGoal.t < 2)) || (this.loot && this.loot.kind === "laser") || A.fire[0] || A.fire[1] || this.zoneSlack < 20) return
+    if (this.lasGoal || (this.loot && this.loot.kind === "laser") || A.fire[0] || A.fire[1] || this.zoneSlack < 20) return
     if (this.w && !this.w.los(x, y, z + this.Hh + 0.5, x, y, z + this.Hh + P.lasHop + 2)) return // a roof or overhang above us
     this.hop = { t0: t, z0: z, yaw: this.lastAim[0] }
     this.hopN = (this.hopN || 0) + 1
