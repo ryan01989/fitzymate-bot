@@ -190,7 +190,7 @@ export const P_FFA = {
   firstShot: 0, shortRetreat: 0, retarget: 0, // gd-policy lessons: practice only
 }
 Object.assign(P, {"laserFirst":90,"noRetreat":true,"cubeRun":130,"rushUntil":120,"ffaN":3,"lateAt":330,"lateFin":1.01,"lateCore":40}) // baked by sim/train/train.mjs from sim/train/cand/late.mjs
-Object.assign(P, {"huntFrom":90,"huntUntil":420,"seekUntil":420,"fightCube":55,"weave":0.6,"weaveAll":1,"cubeHit":1,"upSet":6,"fightCube":80,"cubeRun":180,"cubeRunS":30}) // t33a-cubes-more: t31 + push the cube lever further: mid-fight cubes within 80 m (40 m below half HP), kill-cube runs out to 180 m for 30 s (sim/variants/rad8.mjs)
+Object.assign(P, {"huntFrom":90,"huntUntil":420,"seekUntil":420,"fightCube":55,"weave":0.6,"weaveAll":1,"cubeHit":1,"upSet":6,"firstShot":0.5}) // t33b-firstshot: t31 + take the first shot at a mech aiming at or closing on us for 0.5 s, without the crowd / HP vetoes (write-up lesson 1, alone) (sim/variants/rad8.mjs)
 if (typeof process !== "undefined" && process.env && process.env.FM_P) Object.assign(P, JSON.parse(process.env.FM_P))
 if (typeof process !== "undefined" && process.env && process.env.FM_PFFA) Object.assign(P_FFA, JSON.parse(process.env.FM_PFFA))
 if (P.preferZap) {
