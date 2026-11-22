@@ -39,7 +39,6 @@ const WEAPON_RANK = { laser: 3, lightning: 2, gun: 1, mortar: 0 }
 // Tunables (see README "Tuning").
 export const P = {
   ffaN: 2, // free-for-all detection: switch to P_FFA once this many mechs died that we did not kill (practice squads never kill each other)
-  ffaFar: false, // ...counting only deaths heard "far" (> 160 m) or not heard, so stray-fire kills inside our own fight do not flip it
   gunMax: 0, // do not fire the gun beyond this many m at a target above 25% HP (0 = off; sim hit rate falls to about 26% past 140 m)
   hideHp: 0.4, // below this HP share: stop trading, go regenerate
   resumeHp: 0.8, // leave cover when back above this
@@ -137,7 +136,6 @@ export const P = {
   // --- sim/variants/rad.mjs: radical switches (all off by default)
   upSet: 0, // upgrade order: 0 current, 1 offense (laser/gun dmg first), 2 tank (armor/plating/nanites), 3 gun, 4 sensors+gyros first
   fBoost: 0, // in a fight, boost-strafe while energy is above this (0 = off)
-  lineUp: 0, // in a fight, score bonus (points; dodge miss is worth 10/m) for moves that line a second hunter up behind/in front of the target, so one squad mech stands in the other's line of fire (0 = off)
   noRetAll: 0, // 1 = never retreat from mechs in sight, whatever their number
   cubeGoal: 0, // the rush ends early once we hold this many cubes (0 = off)
   seekUntil: 0, // until this time, out of a fight and above seekHp: walk toward the last known mech (0 = off)
@@ -145,6 +143,13 @@ export const P = {
   rearBonus: 15, // target score bonus for a mech facing away from us
   dropAll: 0, // 1 = go for every supply drop (3 cubes + full repair) when nobody is within dropCrowd m of it
   dropCrowd: 70,
+  huntFrom: 0, // huntUntil / seekUntil apply only from this time...
+  huntCubes: 0, // ...or once we hold this many cubes, whichever comes first (0 = no gate)
+  rangeLas: 0, // fight range while holding a laser (0 = fightRange rule)
+  rangeGun: 0, // fight range without a laser (0 = fightRange rule)
+  lasLock: 0, // laserFirst: with a laser goal inside this many m, the run comes before every fight and retreat (0 = off)
+  lasLockHit: 70, // ...but once a mech hit us in the last 2 s, only while the laser is inside this many m
+  lasBoost: 0, // ...and boost to the laser while energy is above this (0 = off)
   focusLow: 0, // in a fight, switch to a mech in sight this much lower in HP share (0 = off)
 }
 // Free-for-all profile (qualifying and the final): the survival-first settings of the first two submissions.
@@ -155,10 +160,10 @@ export const P_FFA = {
   farmHard: false, huntUntil: 0, calmAfter: 0, laserFirst: 0, laserInit: 0, laserInitUntil: 0, lootFix: 0, laserRoof: 0, laserRun: 0, laserAway: 0, oneFront: 0,
   guard: 0, guardArc: 0.25, guardFire: 0.25, sqzAt: 0, sqzAway: 0, sqzHp: 0, lootHold: 0, lootHoldRe: 0, weave: 0, weaveAll: 0, cubeRun: 0,
   rushUntil: 0, gunMax: 0, lateAt: 0, lateFin: 0.35, lateHeal: 0, lateCore: 0,
-  fBoost: 0, noRetAll: 0, cubeGoal: 0, seekUntil: 0, rearBonus: 15, dropAll: 0, focusLow: 0, lineUp: 0,
+  fBoost: 0, noRetAll: 0, cubeGoal: 0, seekUntil: 0, rearBonus: 15, dropAll: 0, focusLow: 0, lasLock: 0, lasBoost: 0,
 }
 Object.assign(P, {"laserFirst":90,"noRetreat":true,"cubeRun":130,"rushUntil":120,"ffaN":3,"lateAt":330,"lateFin":1.01,"lateCore":40}) // baked by sim/train/train.mjs from sim/train/cand/late.mjs
-Object.assign(P, {"fightRange":200,"fBoost":40}) // t12-kite200: hold the gun's full reach and boost-strafe in fights (sim/variants/rad.mjs)
+Object.assign(P, {"lasLock":300,"lasLockHit":110,"lasBoost":30}) // t15-laslock: the opening laser run (inside 300 m) comes before every fight, boosting to it (sim/variants/rad4.mjs)
 if (typeof process !== "undefined" && process.env && process.env.FM_P) Object.assign(P, JSON.parse(process.env.FM_P))
 if (typeof process !== "undefined" && process.env && process.env.FM_PFFA) Object.assign(P_FFA, JSON.parse(process.env.FM_PFFA))
 if (P.preferZap) {
@@ -581,17 +586,7 @@ export class Brain {
     }
     // free-for-all or a house squad? In a squad the others never kill each other, so every death
     // other than ours is a kill of ours. Two or more deaths we did not cause means free-for-all.
-    let othersDead = (this.cfg.match?.mechs ?? 16) - (o.alive ?? 16) - (this.myKills || 0)
-    if (P.ffaFar) {
-      // P.ffaFar: squad mechs can still kill each other by stray fire inside our own fight, so a death we did not cause
-      // only counts when its death sound was "far" (> 160 m) or unheard. Real showdowns: 3 far deaths by a median 32 s
-      // (any distance: 30 s), so a real free-for-all is still detected almost as fast.
-      const nearDeaths = (o.sounds || []).filter((s) => s.kind === "death" && s.dist !== "far").length
-      const fresh = othersDead - (this.othersSeen ?? 0)
-      if (fresh > 0) this.ffaCount = (this.ffaCount || 0) + Math.max(0, fresh - nearDeaths)
-      this.othersSeen = othersDead
-      othersDead = this.ffaCount || 0
-    }
+    const othersDead = (this.cfg.match?.mechs ?? 16) - (o.alive ?? 16) - (this.myKills || 0)
     if (othersDead >= (P.ffaN || 2) && !this.ffa) {
       this.ffa = true
       if (!(typeof process !== "undefined" && process.env && process.env.FM_NOSWITCH)) Object.assign(P, P_FFA)
@@ -729,7 +724,7 @@ export class Brain {
     // opening: a laser is a few seconds away and this mech is not on top of us yet -> pick it up first (see pickLoot)
     const lg = this.lasGoal
     if (!defending && lg && this.t - lg.t < 0.3 && ((lg.d < 70 && e.dist > lg.d + 40) || (lg.d < P.laserRun && e.dist > 60))) return false
-    if (!defending && this.t < P.huntUntil && hpS > 0.6 && e.dist < 200 && e.los) return true
+    if (!defending && this.t < P.huntUntil && this.huntOk() && hpS > 0.6 && e.dist < 200 && e.los) return true
     if (!defending && P.calmAfter > 0 && this.t > P.calmAfter && e.hpS >= 0.35) return false
     if (this.others(e, P.crowd) >= 1) return false
     if (cubeDiff <= P.vetoCubes) return false
@@ -769,6 +764,10 @@ export class Brain {
     return !!(L && L.kind === "laser" && this.lasGoal && this.lasGoal.d < P.laserRun)
   }
 
+  huntOk() {
+    if (!(P.huntFrom > 0 || P.huntCubes > 0)) return true
+    return (P.huntFrom > 0 && this.t >= P.huntFrom) || (P.huntCubes > 0 && (this.me.cubes || 0) >= P.huntCubes)
+  }
   /** rush: is the early cube rush on this tick (P.rushUntil)? */
   rushOn() {
     return P.rushUntil > 0 && this.t < P.rushUntil && !this.finalPhase && !this.sqz && !(P.cubeGoal > 0 && (this.me.cubes || 0) >= P.cubeGoal)
@@ -875,6 +874,16 @@ export class Brain {
     if (this.zoneUrgent && !(this.mode === "fight" && this.inZone && this.zoneSlack > 2)) {
       this.mode = "zone"
       return
+    }
+    // --- lasLock: the opening laser run comes before every fight
+    if (P.lasLock > 0 && t < P.laserFirst && !this.laser && hpS >= 0.45) {
+      const L = this.pickLoot()
+      if (L && L.type === "pick" && L.kind === "laser" && this.lasGoal && this.lasGoal.d < (t - this.lastMechDmgT < 2 ? P.lasLockHit : P.lasLock)) {
+        this.loot = L
+        this.mode = "loot"
+        this.targetId = -1
+        return
+      }
     }
     // --- cubeRun: walk to the cubes our kill dropped, ahead of fights and retreats (see cubeRunNow())
     if (P.cubeRun > 0 && this.kcRun && this.cubeRunNow(target)) {
@@ -1041,7 +1050,7 @@ export class Brain {
       if (held || P.lootHoldRe <= 0 || t - (this.lootOffT ?? -99) <= P.lootHoldRe) this.lootBlockT = t
       if (wasLoot) this.lootOffT = t
     }
-    if (!this.loot && P.seekUntil > 0 && t < P.seekUntil && hpS > P.seekHp && this.zoneSlack > 20) {
+    if (!this.loot && P.seekUntil > 0 && t < P.seekUntil && this.huntOk() && hpS > P.seekHp && this.zoneSlack > 20) {
       let g = null
       for (const e of this.en.values()) if (!e.phantom && t - e.t < 20 && (!g || e.t > g.t)) g = e
       if (g) {
@@ -1753,6 +1762,8 @@ export class Brain {
     this.path = null
     // preferred range by loadout: far enough that bullets can be side-stepped
     let pr = P.fightRange > 0 ? P.fightRange + (this.laser ? 8 : 0) : this.laser ? 112 : 104
+    if (this.laser && P.rangeLas > 0) pr = P.rangeLas
+    if (!this.laser && P.rangeGun > 0) pr = P.rangeGun
     if (this.lightning && !this.laser && (this.hpS - e.hpS > 0.1 || e.hpS < 0.45) && !e.has("lightning")) pr = 34
     if (P.zapRange > 0 && this.lightning && this.me.energy > 22 && !(e.has("lightning") && this.hpS < e.hpS)) pr = P.zapRange
     if (this.finalPhase) pr = Math.min(pr, 45)
@@ -1791,10 +1802,6 @@ export class Brain {
     const s0 = this.strafeSide
     // candidates, planned one first; the dodge picks whichever clears the bullets in the air
     const cands = [mk(s0, radial * 0.75), mk(-s0, radial * 0.75), mk(s0, -1), mk(-s0, -1), mk(s0, 1), mk(-s0, 1), [0, 0]]
-    // P.lineUp: stray fire / body block. With a second hunter on us, prefer the moves that shrink the angle between it
-    // and the target as seen from us, so the nearer squad mech stands in the farther one's line of fire.
-    const luB = P.lineUp > 0 ? this.lineMate(e) : null
-    const luBonus = luB ? this.lineBonus(e, luB, cands) : null
     let best = null,
       bestScore = -1e9
     const need = this.R + 1.3
@@ -1802,11 +1809,11 @@ export class Brain {
       const mv = cands[k]
       if (k < 6 && !free(mv)) continue
       const miss = Math.min(this.missDist(mv), need)
-      const score = miss * 10 - k * 0.6 - (k === 6 ? 3 : 0) + (luBonus ? luBonus[k] : 0)
+      const score = miss * 10 - k * 0.6 - (k === 6 ? 3 : 0)
       if (score > bestScore) {
         bestScore = score
         best = mv
-        if (k === 0 && miss >= need && !luBonus) break
+        if (k === 0 && miss >= need) break
       }
     }
     if (!best) best = [-ux, -uy]
@@ -1825,42 +1832,6 @@ export class Brain {
       A.move = mk(s0 * 0.35, -1)
       if (free(A.move)) A.boost = true
     }
-  }
-
-  /** P.lineUp: the other mech (not e) most clearly on us right now: hit us in the last 5 s, or aiming at us, within 200 m. */
-  lineMate(e) {
-    const t = this.t
-    const [x, y] = this.me.pos
-    let best = null,
-      bw = 0
-    for (const q of this.en.values()) {
-      if (q === e || q.phantom || t - q.t > 3 || q.dist > 200) continue
-      const toMe = Math.atan2(y - q.pos[1], x - q.pos[0])
-      const aimed = Math.abs(angNorm(q.aim[0] - toMe)) < 0.3
-      const hit = t - q.hitMeT < 5
-      if (!aimed && !hit) continue
-      const w = ((hit ? 2 : 1) * 100) / (q.dist + 20)
-      if (w > bw) {
-        bw = w
-        best = q
-      }
-    }
-    return best
-  }
-
-  /** P.lineUp: per candidate move, bonus in [-P.lineUp, P.lineUp] by how much a short step along it closes the angle between a and b. */
-  lineBonus(a, b, cands) {
-    const [x, y] = this.me.pos
-    const ang = (px, py) => Math.abs(angNorm(Math.atan2(b.pos[1] - py, b.pos[0] - px) - Math.atan2(a.pos[1] - py, a.pos[0] - px)))
-    const th0 = ang(x, y)
-    if (th0 < 0.04) return null // already lined up within about a mech width
-    const step = this.walk * 0.35
-    const dl = cands.map((mv) => th0 - ang(x + mv[0] * step, y + mv[1] * step))
-    let m = 0
-    for (const v of dl) m = Math.max(m, Math.abs(v))
-    if (m < 1e-4) return null
-    this.luN = (this.luN || 0) + 1
-    return dl.map((v) => (P.lineUp * v) / m)
   }
 
   /**
@@ -2245,7 +2216,7 @@ export class Brain {
         if (L.type === "cube") this.cubes.delete(L.id)
       }
     } else this.lootStuck = 0
-    const arrived = this.moveToPoint(A, L.pos[0], L.pos[1], L.pos[2], 1, false)
+    const arrived = this.moveToPoint(A, L.pos[0], L.pos[1], L.pos[2], 1, P.lasBoost > 0 && L.kind === "laser" && !this.laser && this.me.energy > P.lasBoost)
     if (!arrived && this.pathPartial && this.path && this.path.length < 5) fail()
     if (P.rushUntil > 0 && this.rushOn() && this.w && !this.vis.some((e) => e.los && e.dist < 170)) {
       // rush: shoot the nearest crate in view on the way (not with a mech in sight: we would turn our back to it) (it does not move; the cubes wait for us)
@@ -2668,4 +2639,3 @@ export class SimpleBrain {
     return A
   }
 }
-Object.assign(P, {"lineUp":3,"ffaFar":true}) // sf1-lineup: t12-kite200 + line a second hunter up behind/in front of the target (stray fire / body block) + FFA switch counts only far deaths
