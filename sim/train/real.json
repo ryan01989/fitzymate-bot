@@ -523,5 +523,11 @@
   "file": "sim/variants/gb5-noseek.mjs",
   "real": 5.6,
   "note": "builders-4 (built by session buildersmech-24). w03 + seekUntil 0 (no walking toward the last seen mech when idle; hunting of mechs in sight kept). -0.25 vs w03, about one sd below the family level (~5.72): seeking does not hurt and may help; keep it on."
+ },
+ {
+  "name": "gb14-range85",
+  "file": "sim/variants/gb14-range85.mjs",
+  "real": 5.57,
+  "note": "builders-4 (built by session buildersmech-24). gb11-dropall (5.84) + rangeGun 85 (gun-only fight range 85 m instead of 104; the reference bot's number). -0.27: a closer gun range loses again, as every fight-closer change has."
  }
 ]

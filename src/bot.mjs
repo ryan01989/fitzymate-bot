@@ -4,6 +4,7 @@
 const PI = Math.PI
 const TAU = 2 * PI
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v)
+const SQDBG = typeof process !== "undefined" && !!(process.env && process.env.FM_SQDBG)
 const angNorm = (a) => {
   a %= TAU
   if (a > PI) a -= TAU
@@ -67,6 +68,16 @@ export const P = {
   dropHeal: false, // go for supply drops (full repair) whenever hurt and nobody is close
   fightRange: 0, // preferred fight range in m (0 = 104, or 112 with a laser)
   bandRange: 14, // dead band around the preferred range
+  // --- sq2-move: fight movement by position sampling (sim/agentTalk/build_sq2.py)
+  sqMove: 0, // 1 = in a fight with the target in sight, score 17 spots (stand + 16 x 6 m) each tick on range error, the line of sight we want (gun only: out of it while reloading), other mechs that could see the spot, wall clearance, cube pull and strafe side; then blend in a bullet / aimed-laser sidestep (0 = the old band-and-strafe)
+  sqRange: 0, // with sqMove: 0 = our preferred ranges (104 gun / 112 laser and the usual modifiers, finishRange included), 1 = the reference table (a squad finish range, this.sqFinish, overrides it) (85 gun, 120 laser, 28 with lightning, floors 64 / 80 against lightning / mortar)
+  sqExpo: 30, // with sqMove: points off a spot for each other mech (seen in the last 3 s, within 170 m, nearest 5) whose eye sees our body there
+  sqWall: 4, // with sqMove: wall clearance (m, centre to wall, scaled to a base-size mech) below which a spot loses 2.5 points per m
+  sqDuck: 1, // with sqMove: reloading (gun only) and no spot of the ring out of the target's sight: walk to the nearest hidden node (duck())
+  sqMpc: 1, // with sqMove: when bullets are in the air, check the blended move against the bullet prediction (missDist) and take a better-clearing top-ranked spot instead
+  sqCubes: 0, // with sqMove: 1 = cubes only pull through the spot score (+1.5 per m closer, within 40 m) instead of fightCube taking over the legs
+  sqHold: 3, // with sqMove: s the scorer keeps working on a target out of our sight (seen this recently): we may have stepped out on purpose, and the shot line is scored from where it was last seen; after that the old chase
+  sqAim: 0, // 1 = aim at 85% of the target's height when its centre is blocked from our muzzle
   noRetreat: false, // stand and fight against one or two attackers whatever the HP
   berserk: false, // attack anything in sight
   zapRange: 0, // with lightning: close to this range for the arc + gun burst (0 = only when ahead)
@@ -191,18 +202,31 @@ export const P = {
   fixLootGate: 0, // > 0 = judge loot outside the next circle by the zone slack we would have AT THE ITEM (edge-crossing time there, minus the walk to it, minus the walk back in), which must exceed this many s. The old gate (our own zoneSlack > d/walk + 25) changes as we walk: an accepted item fell under the bar a few steps later and passed again on the way back, so loot <-> explore flipped every 0.3 s and the bot stood between the two goals (0 = off; 10 suggested, zone mode takes over under 7)
   fixBigNav: 0, // 1 = cap the wall clearance we ask of the walk graph at 6.9 m: world.mjs stores wall distance only up to 7 m, so from 33 cubes (radius 6.63 + 0.45) no node qualified, myNode was -1 and every path search failed (0 = off)
   fixNpcFace: 0, // 1 = hit by a drone we do not see (outside the view wedge) with no mech to shoot and none hitting us for 2.5 s: turn to the bearing of the hit so the drone gets listed and pestNpc() can answer it; its hits restart the 5 s regeneration timer (0 = off)
+  // --- sim/variants/sq1-squad.mjs: the reference bot's practice decision layer as one mode (new-idea.md 3, 4, 7, 9)
+  squad: 0, // 1 = practice from sqFrom s: engage filter, target re-scored every tick, 1.5 s retreat pulses, no chasing, cube detour, finish close-in, lethal release (0 = off; P_FFA resets it)
+  sqFrom: 20, // ...from this match time (the reference plays its cautious profile before)
+  sqPulse: 1.5, // retreat lasts this many s after the last "losing" tick
+  sqLethal: 0.7, // lethal partial laser release factor while squad is on
+  sqCube: 70, // a remembered cube within this many m takes over the fight legs while we keep shooting...
+  sqCubeLow: 40, // ...this many m at 50% HP or less
+  sqFinish: 20, // fight range on a target under 38% HP while we are over 42% and at most 2 mechs are engaged
+  sqLasSeek: 240, // without a laser: walk to a known laser within this many m all match (past laserFirst)
+  sqLootReach: 1.4, // loot radius factor in squad (cubes 126 m, crates 154 m, drones 168 m)
+  sqQuiet: 0, // 1 = before sqFrom, out of danger and not hit for 6 s: walk under 4.6 m/s (no footstep sound) (0 = off)
 }
 // Free-for-all profile (qualifying and the final): the survival-first settings of the first two submissions.
 // Applied once, the moment the bot sees mechs dying that it did not kill (see ingest()).
 export const P_FFA = {
+  sqMove: 0, sqAim: 0,
   hideHp: 0.4, resumeHp: 0.8, initHpLow: 0.75, initAdv: 0.2, vetoAdv: -0.12, vetoCubes: -5, crowd: 90, openingS: 45, calmS: 4,
   healBelow: 0, killLoot: false, dropHeal: false, fightRange: 0, bandRange: 14, noRetreat: false, berserk: false, zapRange: 0,
   farmHard: false, huntUntil: 0, calmAfter: 0, laserFirst: 0, laserInit: 0, laserInitUntil: 0, lootFix: 0, laserRoof: 0, lasHop: 0, laserRun: 0, laserAway: 0, oneFront: 0,
   guard: 0, guardArc: 0.25, guardFire: 0.25, sqzAt: 0, sqzAway: 0, sqzHp: 0, lootHold: 0, lootHoldRe: 0, weave: 0, weaveAll: 0, cubeRun: 0,
   rushUntil: 0, gunMax: 0, lateAt: 0, lateFin: 0.35, lateHeal: 0, lateCore: 0,
-  fBoost: 0, noRetAll: 0, cubeGoal: 0, seekUntil: 0, rearBonus: 15, dropAll: 0, rangeGun: 0, rangeLas: 0, focusLow: 0, lasLock: 0, lasBoost: 0,
+  fBoost: 0, noRetAll: 0, cubeGoal: 0, seekUntil: 0, rearBonus: 15, dropAll: 0, focusLow: 0, lasLock: 0, lasBoost: 0,
   upSet: 0, chaseHp: 0.4, chaseMyHp: 0.55, chaseS: 7, farmBoost: 0, lethalRelease: 0, fightCube: 0, finishRange: 0, noChase: 0, fightHide: 0, noExplore: 0, cautR: 0, endRush: 0, fightPick: 0, fightCubeCap: 0,
   firstShot: 0, shortRetreat: 0, retarget: 0, // gd-policy lessons: practice only
+  squad: 0, sqQuiet: 0, // sq1-squad: practice only
 }
 Object.assign(P, {"laserFirst":90,"noRetreat":true,"cubeRun":130,"rushUntil":120,"ffaN":3,"lateAt":330,"lateFin":1.01,"lateCore":40}) // baked by sim/train/train.mjs from sim/train/cand/late.mjs
 Object.assign(P, {"huntFrom":90,"huntUntil":420,"seekUntil":420,"fightCube":55,"fightPick":70,"weave":0.6,"weaveAll":1,"cubeHit":1,"upSet":6}) // t32-stack-pick: t31-stack + in a fight without a laser, walk onto a known ground laser within 70 m (35 m below half HP) while still shooting (sim/variants/rad8.mjs)
@@ -213,7 +237,9 @@ Object.assign(P, {"lasHop":14,"laserRoof":30}) // l01-hop: t36 + laser scout hop
 Object.assign(P, {"upSet":7}) // l07-stack: l06 + upgrade order with gun_mag second (l03 on l01 scored 5.69)
 Object.assign(P, {"upSet":8}) // w03-upgd: l07 + upgrade order 8 (gun_damage before nanites, servos down; sim/agentW2)
 Object.assign(P, {"dropAll":1}) // gb11-dropall: w03 + go for every supply drop (3 cubes + full repair + full energy) within 230 m that we can reach by landing + 8 s and that no known mech is within 70 m of; ahead of other loot
-Object.assign(P, {"rangeGun":85}) // gb14-range85: gb11 + gun-only fight range 85 m instead of 104 (real gun hit rate on a small mech: 0.54 at 80-100 m, 0.40 at 100-120 m); the laser range stays 112
+Object.assign(P, {"sqMove":1,"sqAim":1}) // sq2-move: gb11 + fight movement by position sampling (new-idea 5.1-5.5), our ranges kept (sqRange 0); aim drops to 85% height when the centre is blocked
+Object.assign(P, {"squad":1})
+Object.assign(P, {"sqMove":0,"sqAim":0,"sqMoveAt":30,"sqFrom":30}) // sq12b-stack: sq12 with the squad layer and the fight-movement rework both held off until 30 s, so a free-for-all (detected at about 23-25 s on the real server) plays like gb11 // sq1-squad: gb11 + the reference practice decision layer as one mode (engage filter, per-tick target score, 1.5 s retreat pulses, no chase, cube detour 70/40 m, finish close-in 20 m, lethal release 0.7, laser seek 240 m)
 if (typeof process !== "undefined" && process.env && process.env.FM_P) Object.assign(P, JSON.parse(process.env.FM_P))
 if (typeof process !== "undefined" && process.env && process.env.FM_PFFA) Object.assign(P_FFA, JSON.parse(process.env.FM_PFFA))
 if (P.preferZap) {
@@ -258,6 +284,10 @@ function loadTrees(hello) {
   } catch {}
   return null
 }
+
+// sq1-squad debug counters: FM_SQDBG=1 prints the totals of this process to stderr on exit
+const SQD = typeof process !== "undefined" && process.env && process.env.FM_SQDBG ? { ticks: 0, eng: { near: 0, hit: 0, late: 0, close: 0, low: 0, aim: 0 }, tgtTicks: 0, picks: 0, switches: 0, pulses: 0, pulseTicks: 0, finishBlock: 0, finishClose: 0, fightCube: 0, retFight: 0, lethal: 0, lasSeek: 0, idleFace: 0, zoneShoot: 0, quiet: 0 } : null
+if (SQD) process.on("exit", () => process.stderr.write("SQD " + JSON.stringify(SQD) + "\n"))
 
 class Enemy {
   constructor(id) {
@@ -520,13 +550,15 @@ export class Brain {
         this.doZone(A)
         break
       case "retreat":
-        this.doRetreat(A)
+        if (this.sqOn) this.doSqRetreat(A)
+        else this.doRetreat(A)
         break
       case "recover":
         this.doRecover(A)
         break
       case "fight":
-        this.doFight(A)
+        if (this.sqOn) this.doSqFight(A)
+        else this.doFight(A)
         break
       case "loot":
         this.doLoot(A)
@@ -541,11 +573,14 @@ export class Brain {
       default:
         this.doHold(A)
     }
+    if (this.sqOn) this.sqAfterMode(A)
+    else if (P.sqQuiet > 0 && P.squad > 0 && !this.ffa && this.t < P.sqFrom) this.sqQuietStep(A)
     const T3 = now()
     if (P.weave > 0 && (this.mode === "retreat" || (P.weaveAll && this.mode !== "fight"))) this.weave(A)
     this.dodgeShells(A)
     this.unstick(A)
-    this.doAimFire(A)
+    if (this.sqOn) this.sqWith({ lethalRelease: P.sqLethal }, () => this.doAimFire(A))
+    else this.doAimFire(A)
     this.doTake(A)
     if (P.lasHop > 0) this.lasHopStep(A)
     this.prof.modeMs = +(T3 - T2).toFixed(1)
@@ -769,6 +804,13 @@ export class Brain {
     if (P.cautR > 0 && !this.ffa && o.zone && o.zone.next_radius <= P.cautR) {
       this.ffa = true
       Object.assign(P, P_FFA)
+    }
+    // sq12b: the fight-movement rework (sqMove / sqAim) starts only at P.sqMoveAt s and never once the match is known to be a free-for-all
+    // (a real free-for-all is detected at about 23-25 s; before that the old movement runs, as in gb11)
+    if (P.sqMoveAt > 0 && !this.ffa && !this.sqMoveSet && othersDead < (P.ffaN || 2) && (o.t ?? 0) >= P.sqMoveAt) {
+      this.sqMoveSet = true
+      P.sqMove = 1
+      P.sqAim = 1
     }
     if (othersDead >= (P.ffaN || 2) && !this.ffa) {
       this.ffa = true
@@ -1103,6 +1145,9 @@ export class Brain {
     let target = this.targetId >= 0 ? this.en.get(this.targetId) : null
     if (target && (t - target.t > 6 || target.phantom)) target = null
     this.calm = t - this.lastContactT > P.calmS && t - this.lastMechDmgT > P.calmS
+    this.sqOn = P.squad > 0 && !this.ffa && t >= P.sqFrom
+    this.sqTarget = null
+    if (this.sqOn) this.sqSense()
 
     // final circle: nowhere left to hide, everything is a fight
     // (late plan: only mechs shooting us or nearly dead; the zone kills the rest before us if we keep our HP)
@@ -1118,6 +1163,7 @@ export class Brain {
       this.mode = "zone"
       return
     }
+    if (this.sqOn) return this.sqDecide()
     // --- lasLock: the opening laser run comes before every fight
     if (P.lasLock > 0 && t < P.laserFirst && !this.laser && hpS >= 0.45) {
       const L = this.pickLoot()
@@ -1330,6 +1376,247 @@ export class Brain {
       }
     }
     this.mode = this.loot ? "loot" : !P.noExplore && P.farmHard && t < P.farmUntil && !this.sqz && hpS > P.exploreHp && this.zoneSlack > 25 && t - this.lastMechDmgT > 4 ? "explore" : "hold"
+  }
+
+  // ------------------------------------------------------------------ sq1-squad (new-idea.md 3.1, 3.2, 4.1, 4.2, 4.3, 9.1)
+  /** engage flags, the per-tick target, danger / crowd / finishing and the losing pulse */
+  sqSense() {
+    const t = this.t,
+      me = this.me
+    const [x, y] = me.pos
+    const z = this.o.zone
+    const late = (z && z.next_radius <= 70) || (this.o.alive ?? 16) <= 3
+    this.sqLate = late
+    let best = null,
+      bs = 1e18,
+      face = null,
+      fd = 1e9,
+      danger = false,
+      crowd = 0,
+      near = 0
+    for (const e of this.en.values()) {
+      e.sqEng = 0
+      if (e.phantom || t - e.t > 2.5) continue
+      const d = e.dist
+      // it is closing: its own velocity toward us
+      const ux = (x - e.pos[0]) / (d || 1),
+        uy = (y - e.pos[1]) / (d || 1)
+      const close = (e.vel[0] || 0) * ux + (e.vel[1] || 0) * uy
+      e.sqClose = close
+      let why = 0
+      if (d < 60) why = 1
+      else if (t - e.hitMeT < 6) why = 2
+      else if (late) why = 3
+      else if (close > 3 && d < 180) why = 4
+      else if (e.hpS < 0.4 && d < 160) why = 5
+      else if (e.aimOn && d < 190) why = 6
+      e.sqEng = why
+      if (why || t - e.hitMeT < 4) danger = true
+      if ((why || t - e.hitMeT < 6) && d < fd) {
+        fd = d
+        face = e
+      }
+      if (!e.cur) continue
+      if (d < 160) near++
+      if (why || (e.los && d < 150)) crowd++
+      if (!why || !e.los || d > 240) continue
+      if (SQD) SQD.eng[["", "near", "hit", "late", "close", "low", "aim"][why]]++
+      let sc = d + 0.18 * e.hp
+      if (e.hpS <= 0.3) sc -= 200
+      if (e.id === this.sqTid && t - this.sqTidT < 2) sc -= 200
+      if (t - e.hitMeT < 4) sc -= 40
+      if (close > 3) sc -= 15
+      if (sc < bs) {
+        bs = sc
+        best = e
+      }
+    }
+    if (!face) for (const e of this.en.values()) if (e.phantom && t - e.hitMeT < 2.5 && e.dist < fd) (fd = e.dist), (face = e)
+    this.sqFace = face
+    this.sqDanger = danger
+    this.sqCrowd = crowd
+    this.sqNear = near
+    if (best) {
+      if (SQD) {
+        SQD.tgtTicks++
+        if (best.id !== this.sqTid) {
+          SQD.picks++
+          if (this.sqTid >= 0 && t - this.sqTidT < 2) SQD.switches++
+        }
+      }
+      this.sqTid = best.id
+      this.sqTidT = t
+    }
+    this.sqTarget = best
+    // losing: a 1.5 s pulse, re-checked every tick
+    const hpS = this.hpS
+    let losing = (near >= 2 && hpS < 0.55) || (near >= 3 && hpS < 0.8)
+    if (best) {
+      if (hpS < 0.35 && best.hpS > hpS + 0.1) losing = true
+      if (best.hpS < 0.25 && hpS > 0.2 && near <= 2) losing = false
+    }
+    if (losing) this.sqLoseT = t
+    const finishing = !!best && best.dist < 120 && (best.hp < 200 || best.hp < me.hp / 2)
+    this.sqFinishing = finishing
+    this.sqRet = t - (this.sqLoseT ?? -99) < P.sqPulse && !finishing && !late
+    if (SQD) {
+      SQD.ticks++
+      if (t - (this.sqLoseT ?? -99) < P.sqPulse && finishing) SQD.finishBlock++
+    }
+  }
+  /** the squad decision (after the zone check): retreat pulse, fight the target, or loot / hold */
+  sqDecide() {
+    const t = this.t
+    const tgt = this.sqTarget
+    this.lootHeld = false
+    if (this.sqRet) {
+      if (this.mode !== "retreat") {
+        this.cover = null
+        this.coverT = -99
+        this.retreatT = t
+        if (SQD) SQD.pulses++
+      }
+      if (SQD) SQD.pulseTicks++
+      this.mode = "retreat"
+      this.recoverT = t
+      this.targetId = tgt ? tgt.id : -1
+      return
+    }
+    if (tgt) {
+      this.setFight(tgt)
+      return
+    }
+    // no target with a shot line: no foe, no chase
+    if (this.mode === "fight" || this.mode === "retreat" || this.mode === "recover") {
+      this.mode = "hold"
+      this.spotT = -99
+    }
+    this.targetId = -1
+    if (P.cubeRun > 0 && this.kcRun && this.cubeRunNow(null)) {
+      this.loot = { type: "cube", id: this.kcRun.id, pos: this.kcRun.pos }
+      this.mode = "loot"
+      return
+    }
+    const losE = this.vis.filter((e) => e.los)
+    if (P.killLoot && this.killLoot && t - this.killLoot.t < 30 && !losE.some((e) => e.dist < 160)) {
+      const [x, y] = this.me.pos
+      if (hyp(this.killLoot.pos[0] - x, this.killLoot.pos[1] - y) < 130) {
+        this.loot = { type: "cube", id: -7, pos: this.killLoot.pos }
+        this.mode = "loot"
+        return
+      }
+    }
+    this.loot = this.pickLoot()
+    if (SQD && this.loot && this.loot.kind === "laser" && t >= P.laserFirst) SQD.lasSeek++
+    this.mode = this.loot ? "loot" : "hold"
+  }
+  /** run fn with some P fields replaced, then put them back */
+  sqWith(over, fn) {
+    const save = {}
+    for (const k in over) save[k] = P[k]
+    Object.assign(P, over)
+    try {
+      return fn()
+    } finally {
+      Object.assign(P, save)
+    }
+  }
+  /** a known laser within the fightPick reach (doFight's fightPick takes the legs for it, ahead of any cube) */
+  sqLaserNear() {
+    if (!(P.fightPick > 0) || this.laser) return false
+    const [x, y, z] = this.me.pos
+    const zc = this.o.zone
+    const bl = this.hpS < 0.5 ? P.fightPick * 0.5 : P.fightPick
+    for (const q of this.picks.values()) {
+      if (q.kind !== "laser" || hyp(q.pos[0] - x, q.pos[1] - y) >= bl || Math.abs(q.pos[2] - z) > 4) continue
+      if (hyp(q.pos[0] - zc.center[0], q.pos[1] - zc.center[1]) > zc.radius - 4) continue
+      if (this.badLoot && this.badLoot.get(q.id) > this.t) continue
+      return true
+    }
+    return false
+  }
+  /** squad fight: a remembered cube within sqCube m (sqCubeLow at <= 50% HP) takes the legs while we keep shooting; else doFight, with the finish range */
+  doSqFight(A) {
+    const t = this.t
+    const e = this.en.get(this.targetId)
+    const [x, y, z] = this.me.pos
+    if (e && this.inZone && !this.zoneUrgent && !this.sqLaserNear()) {
+      const zc = this.o.zone
+      let bc = null,
+        bd = this.hpS <= 0.5 ? P.sqCubeLow : P.sqCube
+      for (const c of this.cubes.values()) {
+        const dc = hyp(c.pos[0] - x, c.pos[1] - y)
+        if (dc >= bd || Math.abs(c.pos[2] - z) > 4) continue
+        if (hyp(c.pos[0] - zc.center[0], c.pos[1] - zc.center[1]) > zc.radius - 4) continue
+        if (this.badLoot && this.badLoot.get(c.id) > t) continue
+        bd = dc
+        bc = c
+      }
+      if (bc) {
+        if (this.sqCubeId !== bc.id) {
+          this.sqCubeId = bc.id
+          this.sqCubeT = t
+        }
+        if (t - this.sqCubeT > 12) (this.badLoot ??= new Map()).set(bc.id, t + 30)
+        else {
+          this.aimTarget = e
+          this.moveToPoint(A, bc.pos[0], bc.pos[1], bc.pos[2], 1, false, { replan: 1.2 })
+          if (SQD) SQD.fightCube++
+          return
+        }
+      }
+    }
+    // finish close-in: target under 38%, us over 42%, at most 2 mechs engaged; floors against lightning / mortar
+    let fr = 0
+    if (e && P.sqFinish > 0 && e.hpS < 0.38 && this.hpS > 0.42 && this.sqCrowd <= 2) {
+      fr = P.sqFinish
+      if (!this.lightning && e.has("lightning")) fr = Math.max(fr, 64)
+      if (!this.lightning && e.has("mortar")) fr = Math.max(fr, 80)
+      if (SQD) SQD.finishClose++
+    }
+    this.sqFinish = fr
+    this.sqWith(fr > 0 ? { finishRange: fr, finishHp: 1.01, finishMyHp: -1 } : { finishRange: 0 }, () => this.doFight(A))
+  }
+  /** squad retreat pulse: cover from the threats; with no cover and a target in sight, fight-move instead; keep shooting the target */
+  doSqRetreat(A) {
+    const e = this.sqTarget
+    this.doRetreat(A)
+    if (!this.cover && e && e.los && this.targetId === e.id) {
+      A.boost = false
+      this.sqFinish = 0
+      this.sqWith({ finishRange: 0, fightCube: 0, fightPick: 0 }, () => this.doFight(A))
+      if (SQD) SQD.retFight++
+    }
+    if (e && e.los) this.aimTarget = e
+  }
+  /** after the mode ran: walking to the zone still shoots the target; idle aim faces the nearest engaged / recent attacker */
+  sqAfterMode(A) {
+    if (this.mode === "fight" || this.mode === "retreat") return
+    const e = this.sqTarget
+    if (e && e.los) {
+      this.aimTarget = e
+      if (SQD) SQD.zoneShoot++
+      return
+    }
+    if (this.aimTarget || this.farmTarget) return
+    const f = this.sqFace
+    if (f) {
+      A.aim = [Math.atan2(f.pos[1] - this.me.pos[1], f.pos[0] - this.me.pos[0]), 0]
+      if (SQD) SQD.idleFace++
+    }
+  }
+  /** quiet opening (P.sqQuiet): before sqFrom, calm walks stay under the 5 m/s footstep threshold */
+  sqQuietStep(A) {
+    const t = this.t
+    if (this.mode === "fight" || this.mode === "retreat" || this.mode === "zone" || this.zoneUrgent) return
+    if (t - this.lastDamagedT < 6 || this.vis.some((e) => e.los && (e.dist < 60 || t - e.hitMeT < 4))) return
+    const k = Math.min(1, 4.6 / (this.walk || 11.7))
+    const m = hyp(A.move[0], A.move[1])
+    if (m > k) {
+      A.move = [(A.move[0] / m) * k, (A.move[1] / m) * k]
+      A.boost = false
+      if (SQD) SQD.quiet++
+    }
   }
 
   setFight(e) {
@@ -2020,6 +2307,7 @@ export class Brain {
     const t = this.t
     const me = this.me
     const e = this.en.get(this.targetId)
+    if (SQDBG) this.sqTick(e)
     if (!e) {
       this.doHold(A)
       return
@@ -2048,7 +2336,7 @@ export class Brain {
       const cubesNow = me.cubes || 0,
         capC = this.cfg.cubes?.stat_cap ?? 10
       const nextTh = (this.cfg.cubes?.upgrade_thresholds || []).find((v) => v > cubesNow)
-      const skipCubes = bc || !(P.fightCube > 0) || (P.fightCubeCap > 0 && cubesNow >= capC && !(nextTh !== undefined && nextTh - cubesNow <= 2))
+      const skipCubes = bc || !(P.fightCube > 0) || (P.sqMove > 0 && P.sqCubes > 0) || (P.fightCubeCap > 0 && cubesNow >= capC && !(nextTh !== undefined && nextTh - cubesNow <= 2))
       if (!skipCubes) for (const c of this.cubes.values()) {
         const dc = hyp(c.pos[0] - x, c.pos[1] - y)
         if (dc >= bd || Math.abs(c.pos[2] - z) > 4) continue
@@ -2070,7 +2358,7 @@ export class Brain {
         }
       }
     }
-    if (!e.los) {
+    if (!e.los && !(P.sqMove > 0 && t - e.t < P.sqHold)) {
       // chase / re-acquire through cover toward where it is
       const lead = Math.min(2, t - e.t)
       this.moveToPoint(A, e.pos[0] + e.vel[0] * lead, e.pos[1] + e.vel[1] * lead, e.pos[2], 1, false, { replan: 1.2 })
@@ -2082,8 +2370,10 @@ export class Brain {
     const d = hyp(dx, dy) || 1
     const ux = dx / d,
       uy = dy / d
-    if (this.duck(A, e)) return
-    this.path = null
+    if (!(P.sqMove > 0)) {
+      if (this.duck(A, e)) return
+      this.path = null
+    }
     // preferred range by loadout: far enough that bullets can be side-stepped
     let pr = P.fightRange > 0 ? P.fightRange + (this.laser ? 8 : 0) : this.laser ? 112 : 104
     if (this.laser && P.rangeLas > 0) pr = P.rangeLas
@@ -2095,6 +2385,7 @@ export class Brain {
     if (P.finishRange > 0 && e.hpS < P.finishHp && this.hpS > P.finishMyHp && this.attackers(3).length <= 2) pr = Math.min(pr, P.finishRange)
     const maxR = (this.gun?.stats?.range || 230) - 30
     pr = Math.min(pr, maxR)
+    if (P.sqMove > 0) return this.sqFight(A, e, P.sqRange > 0 ? Math.min(this.sqOn && this.sqFinish > 0 ? this.sqFinish : this.sqPrefRange(e), maxR) : pr, d, ux, uy)
     let radial = clamp((d - pr) / P.bandRange, -1, 1)
     if (e.hpS < 0.3 && this.hpS > 0.4 && d > 60) radial = Math.max(radial, 0.5)
     if (t > this.strafeFlipT) {
@@ -2170,6 +2461,338 @@ export class Brain {
       A.move = mk(s0 * 0.35, -1)
       if (free(A.move)) A.boost = true
     }
+  }
+
+  /** new-idea 5.1: the reference preferred range table (sqRange 1); NPC targets never reach doFight */
+  sqPrefRange(e) {
+    let pr = this.laser ? 120 : 85
+    if (this.lightning && this.me.energy > 12) pr = 28
+    if (!this.lightning && e.has("lightning")) pr = Math.max(pr, 64)
+    if (!this.lightning && e.has("mortar")) pr = Math.max(pr, 80)
+    return pr
+  }
+
+  /** new-idea 5.2: +1 = we want a shot line to the target, -1 = we want to be out of it (gun only, reloading) */
+  sqWantLos(e, d) {
+    if (this.laser || this.lightning) return 1
+    const gun = this.gun
+    if (!gun) return -1
+    const rl = gun.reload > 0 ? gun.reload : 0
+    const loaded = (gun.ammo > 0 && rl <= 0.25) || (rl > 0 && rl <= 0.25)
+    return loaded && d < (gun.stats.range ?? 230) - 10 ? 1 : -1
+  }
+
+  /** other mechs that could see us in this fight: seen in the last 3 s, within 170 m, the nearest 5 */
+  sqWatchers(e) {
+    const t = this.t
+    const [x, y] = this.me.pos
+    const out = []
+    for (const q of this.en.values()) {
+      if (q === e || q.phantom || t - q.t >= 3) continue
+      const dq = hyp(q.pos[0] - x, q.pos[1] - y)
+      if (dq < 170) out.push([dq, q])
+    }
+    out.sort((a, b) => a[0] - b[0])
+    return out.slice(0, 5).map((a) => a[1])
+  }
+
+  /** how many watchers' eyes see our body (60% height) standing at (px, py, pz) */
+  sqExposure(watchers, px, py, pz) {
+    const w = this.w
+    if (!w) return 0
+    let n = 0
+    const bz = pz + this.Hh * 0.6
+    for (const q of watchers) if (w.los(q.pos[0], q.pos[1], q.pos[2] + 8 * (1 + 0.05 * (q.cubes || 0)), px, py, bz)) n++
+    return n
+  }
+
+  /**
+   * P.sqMove (new-idea 5.3-5.5). Score the spot we stand on and 16 headings x 6 m, keep the best as a unit
+   * direction (re-picked every tick), then blend in a sidestep from bullets about to pass through us and from a
+   * mech holding a charging laser on us: move = 0.4 x planned + 0.9 x dodge. Gun only and reloading, the shot line
+   * counts against a spot, so we step out of sight and come back for the next magazine.
+   */
+  sqFight(A, e, pr, d, ux, uy) {
+    const t = this.t
+    const me = this.me
+    const w = this.w
+    const [x, y, z] = me.pos
+    if (w && this.myNode >= 0) {
+      const n0 = w.nodeAt(x, y, z, 1.8)
+      if (n0 < 0 || w.wd[n0] < this.reqR - 0.35) {
+        // pressed against a wall: step back into the open first
+        this.steerTo(A, w.nodeX(this.myNode), w.nodeY(this.myNode), 1)
+        return
+      }
+    }
+    const want = this.sqWantLos(e, d)
+    // 5.4 strafe timer: 0.3-1.0 s, flip side with 60% on expiry
+    if (!(t < this.sqFlipT)) {
+      if (this.rand() < 0.6) this.strafeSide = -this.strafeSide
+      this.sqFlipT = t + 0.3 + this.rand() * 0.7
+    }
+    const STEP = 6,
+      NR = 16
+    // scratch buffers kept on the instance (no garbage per tick)
+    const B = (this.sqBuf ??= { cx: new Float64Array(NR + 1), cy: new Float64Array(NR + 1), cz: new Float64Array(NR + 1), ok: new Uint8Array(NR + 1), sc: new Float64Array(NR + 1), exp: new Uint8Array(NR + 1), losAt: new Uint8Array(NR + 1) })
+    const { cx, cy, cz, ok, sc, exp, losAt } = B
+    ok.fill(0)
+    exp.fill(0)
+    losAt.fill(0)
+    cx[0] = x
+    cy[0] = y
+    cz[0] = z
+    ok[0] = 1
+    for (let k = 1; k <= NR; k++) {
+      const a = ((k - 1) * TAU) / NR
+      cx[k] = x + Math.cos(a) * STEP
+      cy[k] = y + Math.sin(a) * STEP
+      cz[k] = z
+      if (!w) {
+        ok[k] = 1
+        continue
+      }
+      if (!w.walkLine(x, y, z, cx[k], cy[k], this.reqR - 0.3, this.Hh)) continue
+      const m = w.nodeAt(cx[k], cy[k], z, 3.2)
+      if (m < 0) continue
+      cz[k] = w.surf[m]
+      ok[k] = 1
+    }
+    // a blocked spot within ~26 deg of the strafe side: flip now and hold the new side 0.5 s
+    let s = this.strafeSide
+    {
+      const sa = Math.atan2(ux * s, -uy * s)
+      for (let k = 1; k <= NR; k++) {
+        if (ok[k]) continue
+        if (Math.abs(angNorm(((k - 1) * TAU) / NR - sa)) < 0.46) {
+          this.strafeSide = s = -s
+          this.sqFlipT = t + 0.5
+          break
+        }
+      }
+    }
+    const sx = -uy * s,
+      sy = ux * s
+    const watchers = this.sqWatchers(e)
+    // nearest remembered cube within 40 m (4 m vertically) pulls the spot toward it
+    let cube = null
+    {
+      let bd = 40
+      for (const c of this.cubes.values()) {
+        const dc = hyp(c.pos[0] - x, c.pos[1] - y)
+        if (dc < bd && Math.abs(c.pos[2] - z) <= 4) {
+          bd = dc
+          cube = c
+        }
+      }
+    }
+    const cubeD0 = cube ? hyp(cube.pos[0] - x, cube.pos[1] - y) : 0
+    const wallRef = P.sqWall + (this.R - 2.5)
+    const zoneOn = this.dNext > -8
+    sc.fill(-1e9)
+    let anyHidden = false
+    for (let k = 0; k <= NR; k++) {
+      if (!ok[k]) continue
+      const px = cx[k],
+        py = cy[k],
+        pz = cz[k]
+      let v = -1.1 * Math.abs(hyp(e.pos[0] - px, e.pos[1] - py) - pr)
+      if (k > 0) v -= 0.4 * STEP
+      const los = !w || w.los(px, py, pz + this.muzH, e.pos[0], e.pos[1], e.cz)
+      losAt[k] = los ? 1 : 0
+      if (!los) anyHidden = true
+      if (los) v += 45 * want
+      const n = watchers.length ? this.sqExposure(watchers, px, py, pz) : 0
+      exp[k] = n
+      v -= P.sqExpo * n
+      if (zoneOn) {
+        const out = hyp(px - this.nc[0], py - this.nc[1]) - this.safeR
+        if (out > -8) v -= 1.5 * (out + 8)
+      }
+      if (cube) v += 1.5 * (cubeD0 - hyp(cube.pos[0] - px, cube.pos[1] - py))
+      if (w) {
+        const m = k === 0 ? w.nodeAt(px, py, pz, 1.8) : w.nodeAt(px, py, pz, 1.0)
+        const wd = m >= 0 ? w.wd[m] : 0
+        if (wd < wallRef) v -= 2.5 * (wallRef - wd)
+      }
+      if (k > 0 && want > 0) {
+        const a = ((k - 1) * TAU) / NR
+        v += 9 * (Math.cos(a) * sx + Math.sin(a) * sy)
+      }
+      if (k === 0) v += want < 0 && !los ? 14 : -8
+      sc[k] = v
+    }
+    let bk = 0
+    for (let k = 1; k <= NR; k++) if (sc[k] > sc[bk]) bk = k
+    const S = this.sqS
+    // gun reloading and every spot of the ring in the target's sight: walk to the nearest hidden node instead
+    if (want < 0 && !anyHidden && P.sqDuck > 0 && this.duck(A, e)) {
+      if (S) S.duck++
+      return
+    }
+    this.path = null
+    let mv = bk === 0 ? [0, 0] : [Math.cos(((bk - 1) * TAU) / NR), Math.sin(((bk - 1) * TAU) / NR)]
+    // 5.5 sidestep: bullets about to pass within our radius + 1.1 m in the next 0.7 s, and lasers charging on us
+    let ddx = 0,
+      ddy = 0,
+      lasDodge = false
+    const ps = this.o.projectiles
+    const ccz = z + this.Hh * 0.56
+    if (ps && ps.length) {
+      for (const p of ps) {
+        if (p.kind === "mortar") continue
+        const vx = p.vel[0],
+          vy = p.vel[1],
+          vz = p.vel[2] || 0
+        const v2 = vx * vx + vy * vy + vz * vz
+        if (v2 < 1) continue
+        const rx = x - p.pos[0],
+          ry = y - p.pos[1],
+          rz = ccz - p.pos[2]
+        const tca = (rx * vx + ry * vy + rz * vz) / v2
+        if (!(tca > 0 && tca < 0.7)) continue
+        const mx = rx - vx * tca,
+          my = ry - vy * tca
+        const md = hyp(mx, my)
+        if (md >= this.R + 1.1) continue
+        if (md > 0.05) {
+          ddx += mx / md
+          ddy += my / md
+        } else {
+          const hv = hyp(vx, vy) || 1
+          ddx += (-vy / hv) * s
+          ddy += (vx / hv) * s
+        }
+      }
+    }
+    for (const q of this.vis) {
+      if (!q.charging || !q.los || !q.aim) continue
+      const bx = x - q.pos[0],
+        by = y - q.pos[1]
+      const bd = hyp(bx, by) || 1
+      if (Math.abs(angNorm(q.aim[0] - Math.atan2(by, bx))) >= 0.15) continue
+      ddx += 1.5 * (-by / bd) * s
+      ddy += 1.5 * (bx / bd) * s
+      lasDodge = true
+    }
+    const dodged = ddx !== 0 || ddy !== 0
+    if (dodged) {
+      const bx = 0.4 * mv[0] + 0.9 * ddx,
+        by = 0.4 * mv[1] + 0.9 * ddy
+      const bm = hyp(bx, by)
+      if (bm > 1e-6) mv = [bx / bm, by / bm]
+      if (bm > 1e-6 && w && !w.walkLine(x, y, z, x + mv[0] * 4, y + mv[1] * 4, this.reqR - 0.3, this.Hh)) {
+        // the sidestep runs into a wall: the nearest walkable heading to it, else the plan
+        const fd = this.sqFreeDir(mv[0], mv[1])
+        mv = fd || (bk === 0 ? [0, 0] : [Math.cos(((bk - 1) * TAU) / NR), Math.sin(((bk - 1) * TAU) / NR)])
+      }
+    }
+    // our bullet prediction: if the move still leaves a bullet on us, a top-ranked spot that clears it better wins
+    let mpcSw = false
+    if (P.sqMpc > 0 && ps && ps.length) {
+      const need = this.R + 1.3
+      let bestV = Math.min(this.missDist(mv), need) * 10
+      if (bestV < need * 10) {
+        const order = []
+        for (let k = 0; k <= NR; k++) if (ok[k]) order.push(k)
+        order.sort((a, b) => sc[b] - sc[a])
+        for (let i = 0; i < Math.min(5, order.length); i++) {
+          const k = order[i]
+          const c = k === 0 ? [0, 0] : [Math.cos(((k - 1) * TAU) / NR), Math.sin(((k - 1) * TAU) / NR)]
+          const v = Math.min(this.missDist(c, k === 0 ? 0.01 : 0), need) * 10 + 0.25 * (sc[k] - sc[bk])
+          if (v > bestV + 0.5) {
+            bestV = v
+            mv = c
+            mpcSw = true
+          }
+        }
+      }
+    }
+    A.move = mv
+    if (lasDodge && me.energy > 25) A.boost = true
+    if (this.lightning && pr < 50 && d > 50 && me.energy > 55 && want > 0) A.boost = true
+    // a lightning carrier inside its reach: open the range fast (kept from the old fight movement)
+    if (e.has("lightning") && d < 52 && me.energy > 25 && !(this.lightning && this.hpS > e.hpS)) {
+      const m0 = [-uy * s * 0.35 - ux, ux * s * 0.35 - uy]
+      const mm = hyp(m0[0], m0[1]) || 1
+      const m1 = [m0[0] / mm, m0[1] / mm]
+      if (!w || w.walkLine(x, y, z, x + m1[0] * 5, y + m1[1] * 5, this.reqR - 0.3, this.Hh)) {
+        A.move = m1
+        A.boost = true
+      }
+    }
+    if (S) {
+      S.sq++
+      S.expSum += exp[bk]
+      if (want < 0) S.wantOut++
+      if (dodged) S.dodge++
+      if (lasDodge) S.lasDodge++
+      if (mpcSw) S.mpc++
+      if (bk === 0) S.stand++
+    }
+  }
+
+  /** FM_SQDBG: fight bookkeeping, comparable between sqMove on and off; totals per process go to stderr on exit */
+  sqTick(e) {
+    const t = this.t
+    const me = this.me
+    let S = this.sqS
+    if (!S) {
+      S = this.sqS = { matches: 1, fightS: 0, dmg: 0, losTicks: 0, relTicks: 0, relHid: 0, curExpSum: 0, curExpN: 0, sq: 0, expSum: 0, wantOut: 0, dodge: 0, lasDodge: 0, mpc: 0, stand: 0, duck: 0, shellRot: 0 }
+      const G = globalThis.__sqTot
+      if (!G) {
+        globalThis.__sqTot = []
+        process.on("exit", () => {
+          const T = {}
+          for (const q of globalThis.__sqTot) for (const k in q) T[k] = (T[k] || 0) + q[k]
+          process.stderr.write("SQDBG " + JSON.stringify(T) + "\n")
+        })
+      }
+      globalThis.__sqTot.push(S)
+    }
+    if (this.sqPrevT !== undefined && t - this.sqPrevT < 0.25) {
+      S.fightS += t - this.sqPrevT
+      if (this.sqPrevHp > me.hp) S.dmg += this.sqPrevHp - me.hp
+    }
+    this.sqPrevT = t
+    this.sqPrevHp = me.hp
+    if (!e || !this.w || (!e.los && !(t - e.t < 3))) return
+    const [x, y, z] = me.pos
+    if (e.los) S.losTicks++
+    const losNow = this.w.los(x, y, z + this.muzH, e.pos[0], e.pos[1], e.cz)
+    if (this.sqWantLos(e, e.dist) < 0) {
+      S.relTicks++
+      if (!losNow) S.relHid++
+    }
+    const wt = this.sqWatchers(e)
+    S.curExpSum += wt.length ? this.sqExposure(wt, x, y, z) : 0
+    S.curExpN++
+  }
+
+  /** a unit direction near (dx, dy) with 6 m of walkable line: rotated 0, +-0.7, +-1.4 rad (null if none) */
+  sqFreeDir(dx, dy) {
+    const w = this.w
+    if (!w) return [dx, dy]
+    const [x, y, z] = this.me.pos
+    for (const r of [0, 0.7, -0.7, 1.4, -1.4]) {
+      const c = Math.cos(r),
+        sn = Math.sin(r)
+      const mx = dx * c - dy * sn,
+        my = dx * sn + dy * c
+      if (w.walkLine(x, y, z, x + mx * 6, y + my * 6, this.reqR - 0.3, this.Hh)) return [mx, my]
+    }
+    return null
+  }
+
+  /** P.sqAim: the centre of the target, or 85% of its height when the centre is blocked from our muzzle */
+  sqAimZ(e) {
+    const w = this.w
+    if (!w) return e.cz
+    const me = this.me
+    const mz = me.pos[2] + this.muzH
+    if (w.ray(me.pos[0], me.pos[1], mz, e.pos[0], e.pos[1], e.cz, 2.5) >= 1) return e.cz
+    const z85 = e.pos[2] + 0.85 * 9 * (1 + 0.05 * (e.cubes || 0))
+    return w.ray(me.pos[0], me.pos[1], mz, e.pos[0], e.pos[1], z85, 2.5) >= 1 ? z85 : e.cz
   }
 
   /**
@@ -2312,7 +2935,7 @@ export class Brain {
     if (!ps || !ps.length) return
     const [x, y, z] = this.me.pos
     const g = this.cfg.weapons?.mortar?.gravity ?? 22
-    const rad = (this.cfg.weapons?.mortar?.splash_radius ?? 7) + this.R + 1.5
+    const rad = (this.cfg.weapons?.mortar?.splash_radius ?? 7) + this.R + (P.sqMove > 0 ? 2 : 1.5)
     for (const p of ps) {
       if (p.kind !== "mortar") continue
       // time to come down to our feet
@@ -2335,6 +2958,12 @@ export class Brain {
       const m = hyp(dx, dy) || 1
       A.move = [dx / m, dy / m]
       A.boost = this.me.energy > 8
+      if (P.sqMove > 0) {
+        const fd = this.sqFreeDir(dx / m, dy / m)
+        if (fd) A.move = fd
+        A.boost = this.me.energy > 15
+        if (this.sqS && fd && (fd[0] !== dx / m || fd[1] !== dy / m)) this.sqS.shellRot++
+      }
       return
     }
   }
@@ -2357,9 +2986,9 @@ export class Brain {
       if (best) return best
     }
     const rush = P.rushUntil > 0 && this.rushOn()
-    const farming = (P.farmHard && t < P.farmUntil && !this.sqz) || rush
+    const farming = (P.farmHard && t < P.farmUntil && !this.sqz) || rush || this.sqOn // squad: crates / drones never stop
     // opening: the laser run is not called off just because a mech is in sight
-    const lasFirst = t < P.laserFirst && !this.laser && this.hpS >= 0.45
+    const lasFirst = (t < P.laserFirst || (this.sqOn && P.sqLasSeek > 0)) && !this.laser && this.hpS >= 0.45
     let gated = false
     if (rush) {
       // rush: only a mech on us calls it off
@@ -2367,6 +2996,7 @@ export class Brain {
     } else if (farming) {
       if (this.hpS < 0.45 || t - this.lastMechDmgT < 4 || this.vis.some((e) => e.los && e.dist < 170)) gated = true
     } else if (!this.calm || this.hpS < 0.6) gated = true
+    if (this.sqOn) gated = false // squad: pickLoot runs only with no target in sight
     if (this.lootHeld) gated = true // P.lootHold, see decide()
     if (gated && !lasFirst) return null
     if (this.zoneSlack < 14) return null
@@ -2405,7 +3035,7 @@ export class Brain {
     if (lasFirst) {
       // nearest known laser; the usual "no loot within 110 m of a mech" rule gives way when we are the closer one
       let goal = null,
-        gd = t - this.lastMechDmgT < 4 ? 60 : 300
+        gd = t - this.lastMechDmgT < 4 ? 60 : this.sqOn && t >= P.laserFirst ? P.sqLasSeek : 300
       for (const p of this.picks.values()) {
         if (p.kind !== "laser") continue
         const d = hyp(p.pos[0] - x, p.pos[1] - y)
@@ -2465,10 +3095,10 @@ export class Brain {
     const nextTh = th.find((v) => v > cubes) ?? 1e9
     let cubeVal = cubes < (this.cfg.cubes?.stat_cap ?? 10) ? 34 : nextTh - cubes <= 2 ? 16 : 0
     if (farming && cubeVal === 0 && nextTh - cubes <= 6) cubeVal = 20
-    const reach = farming ? 2.4 : 1
+    const reach = this.sqOn ? P.sqLootReach : farming ? 2.4 : 1
     if (cubeVal > 0) for (const c of this.cubes.values()) if (reachableZ(c.pos)) consider("cube", c, cubeVal * (farming ? 1.6 : 1), 90 * reach)
     if (this.killLoot && t - this.killLoot.t < 25) consider("cube", { id: -7, pos: this.killLoot.pos }, 60, 140 * (farming ? 1.5 : 1))
-    if (P.farm && cubeVal > 0) {
+    if (P.farm && cubeVal > 0 && !(this.sqOn && (this.sqDanger || this.hpS <= 0.5))) {
       const quiet = farming || !this.sounds.some((s) => t - s.t < 5 && s.D < 160 && (s.kind === "gun" || s.kind === "laser" || s.kind === "lightning" || s.kind === "laser_charge"))
       if (quiet) {
         for (const c of this.crates.values()) if (reachableZ(c.pos)) consider("crate", c, farming ? 55 : 30, 110 * reach)
@@ -2880,8 +3510,9 @@ export class Brain {
     }
     if (e && e.los) {
       const vel = e.dist > 45 ? [(e.vel[0] + e.vAvg[0]) / 2, (e.vel[1] + e.vAvg[1]) / 2, e.vel[2]] : e.vel
-      const gunSol = gun ? this.lead(e.pos, vel, e.cz, gun.stats.speed, 0.075) : null
-      const lasSol = laser ? this.lead(e.pos, e.vel, e.cz, 0, 0.09) : null
+      const aimZ = P.sqAim > 0 ? this.sqAimZ(e) : e.cz
+      const gunSol = gun ? this.lead(e.pos, vel, aimZ, gun.stats.speed, 0.075) : null
+      const lasSol = laser ? this.lead(e.pos, e.vel, aimZ, 0, 0.09) : null
       const tolR = e.R * 0.75,
         tolV = 3.2 * (1 + 0.05 * e.cubes)
       let sol = gunSol || lasSol
@@ -2905,6 +3536,7 @@ export class Brain {
             if (P.lethalRelease * est >= e.hp) {
               sol = lasSol
               lethal = good
+              if (SQD && good && this.sqOn) SQD.lethal++
             }
           }
           // let go when full and on target; hold a full charge a little for a better line
