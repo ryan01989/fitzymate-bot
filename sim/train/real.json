@@ -281,5 +281,24 @@
   "real": 5.23,
   "pred": "my estimate: 40% to gain, +-0.4",
   "note": "t13 + farmBoost 30 + rushVeto 1. Tie with t13 (5.40). No-enemy sim had +40% cubes by 90 s; real does not move."
+ },
+ {
+  "name": "t13-hunt90 (rescored)",
+  "file": "sim/variants/t13-hunt90.mjs",
+  "real": 5.28,
+  "note": "organisers rescored with more games: 5.40 -> 5.28. Use 5.28 as the t13 base from here."
+ },
+ {
+  "name": "t18a-retreat (rescored)",
+  "file": "sim/variants/t18a-retreat.mjs",
+  "real": 5.25,
+  "note": "rescored: 5.27 -> 5.25. Tie with t13 (5.28)."
+ },
+ {
+  "name": "t24-combo",
+  "file": "sim/variants/t24-combo.mjs",
+  "real": 5.1,
+  "pred": "sim: same as t13 within error",
+  "note": "t13 + lethalRelease + firstShot + fightHide + shortRetreat(hp 0.6) + noChase. -0.18 vs t13 rescored (5.28): the five lessons together do not help."
  }
 ]

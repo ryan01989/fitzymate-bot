@@ -182,7 +182,7 @@ export const P_FFA = {
   firstShot: 0, shortRetreat: 0, retarget: 0, // gd-policy lessons: practice only
 }
 Object.assign(P, {"laserFirst":90,"noRetreat":true,"cubeRun":130,"rushUntil":120,"ffaN":3,"lateAt":330,"lateFin":1.01,"lateCore":40}) // baked by sim/train/train.mjs from sim/train/cand/late.mjs
-Object.assign(P, {"huntFrom":90,"huntUntil":420,"seekUntil":420,"lethalRelease":0.75,"firstShot":0.5,"fightHide":30,"shortRetreat":1,"shortRetreatHp":0.6,"noChase":1}) // t24-combo: t13 + five lessons together: lethal partial laser release, first shot at a mech coming for us, fight positions out of sight of the others, short retreats (stay out below 60% HP), no chasing out of sight (sim/variants/rad8.mjs)
+Object.assign(P, {"huntFrom":90,"huntUntil":420,"seekUntil":420,"lethalRelease":0.75,"fightHide":30,"noChase":1}) // t25-efficiency: t24-combo without the two commitment lessons (firstShot, shortRetreat): lethal partial laser release, fight positions out of sight of the others, no chasing out of sight (sim/variants/rad8.mjs)
 if (typeof process !== "undefined" && process.env && process.env.FM_P) Object.assign(P, JSON.parse(process.env.FM_P))
 if (typeof process !== "undefined" && process.env && process.env.FM_PFFA) Object.assign(P_FFA, JSON.parse(process.env.FM_PFFA))
 if (P.preferZap) {
