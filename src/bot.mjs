@@ -176,6 +176,9 @@ export const P = {
   shortRetreatFire: 1, // ...0 = keep the old retreat aim (diagnostic: the exit rule alone)
   retarget: 0, // lesson C: in a fight, switch to a mech whose start-of-fight score beats the target's by this many points (100 = full HP share) (0 = off)
   retargetHold: 1.5, // ...but only after this many s on the current target, never off a target we are finishing, never past half a laser charge
+  // --- sim/agentW: size-aware fight range (real replays: at 100-120 m a gun hits a 0-2 cube mech with 40% of shots and a 10+ cube mech with 70%; at 60-80 m 78% and 92%)
+  bigRange: 0, // in a fight, the preferred range shrinks by this many m for each cube we hold, up to the stat cap: a bigger mech can no longer side-step bullets at range, so range only costs it its own hits (0 = off)
+  bigRangeMin: 70, // ...but never below this many m (lightning reaches 45 m, 54 m with one range upgrade)
 }
 // Free-for-all profile (qualifying and the final): the survival-first settings of the first two submissions.
 // Applied once, the moment the bot sees mechs dying that it did not kill (see ingest()).
@@ -188,9 +191,10 @@ export const P_FFA = {
   fBoost: 0, noRetAll: 0, cubeGoal: 0, seekUntil: 0, rearBonus: 15, dropAll: 0, focusLow: 0, lasLock: 0, lasBoost: 0,
   upSet: 0, chaseHp: 0.4, chaseMyHp: 0.55, chaseS: 7, farmBoost: 0, lethalRelease: 0, fightCube: 0, finishRange: 0, noChase: 0, fightHide: 0, noExplore: 0, cautR: 0, endRush: 0, fightPick: 0, fightCubeCap: 0,
   firstShot: 0, shortRetreat: 0, retarget: 0, // gd-policy lessons: practice only
+  bigRange: 0, bigRangeMin: 70, // agentW: practice only
 }
 Object.assign(P, {"laserFirst":90,"noRetreat":true,"cubeRun":130,"rushUntil":120,"ffaN":3,"lateAt":330,"lateFin":1.01,"lateCore":40}) // baked by sim/train/train.mjs from sim/train/cand/late.mjs
-Object.assign(P, {"huntFrom":90,"huntUntil":420,"seekUntil":420,"fightCube":55,"fightPick":70,"weave":0.6,"weaveAll":1,"cubeHit":1,"upSet":6}) // t32-stack-pick: t31-stack + in a fight without a laser, walk onto a known ground laser within 70 m (35 m below half HP) while still shooting (sim/variants/rad8.mjs)
+Object.assign(P, {"huntFrom":90,"huntUntil":420,"seekUntil":420,"fightCube":55,"fightPick":70,"weave":0.6,"weaveAll":1,"cubeHit":1,"upSet":6,"bigRange":3.5,"bigRangeMin":70}) // w01-bigrange: t32-stack-pick + the fight range shrinks 3.5 m per cube held (104 -> 70 m with a gun, 112 -> 77 m with a laser at 10 cubes) (sim/agentW/rad8w.mjs)
 if (typeof process !== "undefined" && process.env && process.env.FM_P) Object.assign(P, JSON.parse(process.env.FM_P))
 if (typeof process !== "undefined" && process.env && process.env.FM_PFFA) Object.assign(P_FFA, JSON.parse(process.env.FM_PFFA))
 if (P.preferZap) {
@@ -1933,6 +1937,8 @@ export class Brain {
     let pr = P.fightRange > 0 ? P.fightRange + (this.laser ? 8 : 0) : this.laser ? 112 : 104
     if (this.laser && P.rangeLas > 0) pr = P.rangeLas
     if (!this.laser && P.rangeGun > 0) pr = P.rangeGun
+    // bigRange: give range up as we grow (never raises pr, never takes it below bigRangeMin)
+    if (P.bigRange > 0) pr = Math.min(pr, Math.max(P.bigRangeMin, pr - P.bigRange * Math.min(this.me.cubes || 0, this.cfg.cubes?.stat_cap ?? 10)))
     if (this.lightning && !this.laser && (this.hpS - e.hpS > 0.1 || e.hpS < 0.45) && !e.has("lightning")) pr = 34
     if (P.zapRange > 0 && this.lightning && this.me.energy > 22 && !(e.has("lightning") && this.hpS < e.hpS)) pr = P.zapRange
     if (this.finalPhase) pr = Math.min(pr, 45)

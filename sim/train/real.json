@@ -343,5 +343,35 @@
   "real": 5.5,
   "pred": "my odds: 45% to beat 5.42",
   "note": "new scoring. t22b-fightcube + weave 0.6 / weaveAll 1 + cubeHit 1 + upSet 6 (nanites third). NEW BEST: +0.08 on t22b (5.42), +0.22 on t13 (5.28)."
+ },
+ {
+  "name": "t32-stack-pick",
+  "file": "sim/variants/t32-stack-pick.mjs",
+  "real": 5.52,
+  "note": "new scoring. t31 + fightPick 70. Tie with t31 (5.50); best by a hair."
+ },
+ {
+  "name": "t33a-cubes-more",
+  "file": "sim/variants/t33a-cubes-more.mjs",
+  "real": 5.3,
+  "note": "new scoring. t31 + fightCube 80, cubeRun 180, cubeRunS 30. -0.20: reaching further for cubes costs."
+ },
+ {
+  "name": "t33b-firstshot",
+  "file": "sim/variants/t33b-firstshot.mjs",
+  "real": 5.21,
+  "note": "new scoring. t31 + firstShot 0.5. -0.29: taking the first shot (no crowd/HP vetoes) loses."
+ },
+ {
+  "name": "t33c-shortretreat",
+  "file": "sim/variants/t33c-shortretreat.mjs",
+  "real": 5.51,
+  "note": "new scoring. t31 + shortRetreat 1, shortRetreatHp 0.6. Tie."
+ },
+ {
+  "name": "t32-stack-pick (run 2)",
+  "file": "sim/variants/t32-stack-pick.mjs",
+  "real": 5.53,
+  "note": "new scoring. Second run of t32 (first 5.52). Same-build runs now agree within 0.01-0.02."
  }
 ]
